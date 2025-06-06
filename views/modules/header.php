@@ -31,17 +31,34 @@
                 <!-- User Account: style can be found in dropdown.less -->
                 <li class="dropdown user user-menu">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <img src="./views/dist/img/user2-160x160.jpg" class="user-image" alt="User Image">
-                        <span class="hidden-xs">Angel Revolledo</span>
+
+                        <?php
+                        if($_SESSION["foto"]!=""){
+                            echo '<img src="'.$_SESSION["foto"].'" class="user-image" alt="User Image">';
+                        }else{
+                            echo '<img src="views/img/template/usuario-sin-foto.png" class="user-image" alt="User Image">';
+                        }
+                        ?>
+
+
+                        
+
+                        <span class="hidden-xs"><?php echo $_SESSION["nombre"]; ?></span>
                     </a>
                     <ul class="dropdown-menu">
                         <!-- User image -->
                         <li class="user-header">
 
-                            <img src="./views/dist/img/user2-160x160.jpg" class="img-circle" alt="User Image">
-
+                            <?php
+                            if($_SESSION["foto"]!=""){
+                                echo '<img src="'.$_SESSION["foto"].'" class="img-circle" alt="User Image">';
+                            }else{
+                                echo '<img src="views/img/template/usuario-sin-foto.png" class="img-circle" alt="User Image">';
+                            }
+                            ?>
+                            
                             <p>
-                                Angel Revolledo - Programador Frontend
+                                <?php echo $_SESSION["nombre"]; ?> - <?php echo $_SESSION["perfil"]; ?>
                             </p>
                         </li>
                         <!-- Menu Footer-->

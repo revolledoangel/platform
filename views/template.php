@@ -77,7 +77,6 @@ session_start();
         }
 
         include "modules/footer.php";
-
         echo '</div>';
 
     }else{

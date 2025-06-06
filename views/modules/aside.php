@@ -6,11 +6,19 @@
         <!-- Sidebar user panel -->
         <div class="user-panel">
             <div class="pull-left image">
-                <img src="./views/dist/img/user2-160x160.jpg" class="img-circle" alt="User Image">
+
+                <?php
+                if($_SESSION["foto"]!=""){
+                    echo '<img src="'.$_SESSION["foto"].'" class="img-circle" alt="User Image">';
+                }else{
+                    echo '<img src="views/img/template/usuario-sin-foto.png" class="img-circle" alt="User Image">';
+                }
+                ?>
+
             </div>
             <div class="pull-left info">
-                <p>Angel Revolledo</p>
-                <small>Dueño de Algoritmo</small>
+                <p><?php echo $_SESSION["nombre"] ?></p>
+                <small><?php echo $_SESSION["perfil"] ?></small>
             </div>
         </div>
 
