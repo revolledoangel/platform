@@ -40,9 +40,6 @@
                         }
                         ?>
 
-
-                        
-
                         <span class="hidden-xs"><?php echo $_SESSION["nombre"]; ?></span>
                     </a>
                     <ul class="dropdown-menu">

@@ -7,16 +7,16 @@
     <!-- /.login-logo -->
     <div class="login-box-body" style="border-radius:15px">
         <p class="login-box-msg">Ingresar al sistema</p>
-
+        
         <form method="post">
 
             <div class="form-group has-feedback">
-                <input type="text" class="form-control" placeholder="Email o usuario" name="user" required>
+                <input type="text" class="form-control" placeholder="Email o usuario" name="user" required autocomplete="off">
                 <span class="glyphicon glyphicon-user form-control-feedback"></span>
             </div>
 
             <div class="form-group has-feedback">
-                <input type="password" class="form-control" placeholder="Contraseña" name="password" required>
+                <input type="password" class="form-control" placeholder="Contraseña" name="password" required autocomplete="off">
                 <span class="glyphicon glyphicon-lock form-control-feedback"></span>
             </div>
 
@@ -43,3 +43,4 @@
     </div>
 
 </div>
+

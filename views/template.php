@@ -31,22 +31,17 @@ session_start();
     <!-- Google Font -->
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
+    <!-- Select2 -->
+    <link rel="stylesheet" href="views/bower_components/select2/dist/css/select2.css">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="views/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css">
+    <link rel="stylesheet" href="views/bower_components/datatables.net-bs/css/responsive.bootstrap.min.css">
 
-    <!--========================================================================
-    PLUGINS DE javascript
-    ========================================================================-->
 
-    <!-- jQuery 3 -->
-    <script src="views/bower_components/jquery/dist/jquery.min.js"></script>
+    <!-- SweetAlert2 -->
+     <script src="views/plugins/sweetalert2/sweetalert2.all.js"></script>
 
-    <!-- Bootstrap 3.3.7 -->
-    <script src="views/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-
-    <!-- FastClick -->
-    <script src="views/bower_components/fastclick/lib/fastclick.js"></script>
-
-    <!-- AdminLTE App -->
-    <script src="views/dist/js/adminlte.min.js"></script>
+    
 
 </head>
 
@@ -79,15 +74,44 @@ session_start();
         include "modules/footer.php";
         echo '</div>';
 
-    }else{
+    } else {
         include "modules/login.php";
     }
 
 
     ?>
 
+</body>
+
+<!--========================================================================
+    PLUGINS DE javascript
+    ========================================================================-->
+
+    <!-- jQuery 3 -->
+    <script src="views/bower_components/jquery/dist/jquery.min.js"></script>
+
+    <!-- Bootstrap 3.3.7 -->
+    <script src="views/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <!-- FastClick -->
+    <script src="views/bower_components/fastclick/lib/fastclick.js"></script>
+
+    <!-- AdminLTE App -->
+    <script src="views/dist/js/adminlte.min.js"></script>
+
+    <!-- DataTables -->
+    <script src="views/bower_components/datatables.net/js/jquery.dataTables.min.js"></script>
+    <script src="views/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+    <script src="views/bower_components/datatables.net-bs/js/dataTables.responsive.min.js"></script>
+    <script src="views/bower_components/datatables.net-bs/js/responsive.bootstrap.min.js"></script>
+
+    
+
+    <!-- Select2 -->
+    <script src="views/bower_components/select2/dist/js/select2.full.js"></script>
+
     <script src="views/js/template.js"></script>
 
-</body>
+    <script src="views/js/users.js"></script>
 
 </html>
