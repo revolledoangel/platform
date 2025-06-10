@@ -102,6 +102,7 @@ $(document).ready(function () {
 
     /* Editar Usuario*/
     $(".btn-editUser").click(function () {
+
         var idUser = $(this).attr("userId");
 
         fetch(`https://algoritmo.digital/backend/public/api/users/${idUser}`)
@@ -135,6 +136,31 @@ $(document).ready(function () {
                 console.error("Error al obtener datos del usuario:", error);
             });
     });
+
+    /** Eliminar Usuario */
+    $(".btn-deleteUser").click(function () {
+
+        var userId = $(this).attr("userId");
+        var userPhoto = $(this).attr("userPhoto");
+        var userUsername = $(this).attr("userUsername");
+
+        swal({
+            title: "¿Seguro que desea borrar el usuario?",
+            text: "si no lo estás, cancela la acción",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            cancelButtonText: 'Cancelar',
+            confirmButtonText: 'Sí, borrar usuario'
+        }).then((result)=>{
+            if(result.value){
+                window.location ="index.php?route=users&userId="+userId+"&userUsername="+userUsername+"&userPhoto="+userPhoto;
+            }
+        })
+
+    })
+
 
 
 

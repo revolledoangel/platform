@@ -23,18 +23,26 @@ class Users_controller
 
                 if ($user) {
 
-                    echo '<br><div class="alert alert-success m-1">Bienvenido</div>';
+                    if ($user["user"]["active"]) {
 
-                    $_SESSION["startSession"] = true;
-                    $_SESSION["id"] = $user["user"]["id"];
-                    $_SESSION["email"] = $user["user"]["email"];
-                    $_SESSION["nombre"] = $user["user"]["name"];
-                    $_SESSION["foto"] = $user["user"]["photo"];
-                    $_SESSION["perfil"] = $user["user"]["profile"];
 
-                    echo '<script>
+                        echo '<br><div class="alert alert-success m-1">Bienvenido</div>';
+
+                        $_SESSION["startSession"] = true;
+                        $_SESSION["id"] = $user["user"]["id"];
+                        $_SESSION["email"] = $user["user"]["email"];
+                        $_SESSION["nombre"] = $user["user"]["name"];
+                        $_SESSION["foto"] = $user["user"]["photo"];
+                        $_SESSION["perfil"] = $user["user"]["profile"];
+
+                        echo '<script>
                         window.location = "home";
                     </script>';
+                    } else {
+                        echo '<br><div class="alert alert-danger m-1">Usuario desactivado</div>';
+                    }
+
+
 
                 } else {
                     echo '<br><div class="alert alert-danger m-1">Usuario y/o contraseña inválido</div>';
@@ -224,10 +232,10 @@ class Users_controller
         ]);
     }
 
-    public function ctrEditUser()
+    static public function ctrEditUser()
     {
         // Usar isset($_POST["editId"]) es una mejor comprobación de que el formulario se ha enviado.
-        if (isset($_POST["editId"])) {            
+        if (isset($_POST["editId"])) {
 
             // 1. VALIDACIÓN DE CAMPOS
             // Es mejor validar cada campo por separado para dar mensajes de error más específicos.
@@ -237,7 +245,7 @@ class Users_controller
             $passwordValidation = true; // Asumimos que es válida si está vacía
             if (!empty($_POST["newUserPassword"])) {
                 $passwordValidation = preg_match('/^[a-zA-Z0-9@.*#%&+]+$/', $_POST["newUserPassword"]);
-            }   
+            }
 
             if (
                 preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ]+$/', $_POST["editName"]) &&
@@ -246,7 +254,7 @@ class Users_controller
                 $passwordValidation // Usando la variable de validación de contraseña
             ) {
 
-                echo "<script>alert('ID de usuario recibido: " . $_POST["editPhoto"] . "');</script>";
+                //echo "<script>alert('ID de usuario recibido: " . $_POST["editPhoto"] . "');</script>";
                 // 2. VALIDACIÓN Y PROCESAMIENTO DE LA IMAGEN
                 $ruta = $_POST["currentPhoto"]; // Necesitarás un input hidden para la foto actual
 
@@ -298,14 +306,17 @@ class Users_controller
                     "name" => $_POST["editName"],
                     "username" => $_POST["editUsername"],
                     "email" => $_POST["editEmail"],
-                    "profile" => $_POST["editProfile"],
-                    "photo" => $ruta // $ruta contendrá la foto nueva o la anterior si no se cambió.
+                    "profile" => $_POST["editProfile"]
                 ];
 
                 // Solo añade la contraseña al body si se proporcionó una nueva.
                 if (!empty($_POST["newUserPassword"])) {
                     // IMPORTANTE: La API debe encargarse de hacer el hash de la contraseña.
                     $body["password"] = $_POST["newUserPassword"];
+                }
+
+                if ($ruta != "") {
+                    $body["photo"] = $ruta;
                 }
 
                 $jsonData = json_encode($body);
@@ -368,6 +379,62 @@ class Users_controller
     }
 
 
+    static public function ctrDeleteUser()
+    {
+        // Se verifica si se recibió el userId por la URL (método GET)
+        if (isset($_GET["userId"])) {
 
+            $userId = $_GET["userId"];
+
+            // Borrar la foto y el directorio del usuario si existen
+            if (isset($_GET["userPhoto"]) && $_GET["userPhoto"] != "" && isset($_GET["userUsername"])) {
+                // Se comprueba que el archivo y el directorio realmente existan antes de intentar borrarlos
+                if (file_exists($_GET["userPhoto"])) {
+                    unlink($_GET["userPhoto"]);
+                }
+                $userDirectory = 'views/img/users/' . $_GET["userUsername"];
+                if (is_dir($userDirectory)) {
+                    rmdir($userDirectory);
+                }
+            }
+
+            // Llamar al modelo para que ejecute la petición DELETE a la API
+            $respuesta = UserModel::mdlDeleteUser($userId);
+
+            // Verificar si la respuesta de la API fue exitosa
+            if (isset($respuesta["success"]) && $respuesta["success"] === true) {
+                
+                // Si el borrado fue exitoso, mostrar alerta de éxito y redirigir
+                echo '<script>
+                    swal({
+                        type: "success",
+                        title: "¡Usuario eliminado!",
+                        text: "El usuario ha sido eliminado correctamente.",
+                        confirmButtonText: "Cerrar"
+                    }).then((result) => {
+                        if (result.value) {
+                            window.location = "users";
+                        }
+                    });
+                </script>';
+
+            } else {
+                
+                // Si la API devolvió un error, mostrar alerta de error y redirigir
+                echo '<script>
+                    swal({
+                        type: "error",
+                        title: "Error",
+                        text: "No se pudo eliminar el usuario. Por favor, inténtelo de nuevo.",
+                        confirmButtonText: "Cerrar"
+                    }).then((result) => {
+                        if (result.value) {
+                            window.location = "users";
+                        }
+                    });
+                </script>';
+            }
+        }
+    }
 
 }

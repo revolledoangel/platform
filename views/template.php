@@ -102,8 +102,8 @@ session_start();
     <!-- DataTables -->
     <script src="views/bower_components/datatables.net/js/jquery.dataTables.min.js"></script>
     <script src="views/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
-    <script src="views/bower_components/datatables.net-bs/js/dataTables.responsive.min.js"></script>
-    <script src="views/bower_components/datatables.net-bs/js/responsive.bootstrap.min.js"></script>
+    <!--<script src="views/bower_components/datatables.net-bs/js/dataTables.responsive.min.js"></script>
+    <script src="views/bower_components/datatables.net-bs/js/responsive.bootstrap.min.js"></script>-->
 
     
 

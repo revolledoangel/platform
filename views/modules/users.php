@@ -25,154 +25,155 @@
             </div>
 
             <!-- /.box-header -->
-            <div class="box-body">
+            <div class="box-body ">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped tablas">
 
-                <table class="table table-bordered table-striped dt-responsive tablas">
+                        <thead>
+                            <tr>
+                                <th style="max-width:100px">Nombre</th>
+                                <th style="max-width:50px">Usuario</th>
+                                <th style="max-width:80px">E-mail</th>
+                                <th style="max-width:100px">Perfil</th>
+                                <th style="max-width:40px">Estado</th>
+                                <th style="max-width:100px">Último Login</th>
+                                <th style="max-width:80px">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $usuarios = Users_controller::ctrShowUsers();
 
-                    <thead>
-                        <tr>
-                            <th style="max-width:100px">Nombre</th>
-                            <th style="max-width:50px">Usuario</th>
-                            <th style="max-width:80px">E-mail</th>
-                            <th style="max-width:100px">Perfil</th>
-                            <th style="max-width:40px">Estado</th>
-                            <th style="max-width:100px">Último Login</th>
-                            <th style="max-width:70px">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $usuarios = Users_controller::ctrShowUsers();
+                            foreach ($usuarios as $usuario) {
+                                echo '<tr>';
 
-                        foreach ($usuarios as $usuario) {
-                            echo '<tr>';
+                                // Nombre
+                                echo '<td>' . htmlspecialchars($usuario["name"]) . '</td>';
 
-                            // Nombre
-                            echo '<td>' . htmlspecialchars($usuario["name"]) . '</td>';
+                                // Usuario
+                                echo '<td>' . htmlspecialchars($usuario["username"]) . '</td>';
 
-                            // Usuario
-                            echo '<td>' . htmlspecialchars($usuario["username"]) . '</td>';
+                                // Email
+                                echo '<td>' . htmlspecialchars($usuario["email"]) . '</td>';
 
-                            // Email
-                            echo '<td>' . htmlspecialchars($usuario["email"]) . '</td>';
+                                // Perfil
+                                echo '<td>' . htmlspecialchars($usuario["profile"]) . '</td>';
 
-                            // Perfil
-                            echo '<td>' . htmlspecialchars($usuario["profile"]) . '</td>';
-
-                            // Estado (activo/inactivo)
-                            $checked = $usuario["active"] == 1 ? "checked" : "";
-                            echo '<td>
+                                // Estado (activo/inactivo)
+                                $checked = $usuario["active"] == 1 ? "checked" : "";
+                                echo '<td>
                                     <label class="switch text-center">
                                         <input type="checkbox" class="toggle-active" data-id="' . $usuario["id"] . '" ' . $checked . '>
                                         <span class="slider round"></span>
                                     </label>
                                 </td>';
 
-                            // Último login
-                            echo '<td>' . ($usuario["last_login"] ?? 'Sin registro') . '</td>';
+                                // Último login
+                                echo '<td>' . ($usuario["last_login"] ?? 'Sin registro') . '</td>';
 
-                            // Botones de acción
-                            echo '<td>
+                                // Botones de acción
+                                echo '<td>
                                     <div class="btn-group">
 
                                         <button type="button" class="btn btn-default btn-warning btn-editUser" userId="' . $usuario["id"] . '" data-toggle="modal" data-target="#editUserModal">
                                             <span class="glyphicon glyphicon-pencil"></span>
                                         </button>
 
-                                        <button type="button" class="btn btn-default btn-danger">
+                                       <button type="button" class="btn btn-default btn-danger btn-deleteUser" userId="' . $usuario["id"] . '" userPhoto="' . $usuario["photo"] . '" userUsername="' . $usuario["username"] . '">
                                             <span class="glyphicon glyphicon-remove"></span>
                                         </button>
 
                                     </div>
                                 </td>';
 
-                            echo '</tr>';
-                        }
-                        ?>
-                    </tbody>
+                                echo '</tr>';
+                            }
+                            ?>
+                        </tbody>
 
-                    <tfoot>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Usuario</th>
-                            <th>E-mail</th>
-                            <th>Perfil</th>
-                            <th>Estado</th>
-                            <th>Último Login</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </tfoot>
+                        <tfoot>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>E-mail</th>
+                                <th>Perfil</th>
+                                <th>Estado</th>
+                                <th>Último Login</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </tfoot>
 
-                    <style>
-                        .switch {
-                            position: relative;
-                            display: inline-block;
-                            width: 42px;
-                            /* 60 * 0.7 */
-                            height: 23.8px;
-                            /* 34 * 0.7 */
-                        }
+                        <style>
+                            .switch {
+                                position: relative;
+                                display: inline-block;
+                                width: 42px;
+                                /* 60 * 0.7 */
+                                height: 23.8px;
+                                /* 34 * 0.7 */
+                            }
 
-                        .switch input {
-                            opacity: 0;
-                            width: 0;
-                            height: 0;
-                        }
+                            .switch input {
+                                opacity: 0;
+                                width: 0;
+                                height: 0;
+                            }
 
-                        .slider {
-                            position: absolute;
-                            cursor: pointer;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background-color: #ccc;
-                            -webkit-transition: .4s;
-                            transition: .4s;
-                        }
+                            .slider {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                background-color: #ccc;
+                                -webkit-transition: .4s;
+                                transition: .4s;
+                            }
 
-                        .slider:before {
-                            position: absolute;
-                            content: "";
-                            height: 18.2px;
-                            /* 26 * 0.7 */
-                            width: 18.2px;
-                            /* 26 * 0.7 */
-                            left: 2.8px;
-                            /* 4 * 0.7 */
-                            bottom: 2.8px;
-                            /* 4 * 0.7 */
-                            background-color: white;
-                            -webkit-transition: .4s;
-                            transition: .4s;
-                        }
+                            .slider:before {
+                                position: absolute;
+                                content: "";
+                                height: 18.2px;
+                                /* 26 * 0.7 */
+                                width: 18.2px;
+                                /* 26 * 0.7 */
+                                left: 2.8px;
+                                /* 4 * 0.7 */
+                                bottom: 2.8px;
+                                /* 4 * 0.7 */
+                                background-color: white;
+                                -webkit-transition: .4s;
+                                transition: .4s;
+                            }
 
-                        input:checked+.slider {
-                            background-color: #2196F3;
-                        }
+                            input:checked+.slider {
+                                background-color: #2196F3;
+                            }
 
-                        input:focus+.slider {
-                            box-shadow: 0 0 1px #2196F3;
-                        }
+                            input:focus+.slider {
+                                box-shadow: 0 0 1px #2196F3;
+                            }
 
-                        input:checked+.slider:before {
-                            -webkit-transform: translateX(18.2px);
-                            /* 26 * 0.7 */
-                            -ms-transform: translateX(18.2px);
-                            transform: translateX(18.2px);
-                        }
+                            input:checked+.slider:before {
+                                -webkit-transform: translateX(18.2px);
+                                /* 26 * 0.7 */
+                                -ms-transform: translateX(18.2px);
+                                transform: translateX(18.2px);
+                            }
 
-                        /* Rounded sliders */
-                        .slider.round {
-                            border-radius: 23.8px;
-                            /* 34 * 0.7 */
-                        }
+                            /* Rounded sliders */
+                            .slider.round {
+                                border-radius: 23.8px;
+                                /* 34 * 0.7 */
+                            }
 
-                        .slider.round:before {
-                            border-radius: 50%;
-                        }
-                    </style>
-                </table>
+                            .slider.round:before {
+                                border-radius: 50%;
+                            }
+                        </style>
+                    </table>
+                </div>
             </div>
             <!-- /.box-body -->
         </div>
@@ -356,3 +357,8 @@
     </div>
     <!-- /.modal-dialog -->
 </div>
+
+<?php
+$deleteUser = new Users_controller();
+$deleteUser -> ctrDeleteUser();
+?>

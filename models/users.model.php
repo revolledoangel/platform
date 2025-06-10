@@ -87,5 +87,40 @@ class UserModel
     {
     }
 
+    static public function mdlDeleteUser($userId)
+    {
+        // 1. Construir la URL del endpoint con el ID del usuario
+        $url = 'https://algoritmo.digital/backend/public/api/users/' . $userId;
+
+        // 2. Inicializar cURL
+        $ch = curl_init();
+
+        // 3. Configurar las opciones de cURL
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE'); // Especificar el método DELETE
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // Para que devuelva la respuesta como un string
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Content-Type: application/json'
+        ]);
+
+        // 4. Ejecutar la petición
+        $response = curl_exec($ch);
+        
+        // (Opcional) Verificar si hubo errores en la ejecución de cURL
+        if (curl_errno($ch)) {
+            // Manejar el error de cURL, por ejemplo, registrarlo o devolver un error específico
+            $error_msg = curl_error($ch);
+            curl_close($ch);
+            return ['success' => false, 'message' => 'Error en cURL: ' . $error_msg];
+        }
+
+        // 5. Cerrar la conexión cURL
+        curl_close($ch);
+
+        // 6. Decodificar la respuesta JSON a un array de PHP y devolverla
+        return json_decode($response, true);
+    }
+
 
 }
