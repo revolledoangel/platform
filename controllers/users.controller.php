@@ -178,18 +178,18 @@ class Users_controller
 
             } else {
                 echo '<script>
-                swal({
-                    type: "error",
-                    title: "Validación incorrecta",
-                    text: "No se permiten caracteres especiales",
-                    showConfirmButton: true,
-                    confirmButtonText: "Cerrar"
-                }).then((result)=>{
-                    if(result.value){
-                        window.location = "users";
-                    }
-                });
-            </script>';
+                        swal({
+                            type: "error",
+                            title: "Validación incorrecta",
+                            text: "No se permiten caracteres especiales",
+                            showConfirmButton: true,
+                            confirmButtonText: "Cerrar"
+                        }).then((result)=>{
+                            if(result.value){
+                                window.location = "users";
+                            }
+                        });
+                    </script>';
             }
         }
     }

@@ -9,7 +9,7 @@ class AjaxUsers
     /*Editar Usuario*/
     public $userId;
     public $userActive;
-    static public function ajaxEditUser()
+    public function ajaxEditUser()
     {
         $url = "https://algoritmo.digital/backend/public/api/users/" . $this->userId;
 
@@ -18,7 +18,7 @@ class AjaxUsers
         echo $response; // El frontend lo recibirá como JSON
     }
 
-    static public function ajaxActiveUser()
+    public function ajaxActiveUser()
     {
         Users_controller::ctrCambiarEstadoUsuario($this->userId, $this->userActive);
     }

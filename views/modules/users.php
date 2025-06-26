@@ -25,7 +25,7 @@
             </div>
 
             <!-- /.box-header -->
-            <div class="box-body ">
+            <div class="box-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped tablas">
 
@@ -62,7 +62,7 @@
                                 // Estado (activo/inactivo)
                                 $checked = $usuario["active"] == 1 ? "checked" : "";
                                 echo '<td>
-                                    <label class="switch text-center">
+                                    <label class="switch switch-user text-center">
                                         <input type="checkbox" class="toggle-active" data-id="' . $usuario["id"] . '" ' . $checked . '>
                                         <span class="slider round"></span>
                                     </label>
@@ -268,15 +268,23 @@
 
 
 <!-- Modal editar usuario -->
+
 <div class="modal fade in" id="editUserModal">
+
     <div class="modal-dialog">
+
         <div class="modal-content">
 
             <form role="form" method="post" enctype="multipart/form-data" autocomplete="off">
 
                 <div class="modal-header" style="background:#00013b;color:#fff">
+
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span></button>
+
+                        <span aria-hidden="true">×</span>
+                    
+                    </button>
+                    
                     <h4 class="modal-title">Editar Usuario</h4>
                 </div>
 

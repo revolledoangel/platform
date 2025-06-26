@@ -51,7 +51,7 @@ $(document).ready(function () {
 
 
     /* cambiar el switch de active */
-    document.querySelectorAll(".switch input[type=checkbox]").forEach((checkbox) => {
+    document.querySelectorAll(".switch-user input[type=checkbox]").forEach((checkbox) => {
         checkbox.addEventListener("change", function () {
 
             const userId = this.getAttribute("data-id");
@@ -101,7 +101,7 @@ $(document).ready(function () {
 
 
     /* Editar Usuario*/
-    $(".btn-editUser").click(function () {
+    $(document).on("click", ".btn-editUser", function () {
 
         var idUser = $(this).attr("userId");
 
@@ -160,8 +160,6 @@ $(document).ready(function () {
         })
 
     })
-
-
 
 
 });

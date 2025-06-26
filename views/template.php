@@ -60,6 +60,12 @@ session_start();
             if (
                 $_GET["route"] == "home" ||
                 $_GET["route"] == "users" ||
+                $_GET["route"] == "verticals" ||
+                $_GET["route"] == "clients" ||
+                $_GET["route"] == "projects" ||
+                $_GET["route"] == "platforms" ||
+                $_GET["route"] == "formats" ||
+                $_GET["route"] == "objetives" ||
                 $_GET["route"] == "close"
             ) {
                 include "modules/" . $_GET["route"] . ".php";
@@ -113,5 +119,15 @@ session_start();
     <script src="views/js/template.js"></script>
 
     <script src="views/js/users.js"></script>
+
+    <script src="views/js/verticals.js"></script>
+
+    <script src="views/js/clients.js"></script>
+
+    <script src="views/js/projects.js"></script>
+
+    <script src="views/js/platforms.js"></script>
+
+    <script src="views/js/formats.js"></script>
 
 </html>
