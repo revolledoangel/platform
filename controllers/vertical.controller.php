@@ -35,7 +35,7 @@ class Verticals_Controller
         if (isset($_POST["newVerticalName"])) {
 
             if (
-                preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ]+$/', $_POST["newVerticalName"])
+                preg_match('/^[a-zA-ZñÑáéíóúÁÉÍÓÚ][a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ]*$/', $_POST["newVerticalName"])
             ) {
                 $body = [
                     "name" => $_POST["newVerticalName"],
