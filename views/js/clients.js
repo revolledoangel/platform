@@ -23,24 +23,24 @@ $(document).ready(function () {
 
                     // ✅ AHORA llenar los nuevos datos
 
-                    $("input[name='editClientId']").val(data.client.id);
-                    $("input[name='editClientName']").val(data.client.name);
-                    $("input[name='editClientCode']").val(data.client.code);
+                    $("input[name='editClientId']").val(data.id);
+                    $("input[name='editClientName']").val(data.name);
+                    $("input[name='editClientCode']").val(data.code);
 
                     const $select = $("select[name='editClientUser']");
-                    const existingOption = $select.find("option[value='" + data.client.user_id + "']");
+                    const existingOption = $select.find("option[value='" + data.user_id + "']");
 
                     if (existingOption.length) {
-                        $select.val(data.client.user_id);
+                        $select.val(data.user_id);
                     } else {
                         const $option = $("#editClientUser");
-                        $option.val(data.client.user_id).text(data.client.user_name).prop("selected", true);
+                        $option.val(data.user_id).text(data.user_name).prop("selected", true);
                     }
 
                     $select.trigger("change");
 
                     // Verticales
-                    const verticalNames = data.client.verticals;
+                    const verticalNames = data.verticals;
                     const $verticalSelect = $("select[name='editClientVerticals[]']");
                     let selectedVerticalIds = [];
 
