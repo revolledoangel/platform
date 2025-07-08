@@ -236,7 +236,9 @@
                                 <span class="input-group-addon"><i style="width: 25px;" class="fa fa-gears"></i></span>
                                 <select class="form-control select2" style="width: 100%;" name="newProfile" required>
                                     <option value="Analista" selected="selected">Analista</option>
+                                    <option value="Ejecutivo">Ejecutivo</option>
                                     <option value="Administrador">Administrador</option>
+                                    <option value="Super">Super</option>
                                 </select>
                             </div>
                         </div>
@@ -336,7 +338,9 @@
                                 <select class="form-control select2" style="width: 100%;" name="editProfile" required>
                                     <option value="" id="editProfile"></option>
                                     <option value="Analista">Analista</option>
+                                    <option value="Ejecutivo">Ejecutivo</option>
                                     <option value="Administrador">Administrador</option>
+                                    <option value="Super">Super</option>
                                 </select>
                             </div>
                         </div>

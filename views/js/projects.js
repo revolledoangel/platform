@@ -90,47 +90,47 @@ $(document).ready(function () {
             },
             body: JSON.stringify(body)
         })
-        .then(res => res.json())
-        .then(response => {
-            if (response && typeof response === "object") {
-                
-                const updatedProject = response;
-                const nombre = updatedProject.name || "—";
-                const codigo = updatedProject.code || "—";
-                const grupo = updatedProject.group || "—";
-                const cliente = updatedProject.client_name || "—";
+            .then(res => res.json())
+            .then(response => {
+                if (response && typeof response === "object") {
 
-                swal({
-                    icon: "success",
-                    title: "Proyecto actualizado correctamente",
-                    html: `
+                    const updatedProject = response;
+                    const nombre = updatedProject.name || "—";
+                    const codigo = updatedProject.code || "—";
+                    const grupo = updatedProject.group || "—";
+                    const cliente = updatedProject.client_name || "—";
+
+                    swal({
+                        icon: "success",
+                        title: "Proyecto actualizado correctamente",
+                        html: `
                         <b>Nombre:</b> ${nombre}<br>
                         <b>Cliente:</b> ${cliente}<br>
                         <b>Grupo:</b> ${grupo}<br>
                         <b>Código:</b> ${codigo}
                     `
-                }).then(() => {
-                    $("#editProjectModal").modal("hide");
-                    location.reload();
-                });
+                    }).then(() => {
+                        $("#editProjectModal").modal("hide");
+                        location.reload();
+                    });
 
-            } else {
+                } else {
+                    swal({
+                        icon: "error",
+                        title: "Error al actualizar",
+                        text: response.message || "Respuesta inesperada de la API."
+                    });
+                }
+            })
+
+            .catch(error => {
+                console.error("❌ Error en fetch:", error);
                 swal({
                     icon: "error",
-                    title: "Error al actualizar",
-                    text: response.message || "Respuesta inesperada de la API."
+                    title: "Error de red",
+                    text: "No se pudo conectar con el servidor."
                 });
-            }
-        })
-
-        .catch(error => {
-            console.error("❌ Error en fetch:", error);
-            swal({
-                icon: "error",
-                title: "Error de red",
-                text: "No se pudo conectar con el servidor."
             });
-        });
     });
 
     /* cambiar el switch de active */
@@ -138,7 +138,7 @@ $(document).ready(function () {
 
         const projectId = $(this).data("id");
 
-        
+
         const isActive = this.checked ? 1 : 0;
 
         const formData = new FormData();
@@ -166,7 +166,7 @@ $(document).ready(function () {
                 }
             })
             .catch(error => {
-                
+
                 swal({
                     icon: "error",
                     title: "Error de conexión",
@@ -196,8 +196,8 @@ $(document).ready(function () {
             }
         });
     });
-   
-   // Inicializar Select2
+
+    // Inicializar Select2
     $('#filterClient').select2();
 
     // Inicializar DataTable

@@ -21,19 +21,21 @@ class Users_controller
 
                 $user = UserModel::login($body);
 
+                //var_dump($user); exit;
+
                 if ($user) {
 
-                    if ($user["user"]["active"]) {
+                    if ($user["active"]) {
 
 
                         echo '<br><div class="alert alert-success m-1">Bienvenido</div>';
 
                         $_SESSION["startSession"] = true;
-                        $_SESSION["id"] = $user["user"]["id"];
-                        $_SESSION["email"] = $user["user"]["email"];
-                        $_SESSION["nombre"] = $user["user"]["name"];
-                        $_SESSION["foto"] = $user["user"]["photo"];
-                        $_SESSION["perfil"] = $user["user"]["profile"];
+                        $_SESSION["id"] = $user["id"];
+                        $_SESSION["email"] = $user["email"];
+                        $_SESSION["nombre"] = $user["name"];
+                        $_SESSION["foto"] = $user["photo"];
+                        $_SESSION["perfil"] = $user["profile"];
 
                         echo '<script>
                         window.location = "home";
@@ -337,7 +339,7 @@ class Users_controller
                 $responseData = json_decode($response, true);
 
                 // 5. RESPUESTA AL USUARIO (sin cambios aquí)
-                if ($httpCode === 200 && isset($responseData["success"]) && $responseData["success"] === true) {
+                if ($httpCode === 200) {
                     echo '<script>
                         swal({
                             type: "success",
@@ -402,7 +404,7 @@ class Users_controller
             $respuesta = UserModel::mdlDeleteUser($userId);
 
             // Verificar si la respuesta de la API fue exitosa
-            if (isset($respuesta["success"]) && $respuesta["success"] === true) {
+            if ($respuesta === 200) {
                 
                 // Si el borrado fue exitoso, mostrar alerta de éxito y redirigir
                 echo '<script>

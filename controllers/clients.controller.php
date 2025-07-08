@@ -33,37 +33,29 @@ class Clients_controller
     {
         if (isset($_POST["newClientName"])) {
 
-            if (preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ]+$/', $_POST["newClientName"])) {
+            $name = trim($_POST["newClientName"]);
+            $code = strtoupper(trim($_POST["newClientCode"]));
 
+            if (preg_match('/^[\p{L}\p{N}\s\-\&\.\,\(\)]+$/u', $name)) {
 
-                $name = $_POST["newClientName"];
-                $user_id = null;
-                $code = $_POST["newClientCode"];
-                $vertical_ids = [];
+                $user_id = !empty($_POST["newClientUser"]) ? (int) $_POST["newClientUser"] : null;
+                $vertical_ids = !empty($_POST["newClientVerticals"]) ? $_POST["newClientVerticals"] : [];
 
-
-                // Si está vacío, es válido (autogenerar)
+                // Validar código (2 letras mayúsculas o vacío)
                 if ($code === "" || preg_match('/^[A-Z]{2}$/', $code)) {
-
-                    if (!empty($_POST["newClientVerticals"])) {
-                        $vertical_ids = $_POST["newClientVerticals"];
-                    }
-
-                    if (!empty($_POST["newClientUser"])) {
-
-                        $user_id = $_POST["newClientUser"];
-                        echo "el id user es : " . $user_id;
-                    }
 
                     $body = [
                         "name" => $name,
-                        "user_id" => $user_id,
-                        "code" => $code,
-                        "vertical_ids" => $vertical_ids
+                        "code" => $code
                     ];
 
+                    if ($user_id)
+                        $body["user_id"] = $user_id;
+                    if (!empty($vertical_ids))
+                        $body["vertical_ids"] = array_map('intval', $vertical_ids);
+
                     $jsonData = json_encode($body);
-                    // Inicializa cURL
+
                     $ch = curl_init('https://algoritmo.digital/backend/public/api/clients');
                     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                     curl_setopt($ch, CURLOPT_POST, true);
@@ -76,33 +68,31 @@ class Clients_controller
                     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                     curl_close($ch);
                     $responseData = json_decode($response, true);
-                    if ($httpCode === 201 || $httpCode === 200) {
-                        // Extraer datos del cliente
-                        $cliente = $responseData["client"];
-                        $name = htmlspecialchars($cliente["name"]);
-                        $code = htmlspecialchars($cliente["code"]);
 
-                        // Construir texto para el swal
-                        $mensaje = "Nombre: $name\nCódigo: $code\n";
-                        
+                    // 🐞 DEBUG TEMPORAL
+                    echo "<pre><strong>🔎 LOG DEBUG</strong>\n";
+                    echo "➡ HTTP CODE: $httpCode\n";
+                    echo "➡ Request Body: " . print_r($body, true) . "\n";
+                    echo "➡ Response:\n";
+                    print_r($responseData);
+                    echo "</pre>";
+
+                    if ($httpCode === 201 || $httpCode === 200) {
+                        $cliente = $responseData["client"] ?? $responseData;
+                        $msg = "Nombre: " . htmlspecialchars($cliente["name"] ?? '—') . "\nCódigo: " . htmlspecialchars($cliente["code"] ?? '—');
+
                         echo '<script>
-                                swal({
-                                    type: "success",
-                                    title: "Cliente creado correctamente",
-                                    text: ' . json_encode($mensaje) . ',
-                                    showConfirmButton: true,
-                                    confirmButtonText: "Cerrar"
-                                }).then((result)=>{
-                                    if(result.value){
-                                        window.location = "clients";
-                                    }
-                                });
-                            </script>';
+                        swal({
+                            type: "success",
+                            title: "Cliente creado correctamente",
+                            text: ' . json_encode($msg) . ',
+                            showConfirmButton: true,
+                            confirmButtonText: "Cerrar"
+                        }).then(() => { window.location = "clients"; });
+                    </script>';
                     } else {
-                        // Obtener mensaje de error específico
                         $errorMsg = 'Error desconocido';
                         if (isset($responseData['errors'])) {
-                            // Extraer el primer mensaje de error de cualquier campo
                             foreach ($responseData['errors'] as $field => $messages) {
                                 if (is_array($messages) && count($messages) > 0) {
                                     $errorMsg = $messages[0];
@@ -112,61 +102,44 @@ class Clients_controller
                         } elseif (isset($responseData['message'])) {
                             $errorMsg = $responseData['message'];
                         }
+
                         echo '<script>
-                                swal({
-                                    type: "error",
-                                    title: "Error al crear el Cliente",
-                                    text: "' . addslashes($errorMsg) . '",
-                                    showConfirmButton: true,
-                                    confirmButtonText: "Cerrar"
-                                }).then((result)=>{
-                                    if(result.value){
-                                        window.location = "clients";
-                                    }
-                                });
-                            </script>';
+                        swal({
+                            type: "error",
+                            title: "Error al crear el Cliente",
+                            text: "' . addslashes($errorMsg) . '",
+                            showConfirmButton: true,
+                            confirmButtonText: "Cerrar"
+                        });
+                    </script>';
                     }
-
-
 
                 } else {
                     echo '<script>
-                        swal({
-                            type: "error",
-                            title: "Validación incorrecta",
-                            text: "El código debe tener exactamente dos letras mayúsculas (sin tildes, números ni espacios), o dejarse vacío. Usted ingresó: \n' . htmlspecialchars($_POST["newClientCode"]) . '",
-                            showConfirmButton: true,
-                            confirmButtonText: "Cerrar"
-                        }).then((result)=>{
-                            if(result.value){
-                                window.location = "clients";
-                            }
-                        });
-                    </script>';
+                    swal({
+                        type: "error",
+                        title: "Validación de código incorrecta",
+                        text: "El código debe tener exactamente 2 letras mayúsculas, o dejarse vacío. Usted ingresó: ' . addslashes($_POST["newClientCode"]) . '",
+                        showConfirmButton: true,
+                        confirmButtonText: "Cerrar"
+                    });
+                </script>';
                 }
-
-
 
             } else {
                 echo '<script>
-                        swal({
-                            type: "error",
-                            title: "Validación incorrecta",
-                            text: "No se permiten caracteres especiales, usted ingresó: ' . htmlspecialchars($_POST["newClientName"]) . '",
-                            showConfirmButton: true,
-                            confirmButtonText: "Cerrar"
-                        }).then((result) => {
-                            if (result.value) {
-                                window.location = "clients";
-                            }
-                        });
-                    </script>';
+                swal({
+                    type: "error",
+                    title: "Validación del nombre incorrecta",
+                    text: "No se permiten caracteres inválidos. Usted ingresó: ' . addslashes($name) . '",
+                    showConfirmButton: true,
+                    confirmButtonText: "Cerrar"
+                });
+            </script>';
             }
-
-
-
         }
     }
+
 
     static public function ctrEditClient()
     {
@@ -253,8 +226,8 @@ class Clients_controller
 
     static public function ctrCambiarEstadoCliente($id, $estado)
     {
-        
-        
+
+
         $url = "https://algoritmo.digital/backend/public/api/clients/" . $id;
 
         $data = json_encode([
@@ -287,7 +260,7 @@ class Clients_controller
         if (isset($_GET["clientId"])) {
 
             $clientId = $_GET["clientId"];
-            
+
             $url = 'https://algoritmo.digital/backend/public/api/clients/' . $clientId;
 
             // Iniciar cURL

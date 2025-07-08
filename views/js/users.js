@@ -108,8 +108,8 @@ $(document).ready(function () {
         fetch(`https://algoritmo.digital/backend/public/api/users/${idUser}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.user) {
-                    const user = data.user;
+                if (data.id) {
+                    const user = data;
 
                     // Llenar los campos del modal
                     $("input[name='editId']").val(user.id); // Llenamos el ID

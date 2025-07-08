@@ -60,6 +60,7 @@ class AjaxClients
                 htmlspecialchars($cliente["code"]),
                 !empty($cliente["user_id"]) ? htmlspecialchars($cliente["user_name"]) : '',
                 $verticales,
+                $cliente["active"],
                 $estado,
                 $acciones
             ];

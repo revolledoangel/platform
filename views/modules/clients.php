@@ -18,6 +18,15 @@
 
             <div class="box-header with-border">
 
+                <div class="form-group pull-left">
+                    <label for="filtroEstado">Filtrar por estado:</label>
+                    <select id="filtroEstado" class="form-control" style="width: 200px; display: inline-block;">
+                        <option value="">Todos</option>
+                        <option value="1">Activos</option>
+                        <option value="0">Inactivos</option>
+                    </select>
+                </div>
+
                 <button class="btn btn-primary pull-right" data-toggle="modal" data-target="#addClientModal">
                     Agregar Cliente
                 </button>
@@ -35,6 +44,7 @@
                                 <th style="max-width:40px">Código</th>
                                 <th style="max-width:200px">Analista</th>
                                 <th style="max-width:100px">Vertical</th>
+                                <th style="display:none;">Estado (filtro)</th>
                                 <th style="max-width:40px">Estado</th>
                                 <th style="max-width:150px">Acciones</th>
                             </tr>
@@ -128,10 +138,10 @@
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
                 <?php
-                
-                $editClient = new Clients_Controller();
-                $editClient->ctrEditClient();
-                
+
+                $createClient = new Clients_Controller();
+                $createClient->ctrCreateClient();
+
                 ?>
             </form>
         </div>
@@ -165,8 +175,8 @@
 
                                 <span class="input-group-addon"><i style="width: 25px;"
                                         class="ion ion-person-add"></i></span>
-                                <input type="text" class="form-control" value=""
-                                    name="editClientName" required autocomplete="off">
+                                <input type="text" class="form-control" value="" name="editClientName" required
+                                    autocomplete="off">
                             </div>
                         </div>
 
@@ -174,7 +184,7 @@
                             <div class="input-group" style="higth:34px;">
                                 <span class="input-group-addon"><i style="width: 25px;" class="fa fa-user"></i></span>
                                 <select class="form-control select2" style="width: 100%;" name="editClientUser">
-                                
+
                                     <option value="" id="editClientUser"></option>
 
                                     <?php
@@ -213,9 +223,8 @@
                             <div class="input-group">
                                 <span class="input-group-addon"><i style="width: 25px;"
                                         class="glyphicon glyphicon-qrcode"></i></span>
-                                <input type="text" class="form-control"
-                                    value=""
-                                    name="editClientCode" autocomplete="off">
+                                <input type="text" class="form-control" value="" name="editClientCode"
+                                    autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -233,5 +242,5 @@
 
 <?php
 $deleteClient = new Clients_controller();
-$deleteClient -> ctrDeleteClient();
+$deleteClient->ctrDeleteClient();
 ?>

@@ -1,6 +1,30 @@
 $(document).ready(function () {
 
-    /* Editar Vertical*/
+    /** INICIALIZAR DataTable y guardar referencia en una variable global */
+    var table = $('#clientsTable').DataTable({
+        ajax: "ajax/clients.ajax.php?action=list",
+        deferRender: true,
+        retrieve: true,
+        processing: true,
+        order: [],
+        columnDefs: [
+            {
+                targets: 4, // columna oculta para estado
+                visible: false
+            }
+        ],
+        language: {
+            url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+        }
+    });
+
+    // Filtro personalizado por estado
+    $('#filtroEstado').on('change', function () {
+        let valor = $(this).val();
+        table.column(4).search(valor).draw(); // aquí sí existe `table`
+    });
+
+    /* Editar Cliente*/
     $(document).on("click", ".btn-editClient", function () {
 
         var idClient = $(this).attr("clientId");
@@ -69,7 +93,6 @@ $(document).ready(function () {
         e.preventDefault();
 
         const clientId = $("input[name='editClientId']").val();
-
         const name = $("input[name='editClientName']").val().trim();
         const code = $("input[name='editClientCode']").val().trim();
         const userId = $("select[name='editClientUser']").val();
@@ -106,51 +129,49 @@ $(document).ready(function () {
             },
             body: JSON.stringify(body)
         })
-        .then(res => res.json())
-        .then(response => {
-            if (Array.isArray(response) && response.length > 0) {
-                const updatedClient = response[0]; // el único objeto en el array
+            .then(async res => {
+                const status = res.status;
+                const response = await res.json();
 
-                const nombre = updatedClient.name || "—";
-                const codigo = updatedClient.code || "—";
-                const usuario = updatedClient.user_name || "—";
-                const verticales = Array.isArray(updatedClient.verticals)
-                    ? updatedClient.verticals.map(v => v.name).join(", ")
-                    : "—";
+                if (status === 200 || status === 201) {
+                    const nombre = response.name || "—";
+                    const codigo = response.code || "—";
+                    const usuario = response.user_name || "—";
+                    const verticales = Array.isArray(response.verticals)
+                        ? response.verticals.map(v => v.name).join(", ")
+                        : "—";
 
-                swal({
-                    icon: "success",
-                    title: "Cliente actualizado correctamente",
-                    html: `
-                        <b>Nombre:</b> ${nombre}<br>
-                        <b>Usuario asignado:</b> ${usuario}<br>
-                        <b>Vertical(es):</b> ${verticales}<br>
-                        <b>Código:</b> ${codigo}
-                    `
-                }).then(() => {
-                    $("#editClientModal").modal("hide");
-                    location.reload();
-                });
+                    swal({
+                        icon: "success",
+                        title: "Cliente actualizado correctamente",
+                        html: `
+                            <b>Nombre:</b> ${nombre}<br>
+                            <b>Usuario asignado:</b> ${usuario}<br>
+                            <b>Vertical(es):</b> ${verticales}<br>
+                            <b>Código:</b> ${codigo}
+                        `
+                    }).then(() => {
+                        $("#editClientModal").modal("hide");
+                        location.reload();
+                    });
 
-            } else {
+                } else {
+                    swal({
+                        icon: "error",
+                        title: "Error al actualizar",
+                        text: response.message || "Respuesta inesperada de la API."
+                    });
+                }
+            })
+            .catch(error => {
+                console.error("❌ Error en fetch:", error);
                 swal({
                     icon: "error",
-                    title: "Error al actualizar",
-                    text: response.message || "Respuesta inesperada de la API."
+                    title: "Error de red",
+                    text: "No se pudo conectar con el servidor."
                 });
-            }
-        })
-
-        .catch(error => {
-            console.error("❌ Error en fetch:", error);
-            swal({
-                icon: "error",
-                title: "Error de red",
-                text: "No se pudo conectar con el servidor."
             });
-        });
     });
-
 
     /* cambiar el switch de active */
     $(document).on("change", ".switch-client input[type=checkbox]", function () {
@@ -197,7 +218,6 @@ $(document).ready(function () {
             });
     });
 
-
     /** Eliminar Cliente */
     $(document).on("click", ".btn-deleteClient", function () {
         var clientId = $(this).attr("clientId");
@@ -217,19 +237,4 @@ $(document).ready(function () {
             }
         });
     });
-
-
-    $(document).ready(function () {
-        $('#clientsTable').DataTable({
-            ajax: "ajax/clients.ajax.php?action=list",
-            deferRender: true,
-            retrieve: true,
-            processing: true,
-            language: {
-                url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
-            }
-        });
-    });
-
-
 });

@@ -23,9 +23,9 @@ $(document).ready(function () {
 
                     // ✅ AHORA llenar los nuevos datos
 
-                    $("input[name='editPlatformId']").val(data.client.id);
-                    $("input[name='editPlatformName']").val(data.client.name);
-                    $("input[name='editPlatformCode']").val(data.client.code);
+                    $("input[name='editPlatformId']").val(data.id);
+                    $("input[name='editPlatformName']").val(data.name);
+                    $("input[name='editPlatformCode']").val(data.code);
 
                     $select.trigger("change");
 

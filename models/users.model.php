@@ -106,6 +106,7 @@ class UserModel
 
         // 4. Ejecutar la petición
         $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
         // (Opcional) Verificar si hubo errores en la ejecución de cURL
         if (curl_errno($ch)) {
@@ -119,7 +120,7 @@ class UserModel
         curl_close($ch);
 
         // 6. Decodificar la respuesta JSON a un array de PHP y devolverla
-        return json_decode($response, true);
+        return $httpCode;
     }
 
 

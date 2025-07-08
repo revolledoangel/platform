@@ -39,9 +39,13 @@ session_start();
 
 
     <!-- SweetAlert2 -->
-     <script src="views/plugins/sweetalert2/sweetalert2.all.js"></script>
+    <script src="views/plugins/sweetalert2/sweetalert2.all.js"></script>
 
-    
+
+
+    <link rel="stylesheet" href="views/css/style.css">
+
+
 
 </head>
 
@@ -57,21 +61,37 @@ session_start();
 
         if (isset($_GET["route"])) {
 
-            if (
-                $_GET["route"] == "home" ||
-                $_GET["route"] == "users" ||
-                $_GET["route"] == "verticals" ||
-                $_GET["route"] == "clients" ||
-                $_GET["route"] == "projects" ||
-                $_GET["route"] == "platforms" ||
-                $_GET["route"] == "formats" ||
-                $_GET["route"] == "objetives" ||
-                $_GET["route"] == "close"
-            ) {
+            $allowedRoutes = ["home", "campaigns", "urls","comments", "close"];
+
+            $perfil = $_SESSION["perfil"] ?? "";
+
+            if ($perfil === "Super") {
+                $allowedRoutes = array_merge($allowedRoutes, [
+                    "users",
+                    "verticals",
+                    "clients",
+                    "projects",
+                    "platforms",
+                    "formats",
+                    "objectives"
+                ]);
+            } elseif ($perfil === "Administrador") {
+                $allowedRoutes = array_merge($allowedRoutes, [
+                    "verticals",
+                    "clients",
+                    "projects",
+                    "platforms",
+                    "formats",
+                    "objectives"
+                ]);
+            }
+
+            if (in_array($_GET["route"], $allowedRoutes)) {
                 include "modules/" . $_GET["route"] . ".php";
             } else {
                 include "modules/404.php";
             }
+
 
         } else {
             include "modules/home.php";
@@ -87,47 +107,71 @@ session_start();
 
     ?>
 
+
 </body>
 
 <!--========================================================================
     PLUGINS DE javascript
     ========================================================================-->
 
-    <!-- jQuery 3 -->
-    <script src="views/bower_components/jquery/dist/jquery.min.js"></script>
+<!-- jQuery 3 -->
+<script src="views/bower_components/jquery/dist/jquery.min.js"></script>
 
-    <!-- Bootstrap 3.3.7 -->
-    <script src="views/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<!-- Bootstrap 3.3.7 -->
+<script src="views/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 
-    <!-- FastClick -->
-    <script src="views/bower_components/fastclick/lib/fastclick.js"></script>
+<!-- FastClick -->
+<script src="views/bower_components/fastclick/lib/fastclick.js"></script>
 
-    <!-- AdminLTE App -->
-    <script src="views/dist/js/adminlte.min.js"></script>
+<!-- AdminLTE App -->
+<script src="views/dist/js/adminlte.min.js"></script>
 
-    <!-- DataTables -->
-    <script src="views/bower_components/datatables.net/js/jquery.dataTables.min.js"></script>
-    <script src="views/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
-    <!--<script src="views/bower_components/datatables.net-bs/js/dataTables.responsive.min.js"></script>
+<!-- DataTables -->
+<script src="views/bower_components/datatables.net/js/jquery.dataTables.min.js"></script>
+<script src="views/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js"></script>
+<!--<script src="views/bower_components/datatables.net-bs/js/dataTables.responsive.min.js"></script>
     <script src="views/bower_components/datatables.net-bs/js/responsive.bootstrap.min.js"></script>-->
 
-    
+<!-- DataTables Buttons -->
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
 
-    <!-- Select2 -->
-    <script src="views/bower_components/select2/dist/js/select2.full.js"></script>
+<!-- Botones CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
 
-    <script src="views/js/template.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 
-    <script src="views/js/users.js"></script>
 
-    <script src="views/js/verticals.js"></script>
+<!-- Select2 -->
+<script src="views/bower_components/select2/dist/js/select2.full.js"></script>
 
-    <script src="views/js/clients.js"></script>
+<script src="views/js/template.js"></script>
 
-    <script src="views/js/projects.js"></script>
+<script src="views/js/users.js"></script>
 
-    <script src="views/js/platforms.js"></script>
+<script src="views/js/verticals.js"></script>
 
-    <script src="views/js/formats.js"></script>
+<script src="views/js/clients.js"></script>
+
+<script src="views/js/projects.js"></script>
+
+<script src="views/js/platforms.js"></script>
+
+<script src="views/js/formats.js"></script>
+
+<script src="views/js/objectives.js"></script>
+
+<script src="views/js/campaigns.js"></script>
+
+<script src="views/js/urls.js"></script>
+
+<script src="views/js/comments.js"></script>
+
+<script>
+    const sessionData = <?php echo json_encode($_SESSION); ?>;
+    console.log("Sesión:", sessionData);
+</script>
 
 </html>
