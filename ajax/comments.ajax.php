@@ -32,7 +32,7 @@ class AjaxComments
             $data[] = [
                 htmlspecialchars($comment["client_name"]),
                 htmlspecialchars($comment["platform_name"]),
-                htmlspecialchars($comment["period_id"]),
+                htmlspecialchars($comment["period_name"]),
                 htmlspecialchars($comment["recommendation"]),
                 htmlspecialchars($comment["conclusion"]),
                 $acciones

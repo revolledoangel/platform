@@ -165,7 +165,7 @@ class Verticals_controller
                             confirmButtonText: "Cerrar"
                         }).then((result) => {
                             if (result.value) {
-                                window.location = "verticals";
+                                //window.location = "verticals";
                             }
                         });
                     </script>';
