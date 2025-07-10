@@ -34,7 +34,8 @@ class Projects_controller
     {
         if (isset($_POST["newProjectName"])) {
 
-            if (preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ]+$/', $_POST["newProjectName"])) {
+            if (preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ +\-:_.\/,"\'()]+$/', $_POST["newProjectName"])) {
+
 
                 $name = $_POST["newProjectName"];
                 $client_id = $_POST["newProjectClient"];
