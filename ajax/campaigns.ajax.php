@@ -58,8 +58,10 @@ class AjaxCampaigns
                 htmlspecialchars($c["project_name"] ?? "—"),
                 $codigo,
                 $objectivesHTML,
-                '$' . number_format($c["investment"] ?? 0, 0),
-                '$' . number_format($c["goal"] ?? 0, 0),
+                //'$' . number_format($c["investment"] ?? 0, 0),
+                //'$' . number_format($c["goal"] ?? 0, 0),
+                (float)($c["investment"] ?? 0), // <-- LÍNEA NUEVA (envía el número puro)
+                (float)($c["goal"] ?? 0),
                 htmlspecialchars($c["state"] ?? "—"),
                 $acciones
             ];
