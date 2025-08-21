@@ -61,7 +61,17 @@ session_start();
 
         if (isset($_GET["route"])) {
 
-            $allowedRoutes = ["home", "campaigns", "urls","comments", "close"];
+            $allowedRoutes = [
+                "home",
+                "campaigns",
+                "urls",
+                "comments",
+                "close",
+                // ✅ New Media Mix routes
+                "mediaMixRealEstate",
+                "mediaMixEcommerce",
+                "mediaMixOthers"
+            ];
 
             $perfil = $_SESSION["perfil"] ?? "";
 
@@ -92,7 +102,6 @@ session_start();
                 include "modules/404.php";
             }
 
-
         } else {
             include "modules/home.php";
         }
@@ -104,11 +113,10 @@ session_start();
         include "modules/login.php";
     }
 
-
     ?>
-
-
 </body>
+
+
 
 <!--========================================================================
     PLUGINS DE javascript

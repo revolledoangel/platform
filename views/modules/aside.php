@@ -33,36 +33,67 @@ $perfil = $_SESSION["perfil"] ?? "";
             </li>
 
             <!-- Usuarios: Solo para Super -->
-            <?php if ($perfil === "Super") : ?>
-            <li class="<?= ($currentRoute == 'users') ? 'active' : '' ?>">
-                <a href="users">
-                    <i class="fa fa-users"></i> <span>Usuarios</span>
-                    <span class="pull-right-container">
-                        <small class="label pull-right bg-green">nuevo</small>
-                    </span>
-                </a>
-            </li>
+            <?php if ($perfil === "Super"): ?>
+                <li class="<?= ($currentRoute == 'users') ? 'active' : '' ?>">
+                    <a href="users">
+                        <i class="fa fa-users"></i> <span>Usuarios</span>
+                        <span class="pull-right-container">
+                            <small class="label pull-right bg-green">nuevo</small>
+                        </span>
+                    </a>
+                </li>
             <?php endif; ?>
 
             <!-- Configuración: Para Super y Administrador -->
-            <?php if (in_array($perfil, ["Super", "Administrador"])) : ?>
-            <li class="treeview <?= in_array($currentRoute, ['verticals','clients','projects','platforms','formats','objectives']) ? 'active' : '' ?>">
+            <?php if (in_array($perfil, ["Super", "Administrador"])): ?>
+                <li
+                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'objectives']) ? 'active' : '' ?>">
+                    <a href="#">
+                        <i class="fa fa-share"></i> <span>Configuración</span>
+                        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li class="<?= ($currentRoute == 'verticals') ? 'active' : '' ?>"><a href="verticals"><i
+                                    class="fa fa-circle-o"></i> Verticales</a></li>
+                        <li class="<?= ($currentRoute == 'clients') ? 'active' : '' ?>"><a href="clients"><i
+                                    class="ion ion-person-add"></i> Clientes</a></li>
+                        <li class="<?= ($currentRoute == 'projects') ? 'active' : '' ?>"><a href="projects"><i
+                                    class="fa fa-map"></i> Proyectos</a></li>
+                        <li class="<?= ($currentRoute == 'platforms') ? 'active' : '' ?>"><a href="platforms"><i
+                                    class="fa fa-chrome"></i> Plataformas</a></li>
+                        <li class="<?= ($currentRoute == 'formats') ? 'active' : '' ?>"><a href="formats"><i
+                                    class="fa fa-bookmark"></i> Formatos</a></li>
+                        <li class="<?= ($currentRoute == 'objectives') ? 'active' : '' ?>"><a href="objectives"><i
+                                    class="fa fa-graduation-cap"></i> Objetivos</a></li>
+                    </ul>
+                </li>
+            <?php endif; ?>
+
+            <!-- Media Mix: Visible for all -->
+            <li
+                class="treeview <?= in_array($currentRoute, ['mediaMixRealEstate', 'mediaMixEcommerce', 'mediaMixOthers']) ? 'active' : '' ?>">
                 <a href="#">
-                    <i class="fa fa-share"></i> <span>Configuración</span>
+                    <i class="fa fa-random"></i> <span>Mix de Medios</span>
                     <span class="pull-right-container">
                         <i class="fa fa-angle-left pull-right"></i>
                     </span>
                 </a>
                 <ul class="treeview-menu">
-                    <li class="<?= ($currentRoute == 'verticals') ? 'active' : '' ?>"><a href="verticals"><i class="fa fa-circle-o"></i> Verticales</a></li>
-                    <li class="<?= ($currentRoute == 'clients') ? 'active' : '' ?>"><a href="clients"><i class="ion ion-person-add"></i> Clientes</a></li>
-                    <li class="<?= ($currentRoute == 'projects') ? 'active' : '' ?>"><a href="projects"><i class="fa fa-map"></i> Proyectos</a></li>
-                    <li class="<?= ($currentRoute == 'platforms') ? 'active' : '' ?>"><a href="platforms"><i class="fa fa-chrome"></i> Plataformas</a></li>
-                    <li class="<?= ($currentRoute == 'formats') ? 'active' : '' ?>"><a href="formats"><i class="fa fa-bookmark"></i> Formatos</a></li>
-                    <li class="<?= ($currentRoute == 'objectives') ? 'active' : '' ?>"><a href="objectives"><i class="fa fa-graduation-cap"></i> Objetivos</a></li>
+                    <li class="<?= ($currentRoute == 'mediaMixRealEstate') ? 'active' : '' ?>">
+                        <a href="mediaMixRealEstate"><i class="fa fa-circle-o"></i> Mix Inmobiliario</a>
+                    </li>
+                    <li class="<?= ($currentRoute == 'mediaMixEcommerce') ? 'active' : '' ?>">
+                        <a href="mediaMixEcommerce"><i class="fa fa-circle-o"></i> Mix Ecommerce</a>
+                    </li>
+                    <li class="<?= ($currentRoute == 'mediaMixOthers') ? 'active' : '' ?>">
+                        <a href="mediaMixOthers"><i class="fa fa-circle-o"></i> Mix Otros</a>
+                    </li>
                 </ul>
             </li>
-            <?php endif; ?>
+
+
 
             <!-- Campañas: Visible para todos -->
             <li class="treeview <?= in_array($currentRoute, ['campaigns', 'urls']) ? 'active' : '' ?>">
@@ -73,10 +104,14 @@ $perfil = $_SESSION["perfil"] ?? "";
                     </span>
                 </a>
                 <ul class="treeview-menu">
-                    <li class="<?= ($currentRoute == 'campaigns') ? 'active' : '' ?>"><a href="campaigns"><i class="fa fa-circle-o"></i> Campañas</a></li>
-                    <li class="<?= ($currentRoute == 'urls') ? 'active' : '' ?>"><a href="urls"><i class="fa fa-circle-o"></i> Generador de UTM's</a></li>
+                    <li class="<?= ($currentRoute == 'campaigns') ? 'active' : '' ?>"><a href="campaigns"><i
+                                class="fa fa-circle-o"></i> Campañas</a></li>
+                    <li class="<?= ($currentRoute == 'urls') ? 'active' : '' ?>"><a href="urls"><i
+                                class="fa fa-circle-o"></i> Generador de UTM's</a></li>
                 </ul>
             </li>
+
+
 
             <!-- Comentarios: Visible para todos -->
             <li class="<?= ($currentRoute == 'comments') ? 'active' : '' ?>">
