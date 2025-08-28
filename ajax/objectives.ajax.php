@@ -31,6 +31,7 @@ class AjaxObjectives
 
             $data[] = [
                 htmlspecialchars($objective["name"]),
+                htmlspecialchars($objective["default_result"]),
                 htmlspecialchars($objective["code"]),
                 $acciones
             ];

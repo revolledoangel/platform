@@ -34,6 +34,7 @@
                         <thead>
                             <tr>
                                 <th style="max-width:200px">Nombre</th>
+                                <th style="max-width:200px">Tipo Resultado</th>
                                 <th style="max-width:40px">Código</th>
                                 <th style="max-width:150px">Acciones</th>
                             </tr>
@@ -81,6 +82,16 @@
                                         class="ion ion-person-add"></i></span>
                                 <input type="text" class="form-control" placeholder="Nombre del Objetivo"
                                     name="newObjectiveName" required autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- Tipo Resultado por defecto -->
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i style="width: 25px;"
+                                        class="fa fa-check-circle"></i></span>
+                                <input type="text" class="form-control" placeholder="Tipo de Resultado por defecto"
+                                    name="newObjectiveDefaultResult" required autocomplete="off">
                             </div>
                         </div>
 
@@ -140,6 +151,17 @@
                                 </span>
                                 <input type="text" class="form-control" name="editObjectiveName"
                                     placeholder="Nombre del objetivo" required autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- Editar Resultado por defecto -->
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon">
+                                    <i style="width: 25px;" class="fa fa-check-circle"></i>
+                                </span>
+                                <input type="text" class="form-control" name="editObjectiveDefaultResult"
+                                    placeholder="Tipo Resultado por defecto" required autocomplete="off">
                             </div>
                         </div>
 

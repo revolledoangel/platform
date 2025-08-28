@@ -1,341 +1,312 @@
+<?php
+// LLAMADAS A LOS MÉTODOS DEL CONTROLADOR
+$createMediaMix = new MediaMixRealEstate_Controller();
+$createMediaMix->ctrCreateMediaMixRealEstate();
+
+$editMediaMix = new MediaMixRealEstate_Controller();
+$editMediaMix->ctrEditMediaMixRealEstate();
+
+$deleteMediaMix = new MediaMixRealEstate_Controller();
+$deleteMediaMix->ctrDeleteMediaMixRealEstate();
+?>
 
 <div class="content-wrapper">
-    <!-- Encabezado -->
     <section class="content-header">
         <h1>
-            Media Mix - Inmobiliarias
-            <small>Administrar mezcla de campañas</small>
+            Mix de Medios Inmobiliario
+            <small>Administrar</small>
         </h1>
         <ol class="breadcrumb">
-            <li><a href="home"><i class="fa fa-home"></i> Inicio</a></li>
-            <li class="active">Media Mix Inmobiliarias</li>
+            <li><a href="home"><i class="fa fa-home"></i> Home</a></li>
+            <li class="active">Mix de Medios Inmobiliario</li>
         </ol>
     </section>
 
-    <!-- Contenido principal -->
     <section class="content">
-
         <div class="box">
-
             <div class="box-header with-border">
 
-                <!-- Filtro por periodo -->
-                <div class="form-group pull-left" style="margin-right: 15px;">
-                    <label for="filterPeriod">Filtrar por periodo:</label>
-                    <select id="filterPeriod" class="form-control" style="width: 200px; display: inline-block;">
-                        <option value="">Todos</option>
-                        <option value="2025-Q1">2025 - Q1</option>
-                        <option value="2025-Q2">2025 - Q2</option>
-                        <option value="2025-Q3">2025 - Q3</option>
-                        <option value="2025-Q4">2025 - Q4</option>
+                <?php
+                // Capturamos los IDs de la URL, si existen.
+                $selectedPeriodId = $_GET['period_id'] ?? null;
+                $selectedClientId = $_GET['client_id'] ?? null;
+                ?>
+
+                
+
+                <div class="form-group pull-left" style="width:300px; margin-bottom:20px;">
+                    <label for="filterClient">Filtrar por Cliente:</label>
+                    <select id="filterClient" class="form-control select2" style="width:100%;">
+                        <option value="">-- Todos los clientes --</option>
+                        <?php
+                        $clientes = Clients_controller::ctrShowClients();
+                        foreach ($clientes as $cliente) {
+                            // Lógica de preselección:
+                            // Si hay un client_id en la URL, se selecciona. Si no, no se hace nada.
+                            $isSelected = ($selectedClientId && $cliente['id'] == $selectedClientId);
+
+                            echo '<option value="' . htmlspecialchars($cliente["id"]) . '"' . ($isSelected ? ' selected' : '') . '>' . htmlspecialchars($cliente["name"]) . '</option>';
+                        }
+                        ?>
                     </select>
                 </div>
 
-                <!-- Filtro por cliente -->
-                <div class="form-group pull-left">
-                    <label for="filterClient">Filtrar por cliente:</label>
-                    <select id="filterClient" class="form-control" style="width: 200px; display: inline-block;">
-                        <option value="">Todos</option>
-                        <option value="Inmobiliaria Alfa">Inmobiliaria Alfa</option>
-                        <option value="Inmobiliaria Beta">Inmobiliaria Beta</option>
-                        <option value="Inmobiliaria Gamma">Inmobiliaria Gamma</option>
+                <div class="form-group pull-left" style="width:300px; margin-left:20px; margin-bottom:20px;">
+                    <label for="filterPeriod">Filtrar por Período:</label>
+                    <select id="filterPeriod" class="form-control select2" style="width:100%;">
+                        <option value="">-- Todos los períodos --</option>
+                        <?php
+                        $periodos = Periods_controller::ctrShowPeriods();
+                        $currentMonth = (int) date("n");
+                        $currentYear = (int) date("Y");
+
+                        foreach ($periodos as $periodo) {
+                            $isSelected = false;
+
+                            // Lógica de preselección:
+                            // 1. Si hay un period_id en la URL, se prioriza esa selección.
+                            if ($selectedPeriodId && $periodo['id'] == $selectedPeriodId) {
+                                $isSelected = true;
+
+                                // 2. Si no hay ID en la URL, se selecciona el periodo actual por defecto.
+                            } elseif (!$selectedPeriodId && (int) $periodo['month_number'] === $currentMonth && (int) $periodo['year'] === $currentYear) {
+                                $isSelected = true;
+                            }
+
+                            echo '<option value="' . htmlspecialchars($periodo["id"]) . '"' . ($isSelected ? ' selected' : '') . '>' . htmlspecialchars($periodo["name"]) . '</option>';
+                        }
+                        ?>
                     </select>
                 </div>
-
+                
+                <button class="btn btn-primary pull-right" data-toggle="modal"
+                    data-target="#addMediaMixRealEstateModal">
+                    Agregar Mix de Medios
+                </button>
             </div>
-
-            <!-- Tabla -->
             <div class="box-body">
                 <div class="table-responsive">
-                    <table id="mediaMixTable" class="table table-bordered table-striped">
-
+                    <table id="mediaMixRealEstateTable" class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th style="max-width:150px">Periodo</th>
-                                <th style="max-width:200px">Cliente</th>
-                                <th style="max-width:150px">Fecha de creación</th>
-                                <th style="max-width:150px">Acciones</th>
+                                <th style="width:10px">#</th>
+                                <th>Nombre</th>
+                                <th>Cliente</th>
+                                <th>Periodo</th>
+                                <th>Moneda</th>
+                                <th>Fee (%)</th>
+                                <th>IGV (%)</th>
+                                <th style="width:120px">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>2025-Q1</td>
-                                <td>Inmobiliaria Alfa</td>
-                                <td>15/01/2025</td>
-                                <td>
-                                    <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#viewMediaMixModal">
-                                        <i class="fa fa-eye"></i> Ver
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>2025-Q2</td>
-                                <td>Inmobiliaria Beta</td>
-                                <td>03/04/2025</td>
-                                <td>
-                                    <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#viewMediaMixModal">
-                                        <i class="fa fa-eye"></i> Ver
-                                    </button>
-                                </td>
-                            </tr>
                         </tbody>
-
                     </table>
                 </div>
             </div>
         </div>
-
     </section>
 </div>
 
-<!-- Modal de vista -->
-<div class="modal fade" id="viewMediaMixModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="width: 95%;">
+<div class="modal fade in" id="addMediaMixRealEstateModal">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="background:#00013b;color:#fff">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Detalle Media Mix - Inmobiliaria Alfa</h4>
-            </div>
-            <div class="modal-body">
-
-                <!-- Tabla de detalles -->
-                <div class="table-responsive">
-                    <table id="mediaMixDetailTable" class="table table-bordered table-striped">
-                        <thead style="background-color:#f4f4f4;">
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Proyecto</th>
-                                <th>Campaña</th>
-                                <th>Es AON</th>
-                                <th>Segmentación</th>
-                                <th>Plataforma</th>
-                                <th>Medio</th>
-                                <th>Tipo</th>
-                                <th>Formato</th>
-                                <th>Moneda</th>
-                                <th>Inversión</th>
-                                <th>Tipo de Resultado</th>
-                                <th>Costo por Resultado</th>
-                                <th>Proyección</th>
-                                <th>SOI</th>
-                                <th>Comentarios</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td rowspan="4" style="vertical-align: middle; text-align:center;">Inmobiliaria Alfa</td>
-                                <td>Milano</td>
-                                <td>Pauta Regular</td>
-                                <td>No</td>
-                                <td>LAL</td>
-                                <td>Facebook</td>
-                                <td>Lead Ads</td>
-                                <td>Performance</td>
-                                <td>Imagen</td>
-                                <td>USD</td>
-                                <td>$1,500.00</td>
-                                <td>Leads</td>
-                                <td>$7.00</td>
-                                <td>214</td>
-                                <td>20%</td>
-                                <td>Core Inversionistas</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm btnEditRow">
-                                        <i class="fa fa-pencil"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Brick</td>
-                                <td>Interacción Geolocalizado</td>
-                                <td>No</td>
-                                <td>Geo</td>
-                                <td>Facebook</td>
-                                <td>Interacción</td>
-                                <td>Branding</td>
-                                <td>Video</td>
-                                <td>USD</td>
-                                <td>$100.00</td>
-                                <td>Interacciones</td>
-                                <td>$0.01</td>
-                                <td>20,000</td>
-                                <td>6.67%</td>
-                                <td>-</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm btnEditRow">
-                                        <i class="fa fa-pencil"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Jardines</td>
-                                <td>Lead Ads</td>
-                                <td>Sí</td>
-                                <td>Intereses / LAL</td>
-                                <td>Facebook</td>
-                                <td>Lead Ads</td>
-                                <td>Performance</td>
-                                <td>Imagen</td>
-                                <td>USD</td>
-                                <td>$1,100.00</td>
-                                <td>Leads</td>
-                                <td>$4.00</td>
-                                <td>275</td>
-                                <td>20%</td>
-                                <td>Campaña activa en TikTok 20 días</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm btnEditRow">
-                                        <i class="fa fa-pencil"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Buenavista</td>
-                                <td>Pauta Regular</td>
-                                <td>No</td>
-                                <td>LAL</td>
-                                <td>Facebook</td>
-                                <td>Lead Ads</td>
-                                <td>Performance</td>
-                                <td>Imagen</td>
-                                <td>USD</td>
-                                <td>$1,500.00</td>
-                                <td>Leads</td>
-                                <td>$5.00</td>
-                                <td>300</td>
-                                <td>20%</td>
-                                <td>-</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm btnEditRow">
-                                        <i class="fa fa-pencil"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <form role="form" method="post" autocomplete="off">
+                <div class="modal-header" style="background:#00013b;color:#fff">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Agregar Mix de Medios Inmobiliario</h4>
                 </div>
-
-                <!-- Resumen -->
-                <div style="margin-top:20px;">
-                    <table id="summaryTable" class="table table-bordered" style="width:auto; margin-bottom:0;">
-                        <tbody>
-                            <tr>
-                                <th style="background-color:#f4f4f4;">Marca</th>
-                                <td>$500.00</td>
-                                <td>100</td>
-                            </tr>
-                            <tr>
-                                <th style="background-color:#f4f4f4;">Pauta</th>
-                                <td>$7,500.00</td>
-                                <td>$5.49</td>
-                                <td>1,367</td>
-                                <td>100.00%</td>
-                            </tr>
-                            <tr>
-                                <th style="background-color:#f4f4f4;">Fee</th>
-                                <td>$1,875.00</td>
-                            </tr>
-                            <tr>
-                                <th style="background-color:#f4f4f4;">Pauta + Fee</th>
-                                <td>$9,375.00</td>
-                            </tr>
-                            <tr>
-                                <th style="background-color:#f4f4f4;">Inversión total + IGV</th>
-                                <td>$11,062.50</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="modal-body">
+                    <div class="box-body">
+                        <div class="form-group">
+                            <label>Nombre:</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-tag"></i></span>
+                                <input type="text" class="form-control" name="newName"
+                                    placeholder="Ej: Campaña Enero (Opcional)">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Periodo:</label>
+                                    <select class="form-control select2" name="newPeriodId" required
+                                        style="width:100%;">
+                                        <option value="">-- Selecciona un periodo --</option>
+                                        <?php
+                                        $periods = Periods_Controller::ctrShowPeriods();
+                                        if (is_array($periods)) {
+                                            $currentMonth = (int) date("n");
+                                            $currentYear = (int) date("Y");
+                                            foreach ($periods as $period) {
+                                                $selected = '';
+                                                if ((int) $period["month_number"] === $currentMonth && (int) $period["year"] === $currentYear) {
+                                                    $selected = ' selected';
+                                                }
+                                                echo '<option value="' . htmlspecialchars($period["id"]) . '"' . $selected . '>' . htmlspecialchars($period["name"]) . '</option>';
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Cliente:</label>
+                                    <select class="form-control select2" name="newClientId" required
+                                        style="width:100%;">
+                                        <option value="">-- Selecciona un cliente --</option>
+                                        <?php
+                                        $clients = Clients_Controller::ctrShowClients();
+                                        if (is_array($clients)) {
+                                            foreach ($clients as $client) {
+                                                echo '<option value="' . htmlspecialchars($client["id"]) . '">' . htmlspecialchars($client["name"]) . '</option>';
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Moneda:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-money"></i></span>
+                                        <select class="form-control" name="newCurrency" required>
+                                            <option value="USD">USD</option>
+                                            <option value="PEN">PEN</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Fee (%):</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                        <input type="number" step="any" class="form-control" name="newFee"
+                                            placeholder="Ej: 10" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>IGV (%):</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                        <input type="number" step="any" class="form-control" name="newIgv" value="18"
+                                            required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success" id="exportExcel">
-                    <i class="fa fa-file-excel-o"></i> Descargar Excel
-                </button>
-                <button type="button" class="btn btn-danger" id="exportPDF">
-                    <i class="fa fa-file-pdf-o"></i> Descargar PDF
-                </button>
-                <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cerrar</button>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Librerías de exportación -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
-<script>
-$(function(){
-
-    // Editar fila
-    $(document).on('click', '.btnEditRow', function(){
-        let row = $(this).closest('tr');
-        row.find('td').not(':first, :last').each(function(){
-            let text = $(this).text().trim();
-            $(this).html('<input type="text" class="form-control" value="'+text+'">');
-        });
-        $(this)
-            .removeClass('btnEditRow btn-warning')
-            .addClass('btnSaveRow btn-success')
-            .html('<i class="fa fa-save"></i>');
-    });
-
-    // Guardar fila
-    $(document).on('click', '.btnSaveRow', function(){
-        let row = $(this).closest('tr');
-        row.find('td').not(':first, :last').each(function(){
-            let val = $(this).find('input').val();
-            $(this).html(val);
-        });
-        $(this)
-            .removeClass('btnSaveRow btn-success')
-            .addClass('btnEditRow btn-warning')
-            .html('<i class="fa fa-pencil"></i>');
-    });
-
-    // Exportar a Excel
-    $('#exportExcel').on('click', function(){
-        let wb = XLSX.utils.book_new();
-        let ws1 = XLSX.utils.table_to_sheet(document.querySelector('#mediaMixDetailTable'));
-        let ws2 = XLSX.utils.table_to_sheet(document.querySelector('#summaryTable'));
-        XLSX.utils.book_append_sheet(wb, ws1, "Detalle");
-        XLSX.utils.book_append_sheet(wb, ws2, "Resumen");
-        XLSX.writeFile(wb, 'MediaMixRealEstate.xlsx');
-    });
-
-    // Exportar a PDF
-    $('#exportPDF').on('click', function(){
-        const { jsPDF } = window.jspdf;
-        let doc = new jsPDF('l', 'pt', 'a4');
-
-        doc.setFontSize(16);
-        doc.text("Detalle Media Mix - Inmobiliaria Alfa", 40, 40);
-
-        doc.autoTable({
-            html: '#mediaMixDetailTable',
-            startY: 60,
-            theme: 'grid'
-        });
-
-        let finalY = doc.lastAutoTable.finalY + 20;
-        doc.text("Resumen", 40, finalY);
-        doc.autoTable({
-            html: '#summaryTable',
-            startY: finalY + 10,
-            theme: 'grid'
-        });
-
-        doc.save('MediaMixRealEstate.pdf');
-    });
-
-});
-</script>
-
-<script>
-$(document).ready(function(){
-    $('#mediaMixTable').DataTable();
-});
-</script>
+<div class="modal fade in" id="editMediaMixRealEstateModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="editMediaMixRealEstateForm" method="post" autocomplete="off">
+                <div class="modal-header" style="background:#00013b;color:#fff">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span></button>
+                    <h4 class="modal-title">Editar Mix de Medios Inmobiliario</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="editMediaMixId">
+                    <div class="box-body">
+                        <div class="form-group">
+                            <label>Nombre:</label>
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-tag"></i></span>
+                                <input type="text" class="form-control" name="editName"
+                                    placeholder="Ej: Campaña Enero (Opcional)">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Periodo:</label>
+                                    <select class="form-control select2" name="editPeriodId" required
+                                        style="width:100%;">
+                                        <?php
+                                        $periods = Periods_Controller::ctrShowPeriods();
+                                        if (is_array($periods)) {
+                                            foreach ($periods as $period) {
+                                                echo '<option value="' . htmlspecialchars($period["id"]) . '">' . htmlspecialchars($period["name"]) . '</option>';
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Cliente:</label>
+                                    <select class="form-control select2" name="editClientId" required
+                                        style="width:100%;">
+                                        <?php
+                                        $clients = Clients_Controller::ctrShowClients();
+                                        if (is_array($clients)) {
+                                            foreach ($clients as $client) {
+                                                echo '<option value="' . htmlspecialchars($client["id"]) . '">' . htmlspecialchars($client["name"]) . '</option>';
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Moneda:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-money"></i></span>
+                                        <select class="form-control" name="editCurrency" required>
+                                            <option value="USD">USD</option>
+                                            <option value="PEN">PEN</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Fee (%):</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                        <input type="number" step="any" class="form-control" name="editFee" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>IGV (%):</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                        <input type="number" step="any" class="form-control" name="editIgv" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

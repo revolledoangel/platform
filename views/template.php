@@ -69,6 +69,7 @@ session_start();
                 "close",
                 // ✅ New Media Mix routes
                 "mediaMixRealEstate",
+                "mediaMixRealEstateDetails",
                 "mediaMixEcommerce",
                 "mediaMixOthers"
             ];
@@ -83,7 +84,9 @@ session_start();
                     "projects",
                     "platforms",
                     "formats",
-                    "objectives"
+                    "objectives",
+                    "campaignTypes",
+                    "channels"
                 ]);
             } elseif ($perfil === "Administrador") {
                 $allowedRoutes = array_merge($allowedRoutes, [
@@ -92,7 +95,9 @@ session_start();
                     "projects",
                     "platforms",
                     "formats",
-                    "objectives"
+                    "objectives",
+                    "campaignTypes",
+                    "channels"
                 ]);
             }
 
@@ -171,15 +176,19 @@ session_start();
 
 <script src="views/js/objectives.js"></script>
 
+<script src="views/js/campaignTypes.js"></script>
+
+<script src="views/js/channels.js"></script>
+
+<script src="views/js/mediaMixRealEstate.js"></script>
+
+<script src="views/js/mediaMixRealEstateDetails.js"></script>
+
 <script src="views/js/campaigns.js"></script>
 
 <script src="views/js/urls.js"></script>
 
 <script src="views/js/comments.js"></script>
 
-<script>
-    const sessionData = <?php echo json_encode($_SESSION); ?>;
-    console.log("Sesión:", sessionData);
-</script>
 
 </html>

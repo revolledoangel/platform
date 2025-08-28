@@ -32,17 +32,19 @@ class Objectives_Controller
     {
         if (isset($_POST["newObjectiveName"])) {
 
-            if (preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ]+$/', $_POST["newObjectiveName"])) {
+            if (preg_match('/^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ \-\/\(\)]+$/', $_POST["newObjectiveName"])) {
 
                 $name = $_POST["newObjectiveName"];
                 $code = $_POST["newObjectiveCode"];
+                $default_result = $_POST["newObjectiveDefaultResult"];
 
                 // Validar: vacío o exactamente 3 dígitos numéricos
                 if ($code === "" || preg_match('/^\d{3}$/', $code)) {
 
                     $body = [
                         "name" => $name,
-                        "code" => $code
+                        "code" => $code,
+                        "default_result" => $default_result
                     ];
 
                     $jsonData = json_encode($body);
@@ -63,9 +65,10 @@ class Objectives_Controller
                     if ($httpCode === 201) {
                         $objetivo = $responseData;
                         $name = htmlspecialchars($objetivo["name"]);
+                        $default_result = htmlspecialchars($objetivo["default_result"]);
                         $code = htmlspecialchars($objetivo["code"]);
 
-                        $mensaje = "Nombre: $name\nCódigo: $code\n";
+                        $mensaje = "Nombre: $name\nResultado por defecto: $default_result\nCódigo: $code\n";
                         
                         echo '<script>
                                 swal({

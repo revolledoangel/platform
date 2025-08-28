@@ -47,10 +47,9 @@ $perfil = $_SESSION["perfil"] ?? "";
             <!-- Configuración: Para Super y Administrador -->
             <?php if (in_array($perfil, ["Super", "Administrador"])): ?>
                 <li
-                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'objectives']) ? 'active' : '' ?>">
+                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'objectives', 'campaignTypes', 'channels']) ? 'active' : '' ?>">
                     <a href="#">
-                        <i class="fa fa-share"></i> <span>Configuración</span>
-                        <span class="pull-right-container">
+                        <i class="fa fa-cogs"></i> <span>Configuración</span> <span class="pull-right-container">
                             <i class="fa fa-angle-left pull-right"></i>
                         </span>
                     </a>
@@ -67,6 +66,11 @@ $perfil = $_SESSION["perfil"] ?? "";
                                     class="fa fa-bookmark"></i> Formatos</a></li>
                         <li class="<?= ($currentRoute == 'objectives') ? 'active' : '' ?>"><a href="objectives"><i
                                     class="fa fa-graduation-cap"></i> Objetivos</a></li>
+
+                        <li class="<?= ($currentRoute == 'campaignTypes') ? 'active' : '' ?>"><a href="campaignTypes"><i
+                                    class="fa fa-tags"></i> Tipo de Campaña</a></li>
+                        <li class="<?= ($currentRoute == 'channels') ? 'active' : '' ?>"><a href="channels"><i
+                                    class="fa fa-sitemap"></i> Canales</a></li>
                     </ul>
                 </li>
             <?php endif; ?>

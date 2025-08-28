@@ -1,57 +1,49 @@
 $(document).ready(function () {
 
-    /* Editar Objetivo */
-    $(document).on("click", ".btn-editObjective", function () {
+    /* Editar Canal */
+    $(document).on("click", ".btn-editChannel", function () {
+        var idChannel = $(this).attr("channelId");
 
-        var idObjective = $(this).attr("objectiveId");
-
-        fetch(`https://algoritmo.digital/backend/public/api/objectives/${idObjective}`)
+        fetch(`https://algoritmo.digital/backend/public/api/channels/${idChannel}`)
             .then(response => response.json())
             .then(data => {
                 if (data) {
-
                     // Limpiar campos
-                    $("#editObjectiveModal input[type='text']").val("");
+                    $("#editChannelModal input[type='text']").val("");
 
                     // Cargar datos
-                    $("input[name='editObjectiveId']").val(data.id);
-                    $("input[name='editObjectiveName']").val(data.name);
-                    $("input[name='editObjectiveDefaultResult']").val(data.default_result);
-                    $("input[name='editObjectiveCode']").val(data.code);
-
+                    $("input[name='editChannelId']").val(data.id);
+                    $("input[name='editChannelName']").val(data.name);
                 } else {
-                    alert("No se pudo obtener la información del objetivo.");
+                    alert("No se pudo obtener la información del canal.");
                 }
             })
             .catch(error => {
-                console.error("Error al obtener datos del objetivo: ", error);
+                console.error("Error al obtener datos del canal: ", error);
             });
     });
 
-    // Guardar edición de objetivo
-    $("#editObjectiveForm").on("submit", function (e) {
+    // Guardar edición de canal
+    $("#editChannelForm").on("submit", function (e) {
         e.preventDefault();
 
-        const objectiveId = $("input[name='editObjectiveId']").val();
-        const name = $("input[name='editObjectiveName']").val().trim();
-        const default_result = $("input[name='editObjectiveDefaultResult']").val().trim();
-        const code = $("input[name='editObjectiveCode']").val().trim();
+        const channelId = $("input[name='editChannelId']").val();
+        const name = $("input[name='editChannelName']").val().trim();
 
         if (!name) {
             swal({
                 icon: "warning",
                 title: "Campo obligatorio",
-                text: "Debes ingresar el nombre del objetivo."
+                text: "Debes ingresar el nombre del canal."
             });
             return;
         }
 
         let body = {
             name: name,
-            default_result: default_result
         };
 
-        fetch(`https://algoritmo.digital/backend/public/api/objectives/${objectiveId}`, {
+        fetch(`https://algoritmo.digital/backend/public/api/channels/${channelId}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -64,19 +56,15 @@ $(document).ready(function () {
                 if (response && typeof response === "object") {
                     const updated = response;
                     const nombre = updated.name || "—";
-                    const default_result = updated.default_result || "—";
-                    const codigo = updated.code || "—";
 
                     swal({
                         icon: "success",
-                        title: "Objetivo actualizado correctamente",
+                        title: "Canal actualizado correctamente",
                         html: `
-                        <b>Nombre:</b> ${nombre}<br>
-                        <b>Tipo Resultado:</b> ${default_result}<br>
-                        <b>Código:</b> ${codigo}
-                    `
+                            <b>Nombre:</b> ${nombre}<br>
+                        `
                     }).then(() => {
-                        $("#editObjectiveModal").modal("hide");
+                        $("#editChannelModal").modal("hide");
                         location.reload();
                     });
 
@@ -98,29 +86,29 @@ $(document).ready(function () {
             });
     });
 
-    /** Eliminar Objetivo */
-    $(document).on("click", ".btn-deleteObjective", function () {
-        var objectiveId = $(this).attr("objectiveId");
+    /** Eliminar Canal */
+    $(document).on("click", ".btn-deleteChannel", function () {
+        var channelId = $(this).attr("channelId");
 
         swal({
-            title: "¿Seguro que desea borrar el Objetivo?",
+            title: "¿Seguro que desea borrar el Canal?",
             text: "si no lo estás, cancela la acción",
             type: "warning",
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
             cancelButtonText: 'Cancelar',
-            confirmButtonText: 'Sí, borrar objetivo'
+            confirmButtonText: 'Sí, borrar canal'
         }).then((result) => {
             if (result.value) {
-                window.location = "index.php?route=objectives&objectiveId=" + objectiveId;
+                window.location = "index.php?route=channels&channelId=" + channelId;
             }
         });
     });
 
     // Inicializar DataTable
-    $('#objectivesTable').DataTable({
-        ajax: "ajax/objectives.ajax.php?action=list",
+    $('#channelsTable').DataTable({
+        ajax: "ajax/channels.ajax.php?action=list",
         deferRender: true,
         retrieve: true,
         processing: true,
