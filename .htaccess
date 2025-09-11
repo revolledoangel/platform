@@ -2,4 +2,17 @@ Options All -Indexes
 
 RewriteEngine On
 
-RewriteRule ^([-a-zA-Z0-9]+)$ index.php?route=$1
+# Establece el directorio base de tu proyecto.
+# En tu caso es /platform/
+RewriteBase /platform/
+
+# Estas dos líneas evitan que la regla se aplique a archivos o carpetas que ya existen
+# (como tus carpetas de css, js, etc.).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# REGLA CORREGIDA:
+# ^(.*)$    - Captura cualquier caracter en la ruta.
+# [QSA]     - (Query String Append) Adjunta los parámetros GET originales (la clave de la solución).
+# [L]       - (Last) Indica al servidor que esta es la última regla y que no procese más.
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]

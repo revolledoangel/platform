@@ -6,6 +6,16 @@ class AjaxProjects
 {
     public $projectId;
     public $projectActive;
+    public $clientId;
+
+    public function ajaxFetchProjectsByClient() 
+    {
+        // Llama a la función del controlador que filtra por cliente
+        $projects = Projects_Controller::ctrShowProjectsByClient($this->clientId);
+        
+        // Devuelve el resultado como JSON
+        echo json_encode($projects);
+    }
 
     public function ajaxEditProject()
     {
@@ -95,4 +105,10 @@ if (isset($_POST["active"])) {
     $activar->projectId = $_POST["id"];
     $activar->projectActive = $_POST["active"];
     $activar->ajaxActiveProject();
+}
+
+if (isset($_POST['clientId'])) {
+    $ajaxProjects = new AjaxProjects();
+    $ajaxProjects->clientId = $_POST['clientId'];
+    $ajaxProjects->ajaxFetchProjectsByClient();
 }

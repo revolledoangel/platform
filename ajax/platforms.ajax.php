@@ -69,13 +69,25 @@ class AjaxPlatforms
 
         echo json_encode(["data" => $data]);
     }
+
+     public function ajaxFetchSimpleList() 
+    {
+        $platforms = Platforms_Controller::ctrShowPlatforms();
+        echo json_encode($platforms); // Devuelve un array simple
+    }
 }
 
-// Detectar la acción:
+// Ruta para la tabla principal (con GET)
 if (isset($_GET["action"]) && $_GET["action"] === "list") {
     $listar = new AjaxPlatforms();
-    $listar->ajaxListPlatforms();
+    $listar->ajaxListPlatforms(); // <-- Esta es para la tabla de plataformas
     return;
+}
+
+// Ruta para el selector del modal (con POST)
+if (isset($_POST['action']) && $_POST['action'] == 'list') {
+    $ajaxPlatforms = new AjaxPlatforms();
+    $ajaxPlatforms->ajaxFetchSimpleList(); // <-- Esta es para el modal
 }
 
 // Editar proyecto

@@ -23,7 +23,7 @@ class AjaxMediaMixRealEstate
         $data = [];
         foreach ($records as $key => $record) {
             $acciones = '<div class="btn-group">
-                <a href="index.php?route=mediaMixRealEstateDetails&mediaMixId=' . $record["id"] . '" class="btn btn-info">
+                <a href="mediaMixRealEstateDetails?mediaMixId=' . $record["id"] . '" class="btn btn-info">
                     <i class="fa fa-eye"></i>
                 </a>
                 <button type="button" class="btn btn-warning btn-editMediaMix" mediaMixId="' . $record["id"] . '" data-toggle="modal" data-target="#editMediaMixRealEstateModal">

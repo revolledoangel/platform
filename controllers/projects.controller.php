@@ -75,7 +75,7 @@ class Projects_controller
 
                         // Construir texto para el swal
                         $mensaje = "Nombre: $name\nCódigo: $code\n";
-                        
+
                         echo '<script>
                                 swal({
                                     type: "success",
@@ -180,7 +180,7 @@ class Projects_controller
         if (isset($_GET["projectId"])) {
 
             $projectId = $_GET["projectId"];
-            
+
             $url = 'https://algoritmo.digital/backend/public/api/projects/' . $projectId;
 
             // Iniciar cURL
@@ -231,6 +231,33 @@ class Projects_controller
                         });
                     </script>';
             }
+        }
+    }
+
+    static public function ctrShowProjectsByClient($clientId)
+    {
+        // Construimos la URL del API con el ID del cliente
+        $url = 'https://algoritmo.digital/backend/public/api/clients/' . $clientId . '/projects';
+
+        $ch = curl_init($url);
+
+        // Hacemos la petición con el método POST, como lo requiere la API
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            $responseData = json_decode($response, true);
+            // Devolvemos únicamente el array 'projects' que está dentro de la respuesta
+            return $responseData['projects'] ?? [];
+        } else {
+            // Si hay un error, devolvemos un array vacío para no romper el modal
+            return [];
         }
     }
 }
