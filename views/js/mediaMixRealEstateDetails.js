@@ -197,6 +197,35 @@ $(document).ready(function () {
         // Aquí harías lo mismo para otros selects que necesites cargar dinámicamente
     });
 
+    // === CARGA DINÁMICA DE PROYECTOS AL ABRIR EL MODAL ===
+    let projectsLoaded = false;
+    $('#addDetailModal').on('show.bs.modal', function () {
+        if (projectsLoaded) return;
+        const clientId = $(this).data('client-id');
+        const $projectSelect = $('#newDetailProject');
+        $projectSelect.html('<option value="">Cargando proyectos...</option>').prop('disabled', true);
+        fetch(`https://algoritmo.digital/backend/public/api/clients/${clientId}/projects`, {
+            method: "POST",
+            headers: { "Accept": "application/json" }
+        })
+        .then(res => res.json())
+        .then(response => {
+            if (response.success && Array.isArray(response.projects)) {
+                let options = '<option value="">-- Selecciona un proyecto --</option>';
+                response.projects.forEach(project => {
+                    options += `<option value="${project.id}">${project.name} (${project.code})</option>`;
+                });
+                $projectSelect.html(options).prop('disabled', false);
+                projectsLoaded = true;
+            } else {
+                $projectSelect.html('<option value="">No se encontraron proyectos</option>').prop('disabled', true);
+            }
+        })
+        .catch(err => {
+            $projectSelect.html('<option value="">Error al cargar proyectos</option>').prop('disabled', true);
+        });
+    });
+
     // Inicialización de Select2 para el modal
     $('#addDetailModal .select2').select2({
         dropdownParent: $('#addDetailModal')
