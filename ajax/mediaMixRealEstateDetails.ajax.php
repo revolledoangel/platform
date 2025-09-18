@@ -50,9 +50,26 @@ if (isset($_POST['get_channels'])) {
 }
 
 if (isset($_POST['platform_id'])) {
-    $platformId = intval($_POST['platform_id']);
-    $formats = MediaMixRealEstateDetails_Controller::ctrGetFormatsByPlatformId($platformId);
-    header('Content-Type: application/json');
+    $host = 'srv1013.hstgr.io';
+    $port = 3306;
+    $db   = 'u961992735_plataforma';
+    $user = 'u961992735_plataforma';
+    $pass = 'Peru+*963.';
+    $platform_id = intval($_POST['platform_id']);
+    $conn = new mysqli($host, $user, $pass, $db, $port);
+    if ($conn->connect_error) {
+        echo json_encode([]);
+        exit;
+    }
+    $sql = "SELECT id, name FROM formats WHERE platform_id = $platform_id AND active = 1 ORDER BY name ASC";
+    $result = $conn->query($sql);
+    $formats = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $formats[] = $row;
+        }
+    }
+    $conn->close();
     echo json_encode($formats);
     exit;
 }
