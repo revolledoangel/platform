@@ -1,6 +1,6 @@
 <?php
 
-class Users_controller
+class Users_Controller
 {
     // Iniciar Sesion
     static public function ctrUserStartSesion()
