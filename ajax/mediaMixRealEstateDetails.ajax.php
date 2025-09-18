@@ -1,11 +1,29 @@
 <?php
 // Archivo limpio para comenzar desde cero
 require_once "../controllers/mediaMixRealEstateDetails.controller.php";
+header('Content-Type: application/json');
 
 if (isset($_POST['client_id'])) {
-    $clientId = intval($_POST['client_id']);
-    $projects = MediaMixRealEstateDetails_Controller::ctrGetProjectsByClientId($clientId);
-    header('Content-Type: application/json');
+    $host = 'srv1013.hstgr.io';
+    $port = 3306;
+    $db   = 'u961992735_plataforma';
+    $user = 'u961992735_plataforma';
+    $pass = 'Peru+*963.';
+    $client_id = intval($_POST['client_id']);
+    $conn = new mysqli($host, $user, $pass, $db, $port);
+    if ($conn->connect_error) {
+        echo json_encode([]);
+        exit;
+    }
+    $sql = "SELECT id, name FROM projects WHERE client_id = $client_id AND active = 1 ORDER BY name ASC";
+    $result = $conn->query($sql);
+    $projects = [];
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $projects[] = $row;
+        }
+    }
+    $conn->close();
     echo json_encode($projects);
     exit;
 }
