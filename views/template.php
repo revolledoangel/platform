@@ -49,7 +49,7 @@ session_start();
 
 </head>
 
-<body class="hold-transition skin-blue sidebar-mini login-page">
+<body class="hold-transition skin-blue sidebar-mini login-page sidebar-collapse">
 
     <?php
 

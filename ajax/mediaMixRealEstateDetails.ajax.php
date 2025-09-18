@@ -1,59 +1,47 @@
 <?php
+// Archivo limpio para comenzar desde cero
 require_once "../controllers/mediaMixRealEstateDetails.controller.php";
 
-class AjaxMediaMixRealEstateDetails
-{
-    public $mediaMixId;
-
-    public function ajaxListDetails()
-    {
-        $response = MediaMixRealEstateDetails_Controller::ctrShowDetails($this->mediaMixId);
-        $records = $response['details'] ?? [];
-        
-        if (empty($records)) {
-            echo json_encode(["data" => []]);
-            return;
-        }
-        
-        $data = [];
-        foreach ($records as $key => $record) {
-            $acciones = '<div class="btn-group">
-                            <button type="button" class="btn btn-warning btn-editDetail" detailId="' . $record["id"] . '">
-                                <i class="fa fa-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger btn-deleteDetail" detailId="' . $record["id"] . '">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                        </div>';
-
-            $data[] = [
-                htmlspecialchars($record["project_name"] ?? 'N/A'),
-                htmlspecialchars($record["platform_name"] ?? 'N/A'),
-                htmlspecialchars(implode(', ', $record["objectives_names"] ?? [])),
-                ($record["aon"] == 1) ? 'Sí' : 'No',
-                htmlspecialchars($record["campaign_type_name"] ?? 'N/A'),
-                htmlspecialchars($record["channel_name"] ?? 'N/A'),
-                htmlspecialchars($record["segmentation"] ?? ''),
-                htmlspecialchars(implode(', ', $record["formats_names"] ?? [])),
-                htmlspecialchars(($record["currency"] ?? '') . ' ' . number_format($record["investment"] ?? 0, 2)),
-                '',
-                htmlspecialchars(number_format($record["projection"] ?? 0, 2)),
-                htmlspecialchars($record["result_type"] ?? ''),
-                '',
-                '',
-                htmlspecialchars($record["comments"] ?? ''),
-                htmlspecialchars($record["state"] ?? 'N/A'),
-                $acciones
-            ];
-        }
-        echo json_encode(["data" => $data]);
-    }
+if (isset($_POST['client_id'])) {
+    $clientId = intval($_POST['client_id']);
+    $projects = MediaMixRealEstateDetails_Controller::ctrGetProjectsByClientId($clientId);
+    header('Content-Type: application/json');
+    echo json_encode($projects);
+    exit;
 }
 
-if (isset($_GET["mediaMixId"]) && is_numeric($_GET["mediaMixId"])) {
-    if (isset($_GET["action"]) && $_GET["action"] === "list") {
-        $listar = new AjaxMediaMixRealEstateDetails();
-        $listar->mediaMixId = $_GET["mediaMixId"];
-        $listar->ajaxListDetails();
-    }
+if (isset($_POST['get_objectives'])) {
+    $objectives = MediaMixRealEstateDetails_Controller::ctrGetObjectives();
+    header('Content-Type: application/json');
+    echo json_encode($objectives);
+    exit;
+}
+
+if (isset($_POST['get_platforms'])) {
+    $platforms = MediaMixRealEstateDetails_Controller::ctrGetPlatforms();
+    header('Content-Type: application/json');
+    echo json_encode($platforms);
+    exit;
+}
+
+if (isset($_POST['get_channels'])) {
+    $channels = MediaMixRealEstateDetails_Controller::ctrGetChannels();
+    header('Content-Type: application/json');
+    echo json_encode($channels);
+    exit;
+}
+
+if (isset($_POST['platform_id'])) {
+    $platformId = intval($_POST['platform_id']);
+    $formats = MediaMixRealEstateDetails_Controller::ctrGetFormatsByPlatformId($platformId);
+    header('Content-Type: application/json');
+    echo json_encode($formats);
+    exit;
+}
+
+if (isset($_POST['get_campaign_types'])) {
+    $types = MediaMixRealEstateDetails_Controller::ctrGetCampaignTypes();
+    header('Content-Type: application/json');
+    echo json_encode($types);
+    exit;
 }

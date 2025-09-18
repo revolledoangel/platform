@@ -1,233 +1,443 @@
+// Archivo limpio para comenzar desde cero
+var cachedProjects = null;
+var lastSelectedProject = null;
+var cachedObjectives = null;
+var lastSelectedObjective = null;
+var cachedPlatforms = null;
+var lastSelectedPlatform = null;
+var cachedChannels = null;
+var lastSelectedChannel = null;
+var cachedFormatsByPlatform = {};
+var lastSelectedFormats = [];
+var lastPlatformForFormats = null;
+var cachedCampaignTypes = null;
+var lastSelectedCampaignType = null;
+var lastResultTypeValue = '';
+var lastResultTypeAuto = true;
+
 $(document).ready(function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const mediaMixId = urlParams.get('mediaMixId');
+    // Inicializar DataTable para la tabla de detalles
+    // $('#detailsTable').DataTable({
+    //     language: {
+    //         url: '//cdn.datatables.net/plug-ins/1.10.25/i18n/Spanish.json'
+    //     },
+    //     order: [[0, 'desc']]
+    // });
 
-    if (!mediaMixId) return;
-
-    // Inicializar DataTable
-    $('#detailsTable').DataTable({
-        ajax: `ajax/mediaMixRealEstateDetails.ajax.php?action=list&mediaMixId=${mediaMixId}`,
-        // ... resto de tu configuración ...
-    });
-
-    // LÓGICA PARA CARGAR DATOS EN EL MODAL
     $('#addDetailModal').on('show.bs.modal', function () {
-        
-        // CORRECCIÓN: Leemos el clientId desde el atributo data-* del modal
-        const clientId = $(this).data('client-id'); 
-
-        // Si no hay clientId, no continuamos
-        if (!clientId) {
-            console.error("No se pudo obtener el client-id desde el modal.");
-            return;
-        }
-
-        // Cargar Proyectos (filtrados por cliente)
-        const projectSelect = $('#newDetailProject');
-        projectSelect.html('<option>Cargando proyectos...</option>');
-        $.ajax({
-            url: 'ajax/projects.ajax.php',
-            type: 'POST',
-            data: { clientId: clientId }, // Ahora enviamos el ID correcto
-            dataType: 'json',
-            success: function(projects) {
-                let options = '<option value="">-- Selecciona un proyecto --</option>';
-                if (projects && projects.length > 0) {
-                    projects.forEach(project => {
-                        options += `<option value="${project.id}">${project.name}</option>`;
-                    });
-                } else {
-                    options = '<option value="">No hay proyectos para este cliente</option>';
-                }
-                projectSelect.html(options);
-            },
-            error: function() {
-                projectSelect.html('<option value="">Error al cargar proyectos</option>');
-            }
-        });
-
-        // Cargar Plataformas (lista completa)
-        const platformSelect = $('#newDetailPlatform');
-        platformSelect.html('<option>Cargando plataformas...</option>');
-        $.ajax({
-            url: 'ajax/platforms.ajax.php',
-            type: 'POST',
-            data: { action: 'list' },
-            dataType: 'json',
-            success: function(platforms) {
-                let options = '<option value="">-- Selecciona una plataforma --</option>';
-                if (platforms && platforms.length > 0) {
-                    platforms.forEach(platform => {
-                        options += `<option value="${platform.id}">${platform.name}</option>`;
-                    });
-                }
-                platformSelect.html(options);
-            },
-            error: function() {
-                 platformSelect.html('<option value="">Error al cargar plataformas</option>');
-            }
-        });
-        
-        // Cargar Canales (lista completa)
-        const channelSelect = $('#newDetailChannel');
-        channelSelect.html('<option>Cargando canales...</option>');
-        $.ajax({
-            url: 'ajax/channels.ajax.php',
-            type: 'GET',
-            data: { action: 'list' },
-            dataType: 'json',
-            success: function(response) {
-                let options = '<option value="">-- Selecciona un canal --</option>';
-                if (response.data && response.data.length > 0) {
-                    response.data.forEach(function(row) {
-                        // row[1] es el nombre
-                        options += `<option value="${row[1]}">${row[1]}</option>`;
-                    });
-                } else {
-                    options = '<option value="">No hay canales disponibles</option>';
-                }
-                channelSelect.html(options);
-            },
-            error: function() {
-                channelSelect.html('<option value="">Error al cargar canales</option>');
-            }
-        });
-
-        // Cargar Tipos de Campaña (lista completa)
-        const campaignTypeSelect = $('#newDetailCampaignType');
-        campaignTypeSelect.html('<option>Cargando tipos de campaña...</option>');
-        $.ajax({
-            url: 'ajax/campaignTypes.ajax.php',
-            type: 'GET',
-            data: { action: 'list' },
-            dataType: 'json',
-            success: function(response) {
-                let options = '<option value="">-- Selecciona un tipo de campaña --</option>';
-                if (response.data && response.data.length > 0) {
-                    response.data.forEach(function(row) {
-                        // row[1] es el nombre
-                        options += `<option value="${row[1]}">${row[1]}</option>`;
-                    });
-                } else {
-                    options = '<option value="">No hay tipos de campaña disponibles</option>';
-                }
-                campaignTypeSelect.html(options);
-            },
-            error: function() {
-                campaignTypeSelect.html('<option value="">Error al cargar tipos de campaña</option>');
-            }
-        });
-
-        // Cargar Formatos según la plataforma seleccionada
-        const formatSelect = $('#newDetailFormat');
-        $('#newDetailPlatform').on('change', function () {
-            const platformId = $(this).val();
-            if (!platformId) {
-                formatSelect.html('<option value="">-- Selecciona una plataforma primero --</option>').prop('disabled', true);
-                return;
-            }
-            formatSelect.html('<option value="">Cargando formatos...</option>').prop('disabled', true);
+        var clientId = $(this).data('client-id');
+        var $projectSelect = $('#newDetailProject');
+        var $objectiveSelect = $('#newDetailObjective');
+        var $platformSelect = $('#newDetailPlatform');
+        var $channelSelect = $('#newDetailChannel');
+        var $formatSelect = $('#newDetailFormat');
+        var $campaignTypeSelect = $('#newDetailCampaignType');
+        var $resultTypeInput = $('#newDetailResultType');
+        // Proyectos (persistencia)
+        if (cachedProjects && Array.isArray(cachedProjects) && cachedProjects.length > 0) {
+            var options = '<option value="">-- Selecciona un proyecto --</option>';
+            cachedProjects.forEach(function(project) {
+                var selected = (lastSelectedProject == project.id) ? ' selected' : '';
+                options += '<option value="' + project.id + '"' + selected + '>' + project.name + '</option>';
+            });
+            $projectSelect.html(options).prop('disabled', false);
+            if (lastSelectedProject) $projectSelect.val(lastSelectedProject).trigger('change');
+        } else {
+            $projectSelect.html('<option value="">Cargando proyectos...</option>').prop('disabled', true);
             $.ajax({
-                url: `https://algoritmo.digital/backend/public/api/platforms/${platformId}/formats`,
-                type: 'POST',
-                headers: { 'Accept': 'application/json' },
-                success: function(response) {
-                    let options = '';
-                    if (response.success && Array.isArray(response.formats)) {
-                        response.formats.forEach(format => {
-                            options += `<option value="${format.id}">${format.name} (${format.code})</option>`;
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { client_id: clientId },
+                dataType: 'json',
+                success: function(projects) {
+                    cachedProjects = projects;
+                    var options = '<option value="">-- Selecciona un proyecto --</option>';
+                    if (Array.isArray(projects) && projects.length > 0) {
+                        projects.forEach(function(project) {
+                            var selected = (lastSelectedProject == project.id) ? ' selected' : '';
+                            options += '<option value="' + project.id + '"' + selected + '>' + project.name + '</option>';
                         });
-                        formatSelect.html(options).prop('disabled', false);
+                        $projectSelect.html(options).prop('disabled', false);
+                        if (lastSelectedProject) $projectSelect.val(lastSelectedProject).trigger('change');
                     } else {
-                        formatSelect.html('<option value="">No se encontraron formatos</option>').prop('disabled', true);
+                        $projectSelect.html('<option value="">No hay proyectos para este cliente</option>').prop('disabled', true);
                     }
                 },
                 error: function() {
-                    formatSelect.html('<option value="">Error al cargar formatos</option>').prop('disabled', true);
+                    $projectSelect.html('<option value="">Error al cargar proyectos</option>').prop('disabled', true);
                 }
             });
-        });
-        // Al abrir el modal, deshabilitar el select de formatos
-        $('#addDetailModal').on('show.bs.modal', function () {
-            formatSelect.html('<option value="">-- Selecciona una plataforma primero --</option>').prop('disabled', true);
-        });
-
-        // Cargar Objetivos (lista completa)
-        const objectiveSelect = $('#newDetailObjective');
-        objectiveSelect.html('<option>Cargando objetivos...</option>');
-        let objectivesData = [];
-        $.ajax({
-            url: 'ajax/objectives.ajax.php',
-            type: 'GET',
-            data: { action: 'list' },
-            dataType: 'json',
-            success: function(response) {
-                let options = '<option value="">-- Selecciona un objetivo --</option>';
-                if (response.data && response.data.length > 0) {
-                    objectivesData = response.data.map(function(row, idx) {
-                        // row[0]=name, row[1]=default_result, row[2]=code
-                        return {
-                            id: idx, // No tenemos el id real, así que usamos el índice
-                            name: row[0],
-                            default_result: row[1]
-                        };
-                    });
-                    objectivesData.forEach(function(obj, idx) {
-                        options += `<option value="${idx}">${obj.name}</option>`;
-                    });
-                } else {
-                    options = '<option value="">No hay objetivos disponibles</option>';
+        }
+        // Objetivos (persistencia)
+        if (cachedObjectives && Array.isArray(cachedObjectives) && cachedObjectives.length > 0) {
+            var options = '<option value="">-- Selecciona un objetivo --</option>';
+            cachedObjectives.forEach(function(obj) {
+                var selected = (lastSelectedObjective == obj.id) ? ' selected' : '';
+                options += '<option value="' + obj.id + '"' + selected + '>' + obj.name + '</option>';
+            });
+            $objectiveSelect.html(options).prop('disabled', false);
+            if (lastSelectedObjective) $objectiveSelect.val(lastSelectedObjective).trigger('change');
+        } else {
+            $objectiveSelect.html('<option value="">Cargando objetivos...</option>').prop('disabled', true);
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { get_objectives: 1 },
+                dataType: 'json',
+                success: function(objectives) {
+                    cachedObjectives = objectives;
+                    var options = '<option value="">-- Selecciona un objetivo --</option>';
+                    if (Array.isArray(objectives) && objectives.length > 0) {
+                        objectives.forEach(function(obj) {
+                            var selected = (lastSelectedObjective == obj.id) ? ' selected' : '';
+                            options += '<option value="' + obj.id + '"' + selected + '>' + obj.name + '</option>';
+                        });
+                        $objectiveSelect.html(options).prop('disabled', false);
+                        if (lastSelectedObjective) $objectiveSelect.val(lastSelectedObjective).trigger('change');
+                    } else {
+                        $objectiveSelect.html('<option value="">No hay objetivos</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $objectiveSelect.html('<option value="">Error al cargar objetivos</option>').prop('disabled', true);
                 }
-                objectiveSelect.html(options);
+            });
+        }
+        // Plataformas (persistencia)
+        if (cachedPlatforms && Array.isArray(cachedPlatforms) && cachedPlatforms.length > 0) {
+            var options = '<option value="">-- Selecciona una plataforma --</option>';
+            cachedPlatforms.forEach(function(plat) {
+                var selected = (lastSelectedPlatform == plat.id) ? ' selected' : '';
+                options += '<option value="' + plat.id + '"' + selected + '>' + plat.name + '</option>';
+            });
+            $platformSelect.html(options).prop('disabled', false);
+            if (lastSelectedPlatform) $platformSelect.val(lastSelectedPlatform).trigger('change');
+        } else {
+            $platformSelect.html('<option value="">Cargando plataformas...</option>').prop('disabled', true);
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { get_platforms: 1 },
+                dataType: 'json',
+                success: function(platforms) {
+                    cachedPlatforms = platforms;
+                    var options = '<option value="">-- Selecciona una plataforma --</option>';
+                    if (Array.isArray(platforms) && platforms.length > 0) {
+                        platforms.forEach(function(plat) {
+                            var selected = (lastSelectedPlatform == plat.id) ? ' selected' : '';
+                            options += '<option value="' + plat.id + '"' + selected + '>' + plat.name + '</option>';
+                        });
+                        $platformSelect.html(options).prop('disabled', false);
+                        if (lastSelectedPlatform) $platformSelect.val(lastSelectedPlatform).trigger('change');
+                    } else {
+                        $platformSelect.html('<option value="">No hay plataformas</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $platformSelect.html('<option value="">Error al cargar plataformas</option>').prop('disabled', true);
+                }
+            });
+        }
+        // Canales (persistencia)
+        if (cachedChannels && Array.isArray(cachedChannels) && cachedChannels.length > 0) {
+            var options = '<option value="">-- Selecciona un canal --</option>';
+            cachedChannels.forEach(function(chan) {
+                var selected = (lastSelectedChannel == chan.id) ? ' selected' : '';
+                options += '<option value="' + chan.id + '"' + selected + '>' + chan.name + '</option>';
+            });
+            $channelSelect.html(options).prop('disabled', false);
+            if (lastSelectedChannel) $channelSelect.val(lastSelectedChannel).trigger('change');
+        } else {
+            $channelSelect.html('<option value="">Cargando canales...</option>').prop('disabled', true);
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { get_channels: 1 },
+                dataType: 'json',
+                success: function(channels) {
+                    cachedChannels = channels;
+                    var options = '<option value="">-- Selecciona un canal --</option>';
+                    if (Array.isArray(channels) && channels.length > 0) {
+                        channels.forEach(function(chan) {
+                            var selected = (lastSelectedChannel == chan.id) ? ' selected' : '';
+                            options += '<option value="' + chan.id + '"' + selected + '>' + chan.name + '</option>';
+                        });
+                        $channelSelect.html(options).prop('disabled', false);
+                        if (lastSelectedChannel) $channelSelect.val(lastSelectedChannel).trigger('change');
+                    } else {
+                        $channelSelect.html('<option value="">No hay canales</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $channelSelect.html('<option value="">Error al cargar canales</option>').prop('disabled', true);
+                }
+            });
+        }
+        // Formatos (persistencia y dependiente de plataforma)
+        $formatSelect.prop('disabled', true);
+        $formatSelect.html('<option value="">Selecciona una plataforma primero</option>');
+        if (lastPlatformForFormats && cachedFormatsByPlatform[lastPlatformForFormats]) {
+            var options = '';
+            cachedFormatsByPlatform[lastPlatformForFormats].forEach(function(fmt) {
+                var selected = (lastSelectedFormats && lastSelectedFormats.includes(String(fmt.id))) ? ' selected' : '';
+                options += '<option value="' + fmt.id + '"' + selected + '>' + fmt.name + (fmt.code ? ' ('+fmt.code+')' : '') + '</option>';
+            });
+            $formatSelect.html(options).prop('disabled', false);
+            if (lastSelectedFormats && lastSelectedFormats.length > 0) $formatSelect.val(lastSelectedFormats).trigger('change');
+        }
+        // Tipos de campaña (persistencia)
+        if (cachedCampaignTypes && Array.isArray(cachedCampaignTypes) && cachedCampaignTypes.length > 0) {
+            var options = '<option value="">-- Selecciona un tipo de campaña --</option>';
+            cachedCampaignTypes.forEach(function(type) {
+                var selected = (lastSelectedCampaignType == type.id) ? ' selected' : '';
+                options += '<option value="' + type.id + '"' + selected + '>' + type.name + '</option>';
+            });
+            $campaignTypeSelect.html(options).prop('disabled', false);
+            if (lastSelectedCampaignType) $campaignTypeSelect.val(lastSelectedCampaignType).trigger('change');
+        } else {
+            $campaignTypeSelect.html('<option value="">Cargando tipos de campaña...</option>').prop('disabled', true);
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { get_campaign_types: 1 },
+                dataType: 'json',
+                success: function(types) {
+                    cachedCampaignTypes = types;
+                    var options = '<option value="">-- Selecciona un tipo de campaña --</option>';
+                    if (Array.isArray(types) && types.length > 0) {
+                        types.forEach(function(type) {
+                            var selected = (lastSelectedCampaignType == type.id) ? ' selected' : '';
+                            options += '<option value="' + type.id + '"' + selected + '>' + type.name + '</option>';
+                        });
+                        $campaignTypeSelect.html(options).prop('disabled', false);
+                        if (lastSelectedCampaignType) $campaignTypeSelect.val(lastSelectedCampaignType).trigger('change');
+                    } else {
+                        $campaignTypeSelect.html('<option value="">No hay tipos de campaña</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $campaignTypeSelect.html('<option value="">Error al cargar tipos de campaña</option>').prop('disabled', true);
+                }
+            });
+        }
+        // Tipo Resultado (persistencia y lógica)
+        if (lastResultTypeValue) {
+            $resultTypeInput.val(lastResultTypeValue);
+            $resultTypeInput.prop('readonly', !lastResultTypeAuto);
+        } else {
+            $resultTypeInput.val('');
+            $resultTypeInput.prop('readonly', true);
+        }
+    });
+    // Cuando cambia la plataforma, carga los formatos correspondientes
+    $('#newDetailPlatform').on('change', function () {
+        var platformId = $(this).val();
+        var $formatSelect = $('#newDetailFormat');
+        lastPlatformForFormats = platformId;
+        if (!platformId) {
+            $formatSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+            return;
+        }
+        if (cachedFormatsByPlatform[platformId]) {
+            var options = '';
+            cachedFormatsByPlatform[platformId].forEach(function(fmt) {
+                var selected = (lastSelectedFormats && lastSelectedFormats.includes(String(fmt.id))) ? ' selected' : '';
+                options += '<option value="' + fmt.id + '"' + selected + '>' + fmt.name + (fmt.code ? ' ('+fmt.code+')' : '') + '</option>';
+            });
+            $formatSelect.html(options).prop('disabled', false);
+            if (lastSelectedFormats && lastSelectedFormats.length > 0) $formatSelect.val(lastSelectedFormats).trigger('change');
+        } else {
+            $formatSelect.html('<option value="">Cargando formatos...</option>').prop('disabled', true);
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { platform_id: platformId },
+                dataType: 'json',
+                success: function(formats) {
+                    cachedFormatsByPlatform[platformId] = formats;
+                    var options = '';
+                    if (Array.isArray(formats) && formats.length > 0) {
+                        formats.forEach(function(fmt) {
+                            var selected = (lastSelectedFormats && lastSelectedFormats.includes(String(fmt.id))) ? ' selected' : '';
+                            options += '<option value="' + fmt.id + '"' + selected + '>' + fmt.name + (fmt.code ? ' ('+fmt.code+')' : '') + '</option>';
+                        });
+                        $formatSelect.html(options).prop('disabled', false);
+                        if (lastSelectedFormats && lastSelectedFormats.length > 0) $formatSelect.val(lastSelectedFormats).trigger('change');
+                    } else {
+                        $formatSelect.html('<option value="">No hay formatos para esta plataforma</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $formatSelect.html('<option value="">Error al cargar formatos</option>').prop('disabled', true);
+                }
+            });
+        }
+    });
+    // Cuando cambia el objetivo, llena el campo de tipo resultado con default_result
+    $('#newDetailObjective').on('change', function () {
+        var selectedId = $(this).val();
+        var $resultTypeInput = $('#newDetailResultType');
+        var found = null;
+        if (cachedObjectives && Array.isArray(cachedObjectives)) {
+            found = cachedObjectives.find(function(obj) { return String(obj.id) === String(selectedId); });
+        }
+        if (found && found.default_result) {
+            $resultTypeInput.val(found.default_result);
+            $resultTypeInput.prop('readonly', false);
+            lastResultTypeAuto = true;
+            lastResultTypeValue = found.default_result;
+        } else {
+            $resultTypeInput.val('');
+            $resultTypeInput.prop('readonly', true);
+            lastResultTypeAuto = true;
+            lastResultTypeValue = '';
+        }
+    });
+    // Si el usuario edita el campo manualmente, deja de ser automático
+    $('#newDetailResultType').on('input', function () {
+        lastResultTypeValue = $(this).val();
+        lastResultTypeAuto = false;
+    });
+    // Guarda la selección previa al cerrar el modal
+    $('#addDetailModal').on('hidden.bs.modal', function () {
+        lastSelectedProject = $('#newDetailProject').val();
+        lastSelectedObjective = $('#newDetailObjective').val();
+        lastSelectedPlatform = $('#newDetailPlatform').val();
+        lastSelectedChannel = $('#newDetailChannel').val();
+        lastSelectedFormats = $('#newDetailFormat').val() || [];
+        lastPlatformForFormats = $('#newDetailPlatform').val();
+        lastSelectedCampaignType = $('#newDetailCampaignType').val();
+        lastResultTypeValue = $('#newDetailResultType').val();
+        lastResultTypeAuto = $('#newDetailResultType').prop('readonly') ? true : false;
+    });
+    // Guardar detalle
+    $('#addDetailModal form').on('submit', function (e) {
+        e.preventDefault();
+        var $form = $(this);
+        // Obtención robusta del ID del mix de medios desde variable global
+        var mediamixrealestate_id = typeof window.mmreId !== 'undefined' ? parseInt(window.mmreId) : null;
+        var project_id = parseInt($('#newDetailProject').val());
+        var channel_id = parseInt($('#newDetailChannel').val());
+        var campaign_type_id = parseInt($('#newDetailCampaignType').val());
+        var segmentation = $('#newDetailSegmentation').val();
+        var objectives_ids = $('#newDetailObjective').val() ? [parseInt($('#newDetailObjective').val())] : [];
+        var result_type = $('#newDetailResultType').val();
+        var projection = parseInt($('#newDetailProjection').val());
+        var formats_ids = $('#newDetailFormat').val() ? $('#newDetailFormat').val().map(function(x){return parseInt(x);}) : [];
+        var investment = parseFloat($('#newDetailInvestment').val());
+        var aon = $('#newDetailAon').is(':checked') ? 1 : 0;
+        var comments = $('#newDetailComments').val();
+        var state = $('#newDetailStatus').val();
+
+        // Validación robusta con mensaje de campos faltantes
+        var missingFields = [];
+        if (isNaN(mediamixrealestate_id)) missingFields.push('Mix de Medios');
+        if (isNaN(project_id)) missingFields.push('Proyecto');
+        if (isNaN(channel_id)) missingFields.push('Canal');
+        if (isNaN(campaign_type_id)) missingFields.push('Tipo de Campaña');
+        if (!segmentation) missingFields.push('Segmentación');
+        if (!Array.isArray(objectives_ids) || objectives_ids.length === 0 || isNaN(objectives_ids[0])) missingFields.push('Objetivo');
+        if (result_type === undefined || result_type === null || result_type === '') missingFields.push('Tipo Resultado');
+        if (isNaN(projection)) missingFields.push('Proyección');
+        if (!Array.isArray(formats_ids) || formats_ids.length === 0 || formats_ids.some(isNaN)) missingFields.push('Formato(s)');
+        if (isNaN(investment)) missingFields.push('Inversión');
+        if (!state) missingFields.push('Estado');
+        if (missingFields.length > 0) {
+            swal({
+                icon: 'warning',
+                title: 'Campos incompletos',
+                text: 'Por favor, completa los siguientes campos obligatorios:\n' + missingFields.join(', ')
+            });
+            return;
+        }
+
+        var body = {
+            mediamixrealestate_id: mediamixrealestate_id,
+            project_id: project_id,
+            channel_id: channel_id,
+            campaign_type_id: campaign_type_id,
+            segmentation: segmentation,
+            objectives_ids: objectives_ids,
+            result_type: result_type,
+            projection: projection,
+            formats_ids: formats_ids,
+            investment: investment,
+            aon: aon,
+            comments: comments,
+            state: state
+        };
+
+        fetch('https://algoritmo.digital/backend/public/api/mmre_details', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
-            error: function() {
-                objectiveSelect.html('<option value="">Error al cargar objetivos</option>');
-            }
-        });
-
-        // Actualizar label de Proyección según el objetivo seleccionado
-        $('#newDetailObjective').on('change', function() {
-            const idx = $(this).val();
-            let label = 'Proyección';
-            if (objectivesData[idx] && objectivesData[idx].default_result) {
-                label += ' (' + objectivesData[idx].default_result + ')';
-            }
-            $('#projectionLabel').text(label);
-        });
-        // Aquí harías lo mismo para otros selects que necesites cargar dinámicamente
-    });
-
-    // === CARGA DINÁMICA DE PROYECTOS AL ABRIR EL MODAL ===
-    let projectsLoaded = false;
-    $('#addDetailModal').on('show.bs.modal', function () {
-        if (projectsLoaded) return;
-        const clientId = $(this).data('client-id');
-        const $projectSelect = $('#newDetailProject');
-        $projectSelect.html('<option value="">Cargando proyectos...</option>').prop('disabled', true);
-        fetch(`https://algoritmo.digital/backend/public/api/clients/${clientId}/projects`, {
-            method: "POST",
-            headers: { "Accept": "application/json" }
+            body: JSON.stringify(body)
         })
-        .then(res => res.json())
-        .then(response => {
-            if (response.success && Array.isArray(response.projects)) {
-                let options = '<option value="">-- Selecciona un proyecto --</option>';
-                response.projects.forEach(project => {
-                    options += `<option value="${project.id}">${project.name} (${project.code})</option>`;
-                });
-                $projectSelect.html(options).prop('disabled', false);
-                projectsLoaded = true;
+        .then(async res => {
+            const statusCode = res.status;
+            const response = await res.json();
+            if ((statusCode === 200 || statusCode === 201) && (response.success || (response.id && !isNaN(response.id)))) {
+                swal({
+                    icon: 'success',
+                    title: 'Detalle guardado',
+                    text: 'El detalle se guardó correctamente.'
+                }).then(() => { location.reload(); });
             } else {
-                $projectSelect.html('<option value="">No se encontraron proyectos</option>').prop('disabled', true);
+                swal({
+                    icon: 'error',
+                    title: 'Error al guardar',
+                    text: (response.message || 'Respuesta inesperada de la API.') + '\n' + JSON.stringify(response)
+                });
             }
         })
-        .catch(err => {
-            $projectSelect.html('<option value="">Error al cargar proyectos</option>').prop('disabled', true);
+        .catch(error => {
+            swal({
+                icon: 'error',
+                title: 'Error de red',
+                text: 'No se pudo conectar con el servidor.'
+            });
         });
     });
-
-    // Inicialización de Select2 para el modal
-    $('#addDetailModal .select2').select2({
-        dropdownParent: $('#addDetailModal')
+    // Evento para abrir el modal de edición y prellenar los campos con AJAX
+    $(document).on('click', '.btn-editDetail', function (e) {
+        e.preventDefault();
+        var detailId = $(this).data('detail-id');
+        $.get('https://algoritmo.digital/backend/public/api/mmre_details/' + detailId, function(data) {
+            console.log('Datos del detalle:', data);
+            // Helper para setear el valor cuando las opciones estén listas
+            function setSelectValue($select, value) {
+                if ($select.find('option[value="' + value + '"]').length > 0) {
+                    $select.val(value).trigger('change');
+                } else {
+                    var interval = setInterval(function() {
+                        if ($select.find('option[value="' + value + '"]').length > 0) {
+                            $select.val(value).trigger('change');
+                            clearInterval(interval);
+                        }
+                    }, 100);
+                }
+            }
+            setSelectValue($('#editDetailProject'), data.project_id);
+            setSelectValue($('#editDetailPlatform'), data.platform_id);
+            setSelectValue($('#editDetailChannel'), data.channel_id);
+            setSelectValue($('#editDetailCampaignType'), data.campaign_type_id);
+            setSelectValue($('#editDetailSegmentation'), data.segmentation);
+            if (data.objectives_ids && data.objectives_ids.length > 0) {
+                setSelectValue($('#editDetailObjective'), data.objectives_ids[0]);
+            }
+            $('#editDetailResultType').val(data.result_type);
+            $('#editDetailProjection').val(data.projection);
+            if (data.formats_ids) {
+                setSelectValue($('#editDetailFormat'), data.formats_ids);
+            }
+            $('#editDetailInvestment').val(data.investment);
+            $('#editDetailAon').prop('checked', data.aon == 1);
+            $('#editDetailComments').val(data.comments);
+            setSelectValue($('#editDetailStatus'), data.state);
+            $('#editDetailId').val(data.id);
+            $('#editDetailModal').modal('show');
+        });
     });
 });
