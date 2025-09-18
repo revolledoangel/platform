@@ -1,3 +1,23 @@
+<?php
+$host = 'srv1013.hstgr.io';
+$port = 3306;
+$db   = 'u961992735_plataforma';
+$user = 'u961992735_plataforma';
+$pass = 'Peru+*963.';
+$conn = new mysqli($host, $user, $pass, $db, $port);
+$detailsCount = 0;
+$clientsCount = 0;
+$usersCount = 0;
+if (!$conn->connect_error) {
+    $res = $conn->query("SELECT COUNT(*) AS total FROM mediamixrealestate_details");
+    if ($res && $row = $res->fetch_assoc()) $detailsCount = $row['total'];
+    $res = $conn->query("SELECT COUNT(*) AS total FROM clients");
+    if ($res && $row = $res->fetch_assoc()) $clientsCount = $row['total'];
+    $res = $conn->query("SELECT COUNT(*) AS total FROM users");
+    if ($res && $row = $res->fetch_assoc()) $usersCount = $row['total'];
+    $conn->close();
+}
+?>
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
   <!-- Content Header (Page header) -->
@@ -20,7 +40,7 @@
         <!-- small box -->
         <div class="small-box bg-aqua">
           <div class="inner">
-            <h3>150</h3>
+            <h3><?php echo $detailsCount; ?></h3>
 
             <p>Campañas</p>
           </div>
@@ -35,14 +55,14 @@
         <!-- small box -->
         <div class="small-box bg-green">
           <div class="inner">
-            <h3>53<sup style="font-size: 20px">%</sup></h3>
+            <h3><?php echo $clientsCount; ?></h3>
 
-            <p>Completado de la meta</p>
+            <p>Clientes</p>
           </div>
           <div class="icon">
             <i class="ion ion-stats-bars"></i>
           </div>
-          <a href="#" class="small-box-footer">Ver más <i class="fa fa-arrow-circle-right"></i></a>
+          <a href="clients" class="small-box-footer">Ver más <i class="fa fa-arrow-circle-right"></i></a>
         </div>
       </div>
       <!-- ./col -->
@@ -50,14 +70,14 @@
         <!-- small box -->
         <div class="small-box bg-yellow">
           <div class="inner">
-            <h3>44</h3>
+            <h3><?php echo $usersCount; ?></h3>
 
             <p>Usuarios registrados</p>
           </div>
           <div class="icon">
             <i class="ion ion-person-add"></i>
           </div>
-          <a href="#" class="small-box-footer">Ver más <i class="fa fa-arrow-circle-right"></i></a>
+          <a href="users" class="small-box-footer">Ver más <i class="fa fa-arrow-circle-right"></i></a>
         </div>
       </div>
       <!-- ./col -->

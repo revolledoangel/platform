@@ -221,4 +221,19 @@ class MediaMixRealEstateDetails_Controller {
         }
         return [];
     }
+
+    static public function eliminarDetalle($id) {
+        $host = 'srv1013.hstgr.io';
+        $port = 3306;
+        $db   = 'u961992735_plataforma';
+        $user = 'u961992735_plataforma';
+        $pass = 'Peru+*963.';
+        $conn = new mysqli($host, $user, $pass, $db, $port);
+        if ($conn->connect_error) return false;
+        $id = intval($id);
+        $sql = "DELETE FROM mediamixrealestate_details WHERE id = $id";
+        $result = $conn->query($sql);
+        $conn->close();
+        return $result ? true : false;
+    }
 }

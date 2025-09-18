@@ -15,6 +15,45 @@ var lastSelectedCampaignType = null;
 var lastResultTypeValue = '';
 var lastResultTypeAuto = true;
 
+// Opciones de segmentación centralizadas
+var segmentaciones = [
+    "Prospecting (Intereses / Comportamientos)",
+    "Prospecting (Palabras Clave Genéricas)",
+    "Públicos Similares (Lookalikes - LAL)",
+    "Prospecting Amplio / Automatizado",
+    "Remarketing de Interacción",
+    "Remarketing de Tráfico Web",
+    "Remarketing (Palabras Clave de Marca)",
+    "Remarketing de Alta Intención",
+    "Clientes Actuales (Compradores)",
+    "Clientes Potenciales (Leads)"
+];
+
+function renderSegmentaciones(selectId, selectedValue) {
+    var options = '<option value="">-- Selecciona segmentación --</option>';
+    var segs = segmentaciones.slice();
+    var found = false;
+    if (selectedValue) {
+        segs.forEach(function(seg) {
+            if (seg === selectedValue) found = true;
+        });
+        if (!found) segs.push(selectedValue);
+    }
+    segs.forEach(function(seg) {
+        var selected = (seg === selectedValue) ? ' selected' : '';
+        options += '<option value="' + seg + '"' + selected + '>' + seg + '</option>';
+    });
+    $(selectId).html(options);
+    if (selectedValue) {
+        $(selectId).val(selectedValue);
+    } else {
+        $(selectId).val('');
+    }
+    if ($(selectId).hasClass('select2')) {
+        $(selectId).trigger('change.select2');
+    }
+}
+
 $(document).ready(function () {
     // Inicializar DataTable para la tabla de detalles
     // $('#detailsTable').DataTable({
@@ -228,6 +267,8 @@ $(document).ready(function () {
             $resultTypeInput.val('');
             $resultTypeInput.prop('readonly', true);
         }
+        // Segmentaciones
+        renderSegmentaciones('#newDetailSegmentation', null);
     });
     // Cuando cambia la plataforma, carga los formatos correspondientes
     $('#newDetailPlatform').on('change', function () {
@@ -402,42 +443,166 @@ $(document).ready(function () {
     });
     // Evento para abrir el modal de edición y prellenar los campos con AJAX
     $(document).on('click', '.btn-editDetail', function (e) {
+        var detailId = $(this).data('detail-id');
         e.preventDefault();
         var detailId = $(this).data('detail-id');
-        $.get('https://algoritmo.digital/backend/public/api/mmre_details/' + detailId, function(data) {
-            console.log('Datos del detalle:', data);
-            // Helper para setear el valor cuando las opciones estén listas
-            function setSelectValue($select, value) {
-                if ($select.find('option[value="' + value + '"]').length > 0) {
-                    $select.val(value).trigger('change');
-                } else {
-                    var interval = setInterval(function() {
-                        if ($select.find('option[value="' + value + '"]').length > 0) {
-                            $select.val(value).trigger('change');
-                            clearInterval(interval);
-                        }
-                    }, 100);
+        $.ajax({
+            url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+            method: 'POST',
+            data: { get_detail_id: detailId },
+            dataType: 'json',
+            success: function(data) {
+                var ajaxCount = 0;
+                var totalAjax = 6;
+                function showModalIfReady() {
+                    ajaxCount++;
+                    if (ajaxCount === totalAjax) {
+                        $('#editDetailModal').modal('show');
+                    }
                 }
+                // Proyectos
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { client_id: data.client_id },
+                    dataType: 'json',
+                    success: function(projects) {
+                        var options = '<option value="">-- Selecciona un proyecto --</option>';
+                        projects.forEach(function(project) {
+                            var selected = (data.project_id == project.id) ? ' selected' : '';
+                            options += '<option value="' + project.id + '"' + selected + '>' + project.name + '</option>';
+                        });
+                        $('#editDetailProject').html(options).prop('disabled', false);
+                        showModalIfReady();
+                    }
+                });
+                // Plataformas
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { get_platforms: 1 },
+                    dataType: 'json',
+                    success: function(platforms) {
+                        var options = '<option value="">-- Selecciona una plataforma --</option>';
+                        platforms.forEach(function(plat) {
+                            var selected = (data.platform_id == plat.id) ? ' selected' : '';
+                            options += '<option value="' + plat.id + '"' + selected + '>' + plat.name + '</option>';
+                        });
+                        $('#editDetailPlatform').html(options).prop('disabled', false);
+                        showModalIfReady();
+                    }
+                });
+                // Canales
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { get_channels: 1 },
+                    dataType: 'json',
+                    success: function(channels) {
+                        var options = '<option value="">-- Selecciona un canal --</option>';
+                        channels.forEach(function(chan) {
+                            var selected = (data.channel_id == chan.id) ? ' selected' : '';
+                            options += '<option value="' + chan.id + '"' + selected + '>' + chan.name + '</option>';
+                        });
+                        $('#editDetailChannel').html(options).prop('disabled', false);
+                        showModalIfReady();
+                    }
+                });
+                // Tipos de campaña
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { get_campaign_types: 1 },
+                    dataType: 'json',
+                    success: function(types) {
+                        var options = '<option value="">-- Selecciona un tipo de campaña --</option>';
+                        types.forEach(function(type) {
+                            var selected = (data.campaign_type_id == type.id) ? ' selected' : '';
+                            options += '<option value="' + type.id + '"' + selected + '>' + type.name + '</option>';
+                        });
+                        $('#editDetailCampaignType').html(options).prop('disabled', false);
+                        showModalIfReady();
+                    }
+                });
+                // Objetivos
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { get_objectives: 1 },
+                    dataType: 'json',
+                    success: function(objectives) {
+                        var options = '<option value="">-- Selecciona un objetivo --</option>';
+                        objectives.forEach(function(obj) {
+                            var selected = (data.objectives_ids && data.objectives_ids.includes(obj.id)) ? ' selected' : '';
+                            options += '<option value="' + obj.id + '"' + selected + '>' + obj.name + '</option>';
+                        });
+                        $('#editDetailObjective').html(options).prop('disabled', false);
+                        showModalIfReady();
+                    }
+                });
+                // Formatos (dependiente de plataforma)
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { platform_id: data.platform_id },
+                    dataType: 'json',
+                    success: function(formats) {
+                        var options = '';
+                        formats.forEach(function(fmt) {
+                            var selected = (data.formats_ids && data.formats_ids.includes(fmt.id)) ? ' selected' : '';
+                            options += '<option value="' + fmt.id + '"' + selected + '>' + fmt.name + (fmt.code ? ' ('+fmt.code+')' : '') + '</option>';
+                        });
+                        $('#editDetailFormat').html(options).prop('disabled', false);
+                        // Preselecciona los formatos existentes
+                        if (data.formats_ids && data.formats_ids.length > 0) {
+                            $('#editDetailFormat').val(data.formats_ids.map(String)).trigger('change');
+                        }
+                        showModalIfReady();
+                    }
+                });
+                // Otros campos (estos no dependen de AJAX)
+                $('#editDetailSegmentation').val(data.segmentation);
+                $('#editDetailResultType').val(data.result_type).prop('readonly', false);
+                $('#editDetailProjection').val(data.projection);
+                $('#editDetailInvestment').val(data.investment);
+                $('#editDetailAon').prop('checked', data.aon == 1);
+                $('#editDetailComments').val(data.comments);
+                $('#editDetailStatus').val(data.state);
+                $('#editDetailId').val(data.id);
             }
-            setSelectValue($('#editDetailProject'), data.project_id);
-            setSelectValue($('#editDetailPlatform'), data.platform_id);
-            setSelectValue($('#editDetailChannel'), data.channel_id);
-            setSelectValue($('#editDetailCampaignType'), data.campaign_type_id);
-            setSelectValue($('#editDetailSegmentation'), data.segmentation);
-            if (data.objectives_ids && data.objectives_ids.length > 0) {
-                setSelectValue($('#editDetailObjective'), data.objectives_ids[0]);
+        });
+    });
+    $(document).on('click', '.btn-danger', function () {
+        var detailId = $(this).closest('tr').find('.btn-editDetail').data('detail-id');
+        if (!detailId) return;
+        swal({
+            title: '¿Estás seguro?',
+            text: 'Esta acción eliminará el detalle permanentemente.',
+            icon: 'warning',
+            buttons: true,
+            dangerMode: true,
+        }).then(function (willDelete) {
+            if (willDelete) {
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { delete_detail_id: detailId },
+                    dataType: 'json',
+                    success: function (resp) {
+                        if (resp.success) {
+                            swal({
+                                title: 'Eliminado correctamente',
+                                icon: 'success'
+                            }).then(function () { location.reload(); });
+                        } else {
+                            swal('Error al eliminar', { icon: 'error' });
+                        }
+                    },
+                    error: function () {
+                        swal('Error de red', { icon: 'error' });
+                    }
+                });
             }
-            $('#editDetailResultType').val(data.result_type);
-            $('#editDetailProjection').val(data.projection);
-            if (data.formats_ids) {
-                setSelectValue($('#editDetailFormat'), data.formats_ids);
-            }
-            $('#editDetailInvestment').val(data.investment);
-            $('#editDetailAon').prop('checked', data.aon == 1);
-            $('#editDetailComments').val(data.comments);
-            setSelectValue($('#editDetailStatus'), data.state);
-            $('#editDetailId').val(data.id);
-            $('#editDetailModal').modal('show');
         });
     });
 });
