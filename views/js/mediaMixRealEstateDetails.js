@@ -29,23 +29,21 @@ var segmentaciones = [
     "Clientes Potenciales (Leads)"
 ];
 
-function renderSegmentaciones(selectId, selectedValue) {
-    var options = '<option value="">-- Selecciona segmentación --</option>';
+function renderSegmentaciones(selectId, selectedValues) {
+    var options = '';
     var segs = segmentaciones.slice();
-    var found = false;
-    if (selectedValue) {
-        segs.forEach(function(seg) {
-            if (seg === selectedValue) found = true;
+    if (selectedValues && Array.isArray(selectedValues)) {
+        selectedValues.forEach(function(val) {
+            if (segs.indexOf(val) === -1) segs.push(val);
         });
-        if (!found) segs.push(selectedValue);
     }
     segs.forEach(function(seg) {
-        var selected = (seg === selectedValue) ? ' selected' : '';
+        var selected = (selectedValues && selectedValues.includes(seg)) ? ' selected' : '';
         options += '<option value="' + seg + '"' + selected + '>' + seg + '</option>';
     });
     $(selectId).html(options);
-    if (selectedValue) {
-        $(selectId).val(selectedValue);
+    if (selectedValues && selectedValues.length > 0) {
+        $(selectId).val(selectedValues);
     } else {
         $(selectId).val('');
     }
@@ -268,7 +266,7 @@ $(document).ready(function () {
             $resultTypeInput.prop('readonly', true);
         }
         // Segmentaciones
-        renderSegmentaciones('#newDetailSegmentation', null);
+        renderSegmentaciones('#newDetailSegmentation', []);
     });
     // Cuando cambia la plataforma, carga los formatos correspondientes
     $('#newDetailPlatform').on('change', function () {
@@ -360,7 +358,8 @@ $(document).ready(function () {
         var project_id = parseInt($('#newDetailProject').val());
         var channel_id = parseInt($('#newDetailChannel').val());
         var campaign_type_id = parseInt($('#newDetailCampaignType').val());
-        var segmentation = $('#newDetailSegmentation').val();
+        var segmentationArr = $('#newDetailSegmentation').val() || [];
+        var segmentation = segmentationArr.join(', ');
         var objectives_ids = $('#newDetailObjective').val() ? [parseInt($('#newDetailObjective').val())] : [];
         var result_type = $('#newDetailResultType').val();
         var projection = parseInt($('#newDetailProjection').val());

@@ -86,7 +86,7 @@ $details = $mmreData['details'];
                                         <div class="form-group">
                                             <label>Segmentación <span class="text-danger">*</span></label>
                                             <select class="form-control select2" id="newDetailSegmentation"
-                                                name="newSegmentation" required style="width:100%;">
+                                                name="newSegmentation[]" multiple="multiple" required style="width:100%;">
                                                 <option value="Prospecting (Intereses / Comportamientos)">Prospecting
                                                     (Intereses / Comportamientos)</option>
                                                 <option value="Prospecting (Palabras Clave Genéricas)">Prospecting
@@ -218,7 +218,7 @@ $details = $mmreData['details'];
                                         <div class="form-group">
                                             <label>Segmentación <span class="text-danger">*</span></label>
                                             <select class="form-control select2" id="editDetailSegmentation"
-                                                name="editSegmentation" required style="width:100%;"></select>
+                                                name="editSegmentation[]" multiple="multiple" required style="width:100%;"></select>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
