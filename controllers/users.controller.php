@@ -6,50 +6,50 @@ class Users_Controller
     static public function ctrUserStartSesion()
     {
         if (isset($_POST["user"])) {
-
             if (
                 preg_match('/^[a-zA-Z0-9*.@]+$/', $_POST["user"]) &&
                 preg_match('/^[a-zA-Z0-9*.@+!#$%&()=]+$/', $_POST["password"])
             ) {
-                $username = $_POST['user'] ?? '';
-                $password = $_POST['password'] ?? '';
-
-                $body = [
-                    "username" => $username,
-                    "password" => $password
-                ];
-
-                $user = UserModel::login($body);
-
-                //var_dump($user); exit;
-
+                $usernameOrEmail = $_POST['user'];
+                $password = $_POST['password'];
+                $host = 'srv1013.hstgr.io';
+                $port = 3306;
+                $db   = 'u961992735_plataforma';
+                $user = 'u961992735_plataforma';
+                $pass = 'Peru+*963.';
+                $conn = new mysqli($host, $user, $pass, $db, $port);
+                if ($conn->connect_error) {
+                    echo '<br><div class="alert alert-danger m-1">Error de conexión a la base de datos</div>';
+                    return;
+                }
+                $stmt = $conn->prepare("SELECT * FROM users WHERE (username = ? OR email = ?) LIMIT 1");
+                $stmt->bind_param("ss", $usernameOrEmail, $usernameOrEmail);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $user = $result->fetch_assoc();
+                $stmt->close();
+                $conn->close();
                 if ($user) {
-
                     if ($user["active"]) {
-
-
-                        echo '<br><div class="alert alert-success m-1">Bienvenido</div>';
-
-                        $_SESSION["startSession"] = true;
-                        $_SESSION["id"] = $user["id"];
-                        $_SESSION["email"] = $user["email"];
-                        $_SESSION["nombre"] = $user["name"];
-                        $_SESSION["foto"] = $user["photo"];
-                        $_SESSION["perfil"] = $user["profile"];
-
-                        echo '<script>
-                        window.location = "home";
-                    </script>';
+                        if (password_verify($password, $user["password"])) {
+                            echo '<br><div class="alert alert-success m-1">Bienvenido</div>';
+                            $_SESSION["startSession"] = true;
+                            $_SESSION["id"] = $user["id"];
+                            $_SESSION["email"] = $user["email"];
+                            $_SESSION["nombre"] = $user["name"];
+                            $_SESSION["foto"] = $user["photo"];
+                            $_SESSION["perfil"] = $user["profile"];
+                            header('Location: home');
+                            exit;
+                        } else {
+                            echo '<br><div class="alert alert-danger m-1">Contraseña incorrecta</div>';
+                        }
                     } else {
                         echo '<br><div class="alert alert-danger m-1">Usuario desactivado</div>';
                     }
-
-
-
                 } else {
                     echo '<br><div class="alert alert-danger m-1">Usuario y/o contraseña inválido</div>';
                 }
-
             } else {
                 echo '<script>
                 swal({
@@ -65,7 +65,6 @@ class Users_Controller
                 });
             </script>';
             }
-
         } else {
             //include 'views/modules/login.php';
         }

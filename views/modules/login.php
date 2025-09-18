@@ -1,3 +1,7 @@
+<?php
+require_once "controllers/users.controller.php";
+?>
+
 <div class="login-box">
 
     <div class="login-logo">
