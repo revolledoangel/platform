@@ -1,36 +1,97 @@
 <?php
 require_once "controllers/template.controller.php";
 
-require_once "controllers/users.controller.php";
-require_once "controllers/verticals.controller.php";
-require_once "controllers/clients.controller.php";
-require_once "controllers/projects.controller.php";
-require_once "controllers/platforms.controller.php";
-require_once "controllers/formats.controller.php";
-require_once "controllers/objectives.controller.php";
-require_once "controllers/campaignTypes.controller.php";
-require_once "controllers/channels.controller.php";
-require_once "controllers/campaigns.controller.php";
-require_once "controllers/periods.controller.php";
-require_once "controllers/urls.controller.php";
-require_once "controllers/comments.controller.php";
-require_once "controllers/mediaMixRealEstate.controller.php";
-require_once "controllers/mediaMixRealEstateDetails.controller.php";
-require_once "controllers/mediaMixEcommerce.controller.php";
-require_once "controllers/mediaMixOthers.controller.php";
+$route = $_GET['route'] ?? 'home';
 
-require_once "models/users.model.php";
-require_once "models/clients.model.php";
-require_once "models/projects.model.php";
-require_once "models/platforms.model.php";
-require_once "models/formats.model.php";
-require_once "models/objetives.model.php";
-require_once "models/campaignTypes.model.php";
-require_once "models/channels.model.php";
-require_once "models/objetives.model.php";
-require_once "models/mediaMixRealEstate.model.php";
-require_once "models/mediaMixEcommerce.model.php";
-require_once "models/mediaMixOthers.model.php";
+// Dependencias por módulo
+$moduleDependencies = [
+    'home' => [],
+    'users' => [
+        ['controller' => 'users.controller.php', 'model' => 'users.model.php']
+    ],
+    'verticals' => [
+        ['controller' => 'verticals.controller.php', 'model' => 'vertical.model.php']
+    ],
+    'clients' => [
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'users.controller.php', 'model' => 'users.model.php'],
+        ['controller' => 'verticals.controller.php', 'model' => 'vertical.model.php']
+    ],
+    'projects' => [
+        ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php']
+    ],
+    'platforms' => [
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php']
+    ],
+    'formats' => [
+        ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php']
+    ],
+    'objectives' => [
+        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php']
+    ],
+    'campaignTypes' => [
+        ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
+    ],
+    'channels' => [
+        ['controller' => 'channels.controller.php', 'model' => 'channels.model.php']
+    ],
+    'campaigns' => [
+        ['controller' => 'campaigns.controller.php', 'model' => null],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php'],
+        ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
+        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php'],
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'periods' => [
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'urls' => [
+        ['controller' => 'urls.controller.php', 'model' => null],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
+        ['controller' => 'campaigns.controller.php', 'model' => null],
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'comments' => [
+        ['controller' => 'comments.controller.php', 'model' => null],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php'],
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'mediaMixRealEstate' => [
+        ['controller' => 'mediaMixRealEstate.controller.php', 'model' => 'mediaMixRealEstate.model.php'],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'mediaMixRealEstateDetails' => [
+        ['controller' => 'mediaMixRealEstateDetails.controller.php', 'model' => null],
+        ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
+        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php'],
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php'],
+        ['controller' => 'channels.controller.php', 'model' => 'channels.model.php'],
+        ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
+        ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
+    ],
+    'mediaMixEcommerce' => [
+        ['controller' => 'mediaMixEcommerce.controller.php', 'model' => 'mediaMixEcommerce.model.php']
+    ],
+    'mediaMixOthers' => [
+        ['controller' => 'mediaMixOthers.controller.php', 'model' => 'mediaMixOthers.model.php']
+    ]
+];
+
+if (isset($moduleDependencies[$route])) {
+    foreach ($moduleDependencies[$route] as $dep) {
+        require_once "controllers/" . $dep['controller'];
+        if (!empty($dep['model'])) {
+            require_once "models/" . $dep['model'];
+        }
+    }
+}
 
 $template = new ControllerTemplate();
 $template -> ctrTemplate();

@@ -13,8 +13,11 @@ class MediaMixRealEstateDetails_Controller {
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+        error_log('API response for mmre_details: ' . $response); // LOGUEA LA RESPUESTA CRUDA
+        error_log('API HTTP code: ' . $httpCode); // LOGUEA EL CÓDIGO HTTP
+        $data = json_decode($response, true);
+        error_log('API decoded: ' . print_r($data, true)); // LOGUEA EL ARRAY DECODIFICADO
         if ($httpCode === 200) {
-            $data = json_decode($response, true);
             if (isset($data['success']) && $data['success'] && isset($data['mmre'])) {
                 // Devuelve ambas partes: mmre y details
                 return [
