@@ -351,7 +351,7 @@ $details = $mmreData['details'];
                             <td><?php echo htmlspecialchars($d['channel_name']); ?></td>
                             <td><?php echo htmlspecialchars($d['segmentation']); ?></td>
                             <td><?php echo is_array($d['formats_names']) ? implode(', ', $d['formats_names']) : ''; ?></td>
-                            <td><?php echo htmlspecialchars($mmre['currency']) . ' ' . htmlspecialchars($d['investment']); ?></td>
+                            <td><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format(floatval($d['investment']), 2); ?></td>
                             <td><?php echo $distribution . '%'; ?></td>
                             <td><?php echo htmlspecialchars($d['state']); ?></td>
                             <td><?php echo $projectionResult; ?></td>

@@ -559,8 +559,17 @@ $(document).ready(function () {
                         showModalIfReady();
                     }
                 });
-                // Otros campos (estos no dependen de AJAX)
-                $('#editDetailSegmentation').val(data.segmentation);
+                // Segmentación (procesar como array)
+                var segs = (data.segmentation && typeof data.segmentation === 'string') ? data.segmentation.split(',').map(function(s){return s.trim();}) : [];
+                renderSegmentaciones('#editDetailSegmentation', segs);
+                // Asegúrate de que select2 se actualice con los valores correctos
+                setTimeout(function() {
+                    $('#editDetailSegmentation').select2('destroy').select2();
+                    if (segs.length > 0) {
+                        $('#editDetailSegmentation').val(segs).trigger('change');
+                    }
+                }, 100);
+                
                 $('#editDetailResultType').val(data.result_type).prop('readonly', false);
                 $('#editDetailProjection').val(data.projection);
                 $('#editDetailInvestment').val(data.investment);
@@ -569,6 +578,99 @@ $(document).ready(function () {
                 $('#editDetailStatus').val(data.state);
                 $('#editDetailId').val(data.id);
             }
+        });
+    });
+    // Guardar cambios en el detalle (modal editar)
+    $('#editDetailForm').on('submit', function (e) {
+        e.preventDefault();
+        var $form = $(this);
+        var detail_id = parseInt($('#editDetailId').val());
+        var mediamixrealestate_id = typeof window.mmreId !== 'undefined' ? parseInt(window.mmreId) : null;
+        var project_id = parseInt($('#editDetailProject').val());
+        var channel_id = parseInt($('#editDetailChannel').val());
+        var campaign_type_id = parseInt($('#editDetailCampaignType').val());
+        var segmentationArr = $('#editDetailSegmentation').val() || [];
+        var segmentation = segmentationArr.join(', ');
+        var objectives_ids = $('#editDetailObjective').val() ? [parseInt($('#editDetailObjective').val())] : [];
+        var result_type = $('#editDetailResultType').val();
+        var projection = parseInt($('#editDetailProjection').val());
+        var formats_ids = $('#editDetailFormat').val() ? $('#editDetailFormat').val().map(function(x){return parseInt(x);}) : [];
+        var investment = parseFloat($('#editDetailInvestment').val());
+        var aon = $('#editDetailAon').is(':checked') ? 1 : 0;
+        var comments = $('#editDetailComments').val();
+        var state = $('#editDetailStatus').val();
+
+        // Validación robusta con mensaje de campos faltantes
+        var missingFields = [];
+        if (isNaN(detail_id)) missingFields.push('ID del detalle');
+        if (isNaN(mediamixrealestate_id)) missingFields.push('Mix de Medios');
+        if (isNaN(project_id)) missingFields.push('Proyecto');
+        if (isNaN(channel_id)) missingFields.push('Canal');
+        if (isNaN(campaign_type_id)) missingFields.push('Tipo de Campaña');
+        if (!segmentation) missingFields.push('Segmentación');
+        if (!Array.isArray(objectives_ids) || objectives_ids.length === 0 || isNaN(objectives_ids[0])) missingFields.push('Objetivo');
+        if (result_type === undefined || result_type === null || result_type === '') missingFields.push('Tipo Resultado');
+        if (isNaN(projection)) missingFields.push('Proyección');
+        if (!Array.isArray(formats_ids) || formats_ids.length === 0 || formats_ids.some(isNaN)) missingFields.push('Formato(s)');
+        if (isNaN(investment)) missingFields.push('Inversión');
+        if (!state) missingFields.push('Estado');
+        if (missingFields.length > 0) {
+            swal({
+                icon: 'warning',
+                title: 'Campos incompletos',
+                text: 'Por favor, completa los siguientes campos obligatorios:\n' + missingFields.join(', ')
+            });
+            return;
+        }
+
+        var body = {
+            id: detail_id,
+            mediamixrealestate_id: mediamixrealestate_id,
+            project_id: project_id,
+            channel_id: channel_id,
+            campaign_type_id: campaign_type_id,
+            segmentation: segmentation,
+            objectives_ids: objectives_ids,
+            result_type: result_type,
+            projection: projection,
+            formats_ids: formats_ids,
+            investment: investment,
+            aon: aon,
+            comments: comments,
+            state: state
+        };
+
+        fetch('https://algoritmo.digital/backend/public/api/mmre_details/' + detail_id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(body)
+        })
+        .then(async res => {
+            const statusCode = res.status;
+            const response = await res.json();
+            if ((statusCode === 200 || statusCode === 201) && (response.success || (response.id && !isNaN(response.id)))) {
+                swal({
+                    icon: 'success',
+                    title: 'Detalle actualizado',
+                    text: 'Los cambios se guardaron correctamente.'
+                }).then(() => { location.reload(); });
+            } else {
+                swal({
+                    icon: 'error',
+                    title: 'Error al guardar',
+                    text: (response.message || 'Respuesta inesperada de la API.') + '\n' + JSON.stringify(response)
+                });
+            }
+        })
+        .catch(error => {
+            swal({
+                icon: 'error',
+                title: 'Error de red',
+                text: 'No se pudo conectar con el servidor.'
+            });
         });
     });
     $(document).on('click', '.btn-danger', function () {
