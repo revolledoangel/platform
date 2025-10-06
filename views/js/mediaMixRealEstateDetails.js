@@ -706,4 +706,72 @@ $(document).ready(function () {
             }
         });
     });
+    // Nueva función para generar y copiar código
+    function generateAndCopyCode(platformCode, clientCode, projectCode) {
+        var fullCode = (platformCode || '') + (clientCode || '') + (projectCode || '');
+        
+        // Copiar al portapapeles
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(fullCode).then(function() {
+                swal({
+                    icon: 'success',
+                    title: 'Código copiado',
+                    text: 'El código "' + fullCode + '" se copió al portapapeles.',
+                    timer: 2000
+                });
+            }).catch(function() {
+                fallbackCopyTextToClipboard(fullCode);
+            });
+        } else {
+            fallbackCopyTextToClipboard(fullCode);
+        }
+    }
+
+    // Función de respaldo para copiar texto
+    function fallbackCopyTextToClipboard(text) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            var successful = document.execCommand('copy');
+            if (successful) {
+                swal({
+                    icon: 'success',
+                    title: 'Código copiado',
+                    text: 'El código "' + text + '" se copió al portapapeles.',
+                    timer: 2000
+                });
+            } else {
+                swal({
+                    icon: 'error',
+                    title: 'Error al copiar',
+                    text: 'No se pudo copiar el código. Código: ' + text
+                });
+            }
+        } catch (err) {
+            swal({
+                icon: 'error',
+                title: 'Error al copiar',
+                text: 'No se pudo copiar el código. Código: ' + text
+            });
+        }
+        
+        document.body.removeChild(textArea);
+    }
+
+    // Evento para copiar código
+    $(document).on('click', '.btn-copyCode', function (e) {
+        e.preventDefault();
+        var platformCode = $(this).data('platform-code') || '';
+        var clientCode = $(this).data('client-code') || '';
+        var projectCode = $(this).data('project-code') || '';
+        
+        generateAndCopyCode(platformCode, clientCode, projectCode);
+    });
 });

@@ -311,7 +311,7 @@ $details = $mmreData['details'];
                             <th>Distribución</th>
                             <th>Estado</th>
                             <th>Proyección</th>
-                            <th>Acciones</th>
+                            <th style="width: 120px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -355,8 +355,15 @@ $details = $mmreData['details'];
                             <td><?php echo $distribution . '%'; ?></td>
                             <td><?php echo htmlspecialchars($d['state']); ?></td>
                             <td><?php echo $projectionResult; ?></td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <button class="btn btn-xs btn-warning btn-editDetail" title="Editar" data-detail-id="<?php echo $d['id']; ?>"><i class="fa fa-pencil"></i></button>
+                                <button class="btn btn-xs btn-info btn-copyCode" 
+                                        title="Código: <?php echo htmlspecialchars($d['platform_code'] . $mmre['client_code'] . $d['project_code']); ?>, Plataforma: <?php echo htmlspecialchars($d['platform_name']); ?> (<?php echo htmlspecialchars($d['platform_code']); ?>) + Cliente: <?php echo htmlspecialchars($mmre['client_name']); ?> (<?php echo htmlspecialchars($mmre['client_code']); ?>) + Proyecto: <?php echo htmlspecialchars($d['project_name']); ?> (<?php echo htmlspecialchars($d['project_code']); ?>)"
+                                        data-platform-code="<?php echo htmlspecialchars($d['platform_code']); ?>"
+                                        data-client-code="<?php echo htmlspecialchars($mmre['client_code']); ?>"
+                                        data-project-code="<?php echo htmlspecialchars($d['project_code']); ?>">
+                                    <i class="fa fa-copy"></i>
+                                </button>
                                 <button class="btn btn-xs btn-danger" title="Eliminar"><i class="fa fa-trash"></i></button>
                             </td>
                         </tr>

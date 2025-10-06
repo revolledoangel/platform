@@ -11,9 +11,9 @@ class MediaMixRealEstateDetails_Controller {
         $conn = new mysqli($host, $user, $pass, $db, $port);
         if ($conn->connect_error) return false;
         $mmreId = intval($mmreId);
-        // Mix general
+        // Mix general con código del cliente
         $mmre = null;
-        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, m.currency, m.fee, m.igv
+        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code, m.currency, m.fee, m.igv
                 FROM mediamixrealestates m
                 LEFT JOIN periods p ON m.period_id = p.id
                 LEFT JOIN clients c ON m.client_id = c.id
@@ -22,7 +22,7 @@ class MediaMixRealEstateDetails_Controller {
         if ($res && $row = $res->fetch_assoc()) {
             $mmre = $row;
         }
-        // Detalles
+        // Detalles con códigos de proyecto
         $details = [];
         $sql = "SELECT d.*, p.name AS project_name, p.code AS project_code, p.group AS project_group, p.active AS project_active,
                        ch.name AS channel_name, ct.name AS campaign_type_name
@@ -35,7 +35,7 @@ class MediaMixRealEstateDetails_Controller {
         if ($res) {
             while ($row = $res->fetch_assoc()) {
                 $detail = $row;
-                // Platform
+                // Platform con código
                 $platform = null;
                 $sqlPlat = "SELECT f.platform_id, pl.name AS platform_name, pl.code AS platform_code, pl.active AS platform_active
                             FROM mmre_details_formats mf
@@ -91,6 +91,8 @@ class MediaMixRealEstateDetails_Controller {
                 $detail['currency'] = $mmre ? $mmre['currency'] : null;
                 // Period name
                 $detail['period_name'] = $mmre ? $mmre['period_name'] : null;
+                // Client code (agregar esto)
+                $detail['client_code'] = $mmre ? $mmre['client_code'] : null;
                 $details[] = $detail;
             }
         }
