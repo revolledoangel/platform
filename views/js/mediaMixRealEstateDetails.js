@@ -1329,4 +1329,34 @@ $(document).ready(function () {
             recalcularTotales();
         }
     }, 500);
+    
+    // Guardar configuración del mix - SIMPLIFICADO
+    $('#configMixForm').on('submit', function (e) {
+        // NO preventDefault - dejar que se envíe normalmente
+        // El PHP se encarga de todo
+        return true;
+    });
+    
+    // Manejar cambio de tipo de fee en modal configuración
+    $('input[name="configFeeType"]').on('change', function() {
+        var feeType = $(this).val();
+        var $symbol = $('#configFeeSymbol');
+        var $input = $('#configFeeInput');
+        
+        if (feeType === 'percentage') {
+            $symbol.html('<i class="fa fa-percent"></i>');
+            $input.attr('placeholder', 'Ej: 10');
+        } else {
+            $symbol.html('<i class="fa fa-money"></i>');
+            $input.attr('placeholder', 'Ej: 1500');
+        }
+    });
+    
+    // Comentamos el manejo del submit para que funcione tradicionalmente
+    /*
+    $('#configMixForm').on('submit', function (e) {
+        e.preventDefault();
+        // ... código fetch ...
+    });
+    */
 });
