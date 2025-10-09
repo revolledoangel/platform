@@ -1036,7 +1036,7 @@ $(document).ready(function () {
             
             // Obtener datos de la fila para calcular altura - MEJORADO
             var rowDataForHeight = [];
-            for (var col = 1; col <= 12; col++) {
+            for (var col =
                 var cell = row.getCell(col);
                 rowDataForHeight.push(cell.value ? String(cell.value) : '');
             }
