@@ -23,6 +23,10 @@ if (!$mmreData) {
 $mmre = $mmreData['mmre'];
 $details = $mmreData['details'];
 
+// 3. PROCESAR ACTUALIZACIÓN DE CONFIGURACIÓN
+$updateConfig = new MediaMixRealEstateDetails_Controller();
+$updateConfig->ctrUpdateMediaMixConfig();
+
 // Lógica del CRUD para los detalles (asegúrate de que esto esté antes del HTML)
 //$createDetail = new MediaMixRealEstateDetails_Controller();
 //$createDetail->ctrCreateDetail();
@@ -288,10 +292,105 @@ $details = $mmreData['details'];
             </div>
         </div>
 
+        <!-- Modal Configurar Mix -->
+        <div class="modal fade" id="configMixModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <form id="configMixForm" method="post" autocomplete="off">
+                        <input type="hidden" name="configMediaMixId" value="<?php echo htmlspecialchars($mmre['id']); ?>">
+                        <div class="modal-header" style="background:#17a2b8;color:#fff">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                            <h4 class="modal-title"><i class="fa fa-cog"></i> Configuración del Mix de Medios</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="box-body">
+                                <div class="alert alert-info">
+                                    <i class="fa fa-info-circle"></i> Estos cambios afectarán el cálculo de totales y comisiones.
+                                </div>
+                                <div class="form-group">
+                                    <label>Nombre del Mix:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><i class="fa fa-tag"></i></span>
+                                        <input type="text" class="form-control" name="configName" 
+                                               value="<?php echo htmlspecialchars($mmre['name']); ?>"
+                                               placeholder="Ej: Campaña Enero">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Moneda:</label>
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-money"></i></span>
+                                                <select class="form-control" name="configCurrency" required>
+                                                    <option value="USD" <?php echo $mmre['currency'] === 'USD' ? 'selected' : ''; ?>>USD</option>
+                                                    <option value="PEN" <?php echo $mmre['currency'] === 'PEN' ? 'selected' : ''; ?>>PEN</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>IGV (%):</label>
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                                <input type="number" step="any" class="form-control" name="configIgv" 
+                                                       value="<?php echo htmlspecialchars($mmre['igv']); ?>" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fee de Agencia:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon" id="configFeeSymbol">
+                                            <?php if (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed'): ?>
+                                                <i class="fa fa-money"></i>
+                                            <?php else: ?>
+                                                <i class="fa fa-percent"></i>
+                                            <?php endif; ?>
+                                        </span>
+                                        <input type="number" step="any" class="form-control" name="configFee" 
+                                               id="configFeeInput" value="<?php echo htmlspecialchars($mmre['fee']); ?>" required>
+                                    </div>
+                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
+                                        <label class="radio-inline">
+                                            <input type="radio" name="configFeeType" value="percentage" 
+                                                   <?php echo (!isset($mmre['fee_type']) || $mmre['fee_type'] === 'percentage') ? 'checked' : ''; ?>> 
+                                            Porcentaje (%)
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="configFeeType" value="fixed" 
+                                                   <?php echo (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') ? 'checked' : ''; ?>> 
+                                            Valor Fijo
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-info">
+                                <i class="fa fa-save"></i> Guardar Configuración
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Tabla de detalles -->
         <div class="box box-primary">
             <div class="box-header with-border">
                 <h3 class="box-title">Detalles registrados</h3>
+                <button class="btn btn-success pull-right" id="exportExcelBtn" style="margin-left:10px;">
+                    <i class="fa fa-file-excel-o"></i> Exportar a Excel
+                </button>
+                <button class="btn btn-info pull-right" data-toggle="modal" data-target="#configMixModal" style="margin-left:10px;">
+                    <i class="fa fa-cog"></i> Configurar Mix
+                </button>
                 <button class="btn btn-primary pull-right" data-toggle="modal" data-target="#addDetailModal"
                     style="margin-left:10px;">Agregar Detalle</button>
             </div>
@@ -381,10 +480,121 @@ $details = $mmreData['details'];
                 </table>
             </div>
         </div>
+
+        <!-- Sección de Totales -->
+        <div style="margin-top: 20px;">
+            <div class="box box-info">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-calculator"></i> Resumen de Inversión</h3>
+                </div>
+                <div class="box-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr class="info">
+                                    <td class="text-right"><strong>Inversión Neta Total:</strong></td>
+                                    <td class="text-right" style="font-size: 16px;">
+                                        <strong id="inversionNetaTotal">
+                                            <?php 
+                                            $totalInversion = 0;
+                                            foreach ($details as $d) {
+                                                $totalInversion += floatval($d['investment']);
+                                            }
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($totalInversion, 2);
+                                            ?>
+                                        </strong>
+                                    </td>
+                                </tr>
+                                <tr class="warning">
+                                    <td class="text-right"><strong>Comisión Agencia:</strong></td>
+                                    <td class="text-right" style="font-size: 16px;">
+                                        <strong id="comisionAgencia">
+                                            <?php
+                                            // Calcular comisión según tipo de fee
+                                            $comision = 0;
+                                            $feeDisplay = '';
+                                            
+                                            if (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') {
+                                                $comision = floatval($mmre['fee']);
+                                                $feeDisplay = '(fijo)';
+                                            } else {
+                                                $comision = $totalInversion * (floatval($mmre['fee']) / 100);
+                                                $feeDisplay = '(' . $mmre['fee'] . '%)';
+                                            }
+                                            
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($comision, 2);
+                                            ?>
+                                            <small class="text-muted"><?php echo $feeDisplay; ?></small>
+                                        </strong>
+                                    </td>
+                                </tr>
+                                <tr class="active">
+                                    <td class="text-right"><strong>Pauta + Comisión:</strong></td>
+                                    <td class="text-right" style="font-size: 18px;">
+                                        <strong id="pautaComision">
+                                            <?php
+                                            $pautaComision = $totalInversion + $comision;
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($pautaComision, 2);
+                                            ?>
+                                        </strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr class="warning">
+                                    <td class="text-right"><strong>IGV (<?php echo $mmre['igv']; ?>%):</strong></td>
+                                    <td class="text-right" style="font-size: 16px;">
+                                        <strong id="igvCalculado">
+                                            <?php
+                                            $igvCalculado = $pautaComision * (floatval($mmre['igv']) / 100);
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($igvCalculado, 2);
+                                            ?>
+                                        </strong>
+                                    </td>
+                                </tr>
+                                <tr class="success" style="font-size: 20px;">
+                                    <td class="text-right"><strong>INVERSIÓN TOTAL + IGV:</strong></td>
+                                    <td class="text-right" style="font-size: 20px;">
+                                        <strong id="inversionTotalIgv" style="color: #00a65a;">
+                                            <?php
+                                            $inversionTotalIgv = $pautaComision + $igvCalculado;
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($inversionTotalIgv, 2);
+                                            ?>
+                                        </strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">
+                                        <small>Los totales se actualizan automáticamente</small>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
+
+<!-- Botón flotante para ir a totales -->
+<div id="floatingTotalsBtn" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none;">
+    <button class="btn btn-warning btn-lg" style="border-radius: 50%; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" 
+            title="Ver totales">
+        <i class="fa fa-calculator" style="font-size: 20px;"></i>
+    </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script>
+    // Solo variables globales - NO FUNCIONES
     window.mmreId = <?php echo (int) $mmre['id']; ?>;
-</script>
-</script>
+    window.clientName = <?php echo json_encode($mmre['client_name']); ?>;
+    window.currency = <?php echo json_encode($mmre['currency']); ?>;
+    window.periodName = <?php echo json_encode($mmre['period_name']); ?>;
+    window.mmreFee = <?php echo json_encode($mmre['fee']); ?>;
+    window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
+    window.mmreIgv = <?php echo json_encode($mmre['igv']); ?>;
 </script>

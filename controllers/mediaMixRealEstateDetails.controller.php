@@ -13,13 +13,17 @@ class MediaMixRealEstateDetails_Controller {
         $mmreId = intval($mmreId);
         // Mix general con código del cliente
         $mmre = null;
-        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code, m.currency, m.fee, m.igv
+        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code, m.currency, m.fee, m.fee_type, m.igv
                 FROM mediamixrealestates m
                 LEFT JOIN periods p ON m.period_id = p.id
                 LEFT JOIN clients c ON m.client_id = c.id
                 WHERE m.id = $mmreId";
         $res = $conn->query($sql);
         if ($res && $row = $res->fetch_assoc()) {
+            // Asegurar que fee_type tenga un valor por defecto si es NULL
+            if (!isset($row['fee_type']) || $row['fee_type'] === null) {
+                $row['fee_type'] = 'percentage';
+            }
             $mmre = $row;
         }
         // Detalles con códigos de proyecto
@@ -237,5 +241,52 @@ class MediaMixRealEstateDetails_Controller {
         $result = $conn->query($sql);
         $conn->close();
         return $result ? true : false;
+    }
+
+    public function ctrUpdateMediaMixConfig()
+    {
+        if (isset($_POST["configMediaMixId"])) {
+            $mediaMixId = $_POST["configMediaMixId"];
+            $url = 'https://algoritmo.digital/backend/public/api/mmres/' . $mediaMixId;
+
+            $body = [
+                "name" => $_POST["configName"],
+                "currency" => $_POST["configCurrency"],
+                "fee" => $_POST["configFee"],
+                "fee_type" => $_POST["configFeeType"],
+                "igv" => $_POST["configIgv"],
+            ];
+            $jsonData = json_encode($body);
+
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ]);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200) {
+                echo '<script>
+                        swal({
+                            type: "success",
+                            title: "Configuración actualizada",
+                            text: "Los cambios se aplicaron correctamente.",
+                        }).then(() => { location.reload(); });
+                    </script>';
+            } else {
+                echo '<script>
+                        swal({
+                            type: "error",
+                            title: "Error al actualizar",
+                            text: "No se pudieron guardar los cambios.",
+                        });
+                    </script>';
+            }
+        }
     }
 }

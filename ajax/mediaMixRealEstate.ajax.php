@@ -34,13 +34,21 @@ class AjaxMediaMixRealEstate
                 </button>
             </div>';
 
+            // Formatear fee según su tipo
+            $feeDisplay = '';
+            if (isset($record["fee_type"]) && $record["fee_type"] === 'fixed') {
+                $feeDisplay = htmlspecialchars($record["currency"]) . ' ' . number_format(floatval($record["fee"]), 2);
+            } else {
+                $feeDisplay = htmlspecialchars($record["fee"]) . '%';
+            }
+
             $data[] = [
                 ($key + 1),
                 htmlspecialchars($record["name"]),
                 htmlspecialchars($record["client_id"]),
                 htmlspecialchars($record["period_id"]),
                 htmlspecialchars($record["currency"]),
-                htmlspecialchars($record["fee"]),
+                $feeDisplay,
                 htmlspecialchars($record["igv"]),
                 $acciones
             ];

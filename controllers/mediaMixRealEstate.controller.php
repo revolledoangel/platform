@@ -24,6 +24,7 @@ class MediaMixRealEstate_Controller
                     "client_id" => $_POST["newClientId"],
                     "currency" => $_POST["newCurrency"],
                     "fee" => $_POST["newFee"],
+                    "fee_type" => $_POST["newFeeType"],
                     "igv" => $_POST["newIgv"],
                 ];
                 $jsonData = json_encode($body);
@@ -87,6 +88,7 @@ class MediaMixRealEstate_Controller
                     "client_id" => $_POST["editClientId"],
                     "currency" => $_POST["editCurrency"],
                     "fee" => $_POST["editFee"],
+                    "fee_type" => $_POST["editFeeType"],
                     "igv" => $_POST["editIgv"],
                 ];
                 $jsonData = json_encode($body);
@@ -183,6 +185,13 @@ class MediaMixRealEstate_Controller
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return ($httpCode === 200) ? json_decode($response, true) : null;
+        $data = ($httpCode === 200) ? json_decode($response, true) : null;
+        
+        // Asegurar que fee_type tenga un valor por defecto si no existe
+        if ($data && !isset($data['fee_type'])) {
+            $data['fee_type'] = 'percentage';
+        }
+        
+        return $data;
     }
 }

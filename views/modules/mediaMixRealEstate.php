@@ -184,11 +184,19 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>Fee (%):</label>
+                                    <label>Fee:</label>
                                     <div class="input-group">
-                                        <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                        <span class="input-group-addon" id="newFeeSymbol"><i class="fa fa-percent"></i></span>
                                         <input type="number" step="any" class="form-control" name="newFee"
-                                            placeholder="Ej: 10" required>
+                                            id="newFeeInput" placeholder="Ej: 10" required>
+                                    </div>
+                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
+                                        <label class="radio-inline">
+                                            <input type="radio" name="newFeeType" value="percentage" checked> Porcentaje (%)
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="newFeeType" value="fixed"> Valor Fijo
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -283,10 +291,19 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>Fee (%):</label>
+                                    <label>Fee:</label>
                                     <div class="input-group">
-                                        <span class="input-group-addon"><i class="fa fa-percent"></i></span>
-                                        <input type="number" step="any" class="form-control" name="editFee" required>
+                                        <span class="input-group-addon" id="editFeeSymbol"><i class="fa fa-percent"></i></span>
+                                        <input type="number" step="any" class="form-control" name="editFee" 
+                                            id="editFeeInput" required>
+                                    </div>
+                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
+                                        <label class="radio-inline">
+                                            <input type="radio" name="editFeeType" value="percentage"> Porcentaje (%)
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="editFeeType" value="fixed"> Valor Fijo
+                                        </label>
                                     </div>
                                 </div>
                             </div>

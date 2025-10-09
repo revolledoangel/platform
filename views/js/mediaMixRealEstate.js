@@ -41,6 +41,36 @@ $(document).ready(function () {
     $('#filterClient').trigger('change');
     $('#filterPeriod').trigger('change');
 
+    // Manejar cambio de tipo de fee en modal agregar
+    $('input[name="newFeeType"]').on('change', function() {
+        var feeType = $(this).val();
+        var $symbol = $('#newFeeSymbol');
+        var $input = $('#newFeeInput');
+        
+        if (feeType === 'percentage') {
+            $symbol.html('<i class="fa fa-percent"></i>');
+            $input.attr('placeholder', 'Ej: 10');
+        } else {
+            $symbol.html('<i class="fa fa-money"></i>');
+            $input.attr('placeholder', 'Ej: 1500');
+        }
+    });
+
+    // Manejar cambio de tipo de fee en modal editar
+    $('input[name="editFeeType"]').on('change', function() {
+        var feeType = $(this).val();
+        var $symbol = $('#editFeeSymbol');
+        var $input = $('#editFeeInput');
+        
+        if (feeType === 'percentage') {
+            $symbol.html('<i class="fa fa-percent"></i>');
+            $input.attr('placeholder', 'Ej: 10');
+        } else {
+            $symbol.html('<i class="fa fa-money"></i>');
+            $input.attr('placeholder', 'Ej: 1500');
+        }
+    });
+
     /* Editar Media Mix */
     $('#mediaMixRealEstateTable tbody').on("click", ".btn-editMediaMix", function () {
         var mediaMixId = $(this).attr("mediaMixId");
@@ -59,6 +89,10 @@ $(document).ready(function () {
                     $("select[name='editCurrency']").val(data.currency);
                     $("input[name='editFee']").val(data.fee);
                     $("input[name='editIgv']").val(data.igv);
+                    
+                    // Configurar tipo de fee
+                    var feeType = data.fee_type || 'percentage'; // default percentage si no existe
+                    $("input[name='editFeeType'][value='" + feeType + "']").prop('checked', true).trigger('change');
                 } else {
                     alert("No se pudo obtener la información del registro.");
                 }
