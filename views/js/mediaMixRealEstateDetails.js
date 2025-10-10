@@ -1061,7 +1061,7 @@ $(document).ready(function () {
                 }
             });
             
-            // INTEGRAR TOTALES EN LA TABLA PRINCIPAL CON ANCHO COMPLETO
+            // INTEGRAR TOTALES EN LA TABLA PRINCIPAL CON ALINEACIÓN CORRECTA EN COLUMNA I
             // Agregar fila vacía para separar
             var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
             separatorRow.height = 15;
@@ -1075,14 +1075,14 @@ $(document).ready(function () {
             var igvValue = $('#igvCalculado').text().replace(/[^\d.,]/g, '') || '0';
             var totalFinal = $('#inversionTotalIgv').text().replace(/[^\d.,]/g, '') || '0';
             
-            // Estructura de totales usando todo el ancho (12 columnas)
+            // Estructura de totales con valores EXACTAMENTE en columna I (índice 8, que es la 9na columna)
             var totalsData = [
-                ['', '', '', '', '', '', '', 'Inversión Neta Total:', '', inversionNeta, '', ''],
-                ['', '', '', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', comisionValue, '', ''],
-                ['', '', '', '', '', '', '', 'Subtotal (Pauta + Comisión):', '', pautaComision, '', ''],
-                ['', '', '', '', '', '', '', 'IGV (' + (window.mmreIgv || '18') + '%):', '', igvValue, '', ''],
+                ['', '', '', '', '', '', '', 'Inversión Neta Total:', inversionNeta, '', '', ''],
+                ['', '', '', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', comisionValue, '', '', ''],
+                ['', '', '', '', '', '', '', 'Subtotal (Pauta + Comisión):', pautaComision, '', '', ''],
+                ['', '', '', '', '', '', '', 'IGV (' + (window.mmreIgv || '18') + '%):', igvValue, '', '', ''],
                 ['', '', '', '', '', '', '', '', '', '', '', ''], // Fila vacía
-                ['', '', '', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', totalFinal, '', '']
+                ['', '', '', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', totalFinal, '', '', '']
             ];
             
             totalsData.forEach(function(rowData, index) {
@@ -1090,26 +1090,22 @@ $(document).ready(function () {
                 var rowNumber = worksheet.rowCount;
                 
                 if (index === totalsData.length - 1) { // Total final
-                    // Merge etiqueta (columnas H-I)
-                    worksheet.mergeCells(rowNumber, 8, rowNumber, 9);
-                    var labelCell = row.getCell(8);
-                    labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    labelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                    labelCell.border = {
+                    // Etiqueta (columna H)
+                    row.getCell(8).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                    row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                    row.getCell(8).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(8).border = {
                         top: { style: 'medium', color: { argb: 'FF28A745' } },
                         left: { style: 'medium', color: { argb: 'FF28A745' } },
                         bottom: { style: 'medium', color: { argb: 'FF28A745' } },
                         right: { style: 'medium', color: { argb: 'FF28A745' } }
                     };
                     
-                    // Merge valor (columnas J-L)
-                    worksheet.mergeCells(rowNumber, 10, rowNumber, 12);
-                    var valueCell = row.getCell(10);
-                    valueCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    valueCell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    valueCell.border = {
+                    // Valor EXACTAMENTE en columna I (índice 8)
+                    row.getCell(9).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                    row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(9).border = {
                         top: { style: 'medium', color: { argb: 'FF28A745' } },
                         left: { style: 'medium', color: { argb: 'FF28A745' } },
                         bottom: { style: 'medium', color: { argb: 'FF28A745' } },
@@ -1120,46 +1116,42 @@ $(document).ready(function () {
                     if (totalFinal && totalFinal !== '0') {
                         var numericValue = parseFloat(totalFinal.replace(/,/g, ''));
                         if (!isNaN(numericValue)) {
-                            valueCell.value = numericValue;
-                            valueCell.numFmt = currency + ' #,##0.00';
+                            row.getCell(9).value = numericValue;
+                            row.getCell(9).numFmt = currency + ' #,##0.00';
                         }
                     }
                     
                     row.height = 35;
                     
-                } else if (rowData[7] && rowData[9] && index !== totalsData.length - 2) { // Filas normales de totales
+                } else if (rowData[7] && rowData[8] && index !== totalsData.length - 2) { // Filas normales de totales
                     var isSubtotal = rowData[7].includes('Subtotal');
                     
-                    // Merge etiqueta (columnas H-I)
-                    worksheet.mergeCells(rowNumber, 8, rowNumber, 9);
-                    var labelCell = row.getCell(8);
+                    // Etiqueta (columna H)
                     if (isSubtotal) {
-                        labelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
+                        row.getCell(8).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
                     } else {
-                        labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        row.getCell(8).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     }
-                    labelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                    labelCell.border = {
+                    row.getCell(8).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(8).border = {
                         top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
                     
-                    // Merge valor (columnas J-L)
-                    worksheet.mergeCells(rowNumber, 10, rowNumber, 12);
-                    var valueCell = row.getCell(10);
+                    // Valor EXACTAMENTE en columna I (índice 8)
                     if (isSubtotal) {
-                        valueCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
+                        row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
                     } else {
-                        valueCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        row.getCell(9).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     }
-                    valueCell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    valueCell.border = {
+                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(9).border = {
                         top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
@@ -1167,9 +1159,9 @@ $(document).ready(function () {
                     };
                     
                     // Formato numérico
-                    if (rowData[9] && rowData[9] !== '' && !isNaN(parseFloat(rowData[9].replace(/,/g, '')))) {
-                        valueCell.value = parseFloat(rowData[9].replace(/,/g, ''));
-                        valueCell.numFmt = currency + ' #,##0.00';
+                    if (rowData[8] && rowData[8] !== '' && !isNaN(parseFloat(rowData[8].replace(/,/g, '')))) {
+                        row.getCell(9).value = parseFloat(rowData[8].replace(/,/g, ''));
+                        row.getCell(9).numFmt = currency + ' #,##0.00';
                     }
                     
                     row.height = 28;
