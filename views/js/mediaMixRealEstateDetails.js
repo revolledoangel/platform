@@ -1061,10 +1061,43 @@ $(document).ready(function () {
                 }
             });
             
-            // INTEGRAR TOTALES EN LA TABLA PRINCIPAL CON ALINEACIÓN CORRECTA EN COLUMNA I
+            // INTEGRAR TOTALES EN LA TABLA PRINCIPAL CON ETIQUETAS EXPANDIDAS Y SUBTOTALES POR PROYECTO
             // Agregar fila vacía para separar
             var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
             separatorRow.height = 15;
+            
+            // Calcular subtotales por proyecto desde la tabla HTML
+            var projectSubtotals = {};
+            $('#detailsTable tbody tr').each(function() {
+                var $row = $(this);
+                
+                // Saltar filas de subtotales existentes
+                if ($row.css('background-color') === 'rgb(245, 245, 245)') {
+                    return;
+                }
+                
+                // Obtener proyecto y inversión
+                var projectCell = $row.find('td').first();
+                if (projectCell.attr('rowspan')) {
+                    var projectName = projectCell.text().trim();
+                    var inversionText = $row.find('td:nth-child(9)').text();
+                    var inversionValue = parseFloat(inversionText.replace(/[^\d.,]/g, '')) || 0;
+                    
+                    if (!projectSubtotals[projectName]) {
+                        projectSubtotals[projectName] = 0;
+                    }
+                    projectSubtotals[projectName] += inversionValue;
+                    
+                    // Continuar sumando las filas adicionales del mismo proyecto
+                    var $nextRow = $row.next();
+                    while ($nextRow.length && !$nextRow.find('td').first().attr('rowspan')) {
+                        var nextInversionText = $nextRow.find('td:nth-child(8)').text(); // Ajustar índice porque no hay columna proyecto
+                        var nextInversionValue = parseFloat(nextInversionText.replace(/[^\d.,]/g, '')) || 0;
+                        projectSubtotals[projectName] += nextInversionValue;
+                        $nextRow = $nextRow.next();
+                    }
+                }
+            });
             
             // Obtener totales del HTML
             var inversionNeta = $('#inversionNetaTotal').text().replace(/[^\d.,]/g, '') || '0';
@@ -1075,33 +1108,50 @@ $(document).ready(function () {
             var igvValue = $('#igvCalculado').text().replace(/[^\d.,]/g, '') || '0';
             var totalFinal = $('#inversionTotalIgv').text().replace(/[^\d.,]/g, '') || '0';
             
-            // Estructura de totales con valores EXACTAMENTE en columna I (índice 8, que es la 9na columna)
-            var totalsData = [
-                ['', '', '', '', '', '', '', 'Inversión Neta Total:', inversionNeta, '', '', ''],
-                ['', '', '', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', comisionValue, '', '', ''],
-                ['', '', '', '', '', '', '', 'Subtotal (Pauta + Comisión):', pautaComision, '', '', ''],
-                ['', '', '', '', '', '', '', 'IGV (' + (window.mmreIgv || '18') + '%):', igvValue, '', '', ''],
+            // Crear estructura de totales con subtotales por proyecto
+            var totalsData = [];
+            
+            // Agregar subtotales por proyecto
+            Object.keys(projectSubtotals).forEach(function(projectName) {
+                totalsData.push(['', '', '', '', '', 'Subtotal ' + projectName + ':', '', '', projectSubtotals[projectName], '', '', '']);
+            });
+            
+            // Agregar separador si hay subtotales
+            if (Object.keys(projectSubtotals).length > 0) {
+                totalsData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Fila vacía
+            }
+            
+            // Agregar totales generales con etiquetas expandidas (columnas F-H)
+            totalsData = totalsData.concat([
+                ['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', ''],
+                ['', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', ''],
+                ['', '', '', '', '', 'Subtotal (Pauta + Comisión):', '', '', pautaComision, '', '', ''],
+                ['', '', '', '', '', 'IGV (' + (window.mmreIgv || '18') + '%):', '', '', igvValue, '', '', ''],
                 ['', '', '', '', '', '', '', '', '', '', '', ''], // Fila vacía
-                ['', '', '', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', totalFinal, '', '', '']
-            ];
+                ['', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '']
+            ]);
             
             totalsData.forEach(function(rowData, index) {
                 var row = worksheet.addRow(rowData);
-                var rowNumber = worksheet.rowCount;
+                var isProjectSubtotal = rowData[5] && rowData[5].includes('Subtotal ') && !rowData[5].includes('Pauta');
+                var isFinalTotal = rowData[5] && rowData[5].includes('TOTAL INVERSIÓN + IGV');
+                var isGeneralTotal = rowData[5] && (rowData[5].includes('Inversión Neta') || rowData[5].includes('Comisión') || rowData[5].includes('Subtotal (Pauta') || rowData[5].includes('IGV'));
                 
-                if (index === totalsData.length - 1) { // Total final
-                    // Etiqueta (columna H)
-                    row.getCell(8).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    row.getCell(8).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(8).border = {
+                if (isFinalTotal) { // Total final
+                    // Merge etiqueta (columnas F-H)
+                    worksheet.mergeCells(row.number, 6, row.number, 8);
+                    var labelCell = row.getCell(6);
+                    labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                    labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                    labelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                    labelCell.border = {
                         top: { style: 'medium', color: { argb: 'FF28A745' } },
                         left: { style: 'medium', color: { argb: 'FF28A745' } },
                         bottom: { style: 'medium', color: { argb: 'FF28A745' } },
                         right: { style: 'medium', color: { argb: 'FF28A745' } }
                     };
                     
-                    // Valor EXACTAMENTE en columna I (índice 8)
+                    // Valor en columna I
                     row.getCell(9).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
                     row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
                     row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
@@ -1123,26 +1173,61 @@ $(document).ready(function () {
                     
                     row.height = 35;
                     
-                } else if (rowData[7] && rowData[8] && index !== totalsData.length - 2) { // Filas normales de totales
-                    var isSubtotal = rowData[7].includes('Subtotal');
+                } else if (isProjectSubtotal) { // Subtotales por proyecto
+                    // Merge etiqueta (columnas F-H) 
+                    worksheet.mergeCells(row.number, 6, row.number, 8);
+                    var labelCell = row.getCell(6);
+                    labelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+                    labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6C757D' } }; // Color gris más resaltado
+                    labelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                    labelCell.border = {
+                        top: { style: 'thin', color: { argb: 'FF495057' } },
+                        left: { style: 'thin', color: { argb: 'FF495057' } },
+                        bottom: { style: 'thin', color: { argb: 'FF495057' } },
+                        right: { style: 'thin', color: { argb: 'FF495057' } }
+                    };
                     
-                    // Etiqueta (columna H)
-                    if (isSubtotal) {
-                        row.getCell(8).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
-                    } else {
-                        row.getCell(8).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                    // Valor en columna I
+                    row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+                    row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6C757D' } };
+                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(9).border = {
+                        top: { style: 'thin', color: { argb: 'FF495057' } },
+                        left: { style: 'thin', color: { argb: 'FF495057' } },
+                        bottom: { style: 'thin', color: { argb: 'FF495057' } },
+                        right: { style: 'thin', color: { argb: 'FF495057' } }
+                    };
+                    
+                    // Formato numérico para subtotal
+                    if (rowData[8] && rowData[8] !== '' && !isNaN(parseFloat(String(rowData[8]).replace(/,/g, '')))) {
+                        row.getCell(9).value = parseFloat(String(rowData[8]).replace(/,/g, ''));
+                        row.getCell(9).numFmt = currency + ' #,##0.00';
                     }
-                    row.getCell(8).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(8).border = {
+                    
+                    row.height = 30;
+                    
+                } else if (isGeneralTotal) { // Totales generales
+                    var isSubtotal = rowData[5].includes('Subtotal (Pauta');
+                    
+                    // Merge etiqueta (columnas F-H)
+                    worksheet.mergeCells(row.number, 6, row.number, 8);
+                    var labelCell = row.getCell(6);
+                    if (isSubtotal) {
+                        labelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
+                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
+                    } else {
+                        labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                    }
+                    labelCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true, indent: 1 };
+                    labelCell.border = {
                         top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
                     
-                    // Valor EXACTAMENTE en columna I (índice 8)
+                    // Valor en columna I
                     if (isSubtotal) {
                         row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
                         row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
