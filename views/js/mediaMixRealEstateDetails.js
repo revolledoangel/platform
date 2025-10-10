@@ -1146,47 +1146,42 @@ $(document).ready(function () {
             var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
             separatorRow.height = 15;
             
-            // Obtener totales del HTML con selectores corregidos
-            var inversionNetaElement = $('#inversionNetaTotal');
-            var comisionElement = $('#comisionAgencia');
-            var pautaComisionElement = $('#pautaComision');
-            var igvElement = $('#igvCalculado');
-            var totalFinalElement = $('#inversionTotalIgv');
-            
-            // Extraer solo números de los elementos HTML
+            // MÉTODO MEJORADO: Extraer totales directamente de la tabla HTML visible
             var inversionNeta = '0';
             var comisionValue = '0';
             var pautaComision = '0';
             var igvValue = '0';
             var totalFinal = '0';
             
-            if (inversionNetaElement.length > 0) {
-                var inversionText = inversionNetaElement.text() || inversionNetaElement.html() || '';
-                inversionNeta = inversionText.replace(/[^\d.,]/g, '') || '0';
-            }
+            // Buscar en todas las filas de la tabla de totales
+            $('.table tr').each(function() {
+                var $row = $(this);
+                var $firstCell = $row.find('td').first();
+                var $lastCell = $row.find('td').last();
+                
+                if ($firstCell.length && $lastCell.length) {
+                    var labelText = $firstCell.text().trim().toLowerCase();
+                    var valueText = $lastCell.text().trim();
+                    
+                    // Extraer solo números del valor
+                    var numericValue = valueText.replace(/[^\d.,]/g, '') || '0';
+                    
+                    if (labelText.includes('inversión neta total')) {
+                        inversionNeta = numericValue;
+                    } else if (labelText.includes('comisión agencia')) {
+                        comisionValue = numericValue;
+                    } else if (labelText.includes('pauta') && labelText.includes('comisión')) {
+                        pautaComision = numericValue;
+                    } else if (labelText.includes('igv')) {
+                        igvValue = numericValue;
+                    } else if (labelText.includes('inversión total') && labelText.includes('igv')) {
+                        totalFinal = numericValue;
+                    }
+                }
+            });
             
-            if (comisionElement.length > 0) {
-                var comisionText = comisionElement.text() || comisionElement.html() || '';
-                comisionValue = comisionText.replace(/[^\d.,]/g, '') || '0';
-            }
-            
-            if (pautaComisionElement.length > 0) {
-                var pautaText = pautaComisionElement.text() || pautaComisionElement.html() || '';
-                pautaComision = pautaText.replace(/[^\d.,]/g, '') || '0';
-            }
-            
-            if (igvElement.length > 0) {
-                var igvText = igvElement.text() || igvElement.html() || '';
-                igvValue = igvText.replace(/[^\d.,]/g, '') || '0';
-            }
-            
-            if (totalFinalElement.length > 0) {
-                var totalText = totalFinalElement.text() || totalFinalElement.html() || '';
-                totalFinal = totalText.replace(/[^\d.,]/g, '') || '0';
-            }
-            
-            // Fallback: calcular desde las variables globales si los elementos no existen
-            if (inversionNeta === '0' || comisionValue === '0') {
+            // FALLBACK: Si no encontramos valores en las tablas, calcular desde la tabla de datos
+            if (inversionNeta === '0') {
                 var calculatedTotal = 0;
                 $('#detailsTable tbody tr').each(function() {
                     var $row = $(this);
@@ -1203,38 +1198,25 @@ $(document).ready(function () {
                     }
                 });
                 
-                if (inversionNeta === '0') {
-                    inversionNeta = calculatedTotal.toString();
-                }
+                inversionNeta = calculatedTotal.toString();
                 
-                // Calcular comisión desde las variables globales
-                if (comisionValue === '0' && window.mmreFee) {
-                    var calculatedComision = 0;
-                    if (window.mmreFeeType === 'fixed') {
-                        calculatedComision = parseFloat(window.mmreFee) || 0;
-                    } else {
-                        calculatedComision = calculatedTotal * (parseFloat(window.mmreFee) / 100) || 0;
-                    }
-                    comisionValue = calculatedComision.toString();
+                // Calcular el resto basado en las variables globales
+                var calculatedComision = 0;
+                if (window.mmreFeeType === 'fixed') {
+                    calculatedComision = parseFloat(window.mmreFee) || 0;
+                } else {
+                    calculatedComision = calculatedTotal * (parseFloat(window.mmreFee) / 100) || 0;
                 }
+                comisionValue = calculatedComision.toString();
                 
-                // Calcular pauta + comisión
-                if (pautaComision === '0') {
-                    var calculatedPauta = calculatedTotal + (parseFloat(comisionValue) || 0);
-                    pautaComision = calculatedPauta.toString();
-                }
+                var calculatedPauta = calculatedTotal + calculatedComision;
+                pautaComision = calculatedPauta.toString();
                 
-                // Calcular IGV
-                if (igvValue === '0' && window.mmreIgv) {
-                    var calculatedIgv = (parseFloat(pautaComision) || 0) * (parseFloat(window.mmreIgv) / 100) || 0;
-                    igvValue = calculatedIgv.toString();
-                }
+                var calculatedIgv = calculatedPauta * (parseFloat(window.mmreIgv) / 100) || 0;
+                igvValue = calculatedIgv.toString();
                 
-                // Calcular total final
-                if (totalFinal === '0') {
-                    var calculatedFinal = (parseFloat(pautaComision) || 0) + (parseFloat(igvValue) || 0);
-                    totalFinal = calculatedFinal.toString();
-                }
+                var calculatedFinal = calculatedPauta + calculatedIgv;
+                totalFinal = calculatedFinal.toString();
             }
             
             // Determinar tipo de comisión para la etiqueta
@@ -1245,14 +1227,15 @@ $(document).ready(function () {
                 comisionType = '(' + (window.mmreFee || '0') + '%)';
             }
             
-            // Debug: mostrar valores calculados
-            console.log('Valores calculados para Excel:', {
+            // Debug: mostrar valores extraídos
+            console.log('Totales extraídos del HTML:', {
                 inversionNeta: inversionNeta,
                 comisionValue: comisionValue,
                 comisionType: comisionType,
                 pautaComision: pautaComision,
                 igvValue: igvValue,
-                totalFinal: totalFinal
+                totalFinal: totalFinal,
+                currency: currency
             });
             
             // Estructura de totales generales únicamente (columnas F-H para etiquetas)
