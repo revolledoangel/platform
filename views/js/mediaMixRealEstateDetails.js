@@ -1039,10 +1039,10 @@ $(document).ready(function () {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                right: { style: 'thin', color: { argb: 'FF95A5A6' } }
+                                top: { style: 'medium', color: { argb: 'FF28A745' } },
+                                left: { style: 'thin', color: { argb: 'FF28A745' } },
+                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
+                                right: { style: 'thin', color: { argb: 'FF28A745' } }
                             };
                             
                             // Formato numérico para subtotal
@@ -1056,19 +1056,19 @@ $(document).ready(function () {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                right: { style: 'thin', color: { argb: 'FF95A5A6' } }
+                                top: { style: 'medium', color: { argb: 'FF28A745' } },
+                                left: { style: 'thin', color: { argb: 'FF28A745' } },
+                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
+                                right: { style: 'thin', color: { argb: 'FF28A745' } }
                             };
                         } else {
                             // Otras columnas con fondo gris claro
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                right: { style: 'thin', color: { argb: 'FF95A5A6' } }
+                                top: { style: 'medium', color: { argb: 'FF28A745' } },
+                                left: { style: 'thin', color: { argb: 'FF28A745' } },
+                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
+                                right: { style: 'thin', color: { argb: 'FF28A745' } }
                             };
                         }
                     });
@@ -1146,14 +1146,114 @@ $(document).ready(function () {
             var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
             separatorRow.height = 15;
             
-            // Obtener totales del HTML
-            var inversionNeta = $('#inversionNetaTotal').text().replace(/[^\d.,]/g, '') || '0';
-            var comisionText = $('#comisionAgencia').text();
-            var comisionValue = comisionText.replace(/[^\d.,]/g, '') || '0';
-            var comisionType = comisionText.includes('(fijo)') ? '(Valor Fijo)' : '(' + (window.mmreFee || '0') + '%)';
-            var pautaComision = $('#pautaComision').text().replace(/[^\d.,]/g, '') || '0';
-            var igvValue = $('#igvCalculado').text().replace(/[^\d.,]/g, '') || '0';
-            var totalFinal = $('#inversionTotalIgv').text().replace(/[^\d.,]/g, '') || '0';
+            // Obtener totales del HTML con selectores corregidos
+            var inversionNetaElement = $('#inversionNetaTotal');
+            var comisionElement = $('#comisionAgencia');
+            var pautaComisionElement = $('#pautaComision');
+            var igvElement = $('#igvCalculado');
+            var totalFinalElement = $('#inversionTotalIgv');
+            
+            // Extraer solo números de los elementos HTML
+            var inversionNeta = '0';
+            var comisionValue = '0';
+            var pautaComision = '0';
+            var igvValue = '0';
+            var totalFinal = '0';
+            
+            if (inversionNetaElement.length > 0) {
+                var inversionText = inversionNetaElement.text() || inversionNetaElement.html() || '';
+                inversionNeta = inversionText.replace(/[^\d.,]/g, '') || '0';
+            }
+            
+            if (comisionElement.length > 0) {
+                var comisionText = comisionElement.text() || comisionElement.html() || '';
+                comisionValue = comisionText.replace(/[^\d.,]/g, '') || '0';
+            }
+            
+            if (pautaComisionElement.length > 0) {
+                var pautaText = pautaComisionElement.text() || pautaComisionElement.html() || '';
+                pautaComision = pautaText.replace(/[^\d.,]/g, '') || '0';
+            }
+            
+            if (igvElement.length > 0) {
+                var igvText = igvElement.text() || igvElement.html() || '';
+                igvValue = igvText.replace(/[^\d.,]/g, '') || '0';
+            }
+            
+            if (totalFinalElement.length > 0) {
+                var totalText = totalFinalElement.text() || totalFinalElement.html() || '';
+                totalFinal = totalText.replace(/[^\d.,]/g, '') || '0';
+            }
+            
+            // Fallback: calcular desde las variables globales si los elementos no existen
+            if (inversionNeta === '0' || comisionValue === '0') {
+                var calculatedTotal = 0;
+                $('#detailsTable tbody tr').each(function() {
+                    var $row = $(this);
+                    // Saltar filas de subtotales
+                    if ($row.css('background-color') === 'rgb(245, 245, 245)') {
+                        return;
+                    }
+                    
+                    var inversionCell = $row.find('td:nth-child(9)');
+                    if (inversionCell.length > 0) {
+                        var cellText = inversionCell.text().trim();
+                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
+                        calculatedTotal += cellValue;
+                    }
+                });
+                
+                if (inversionNeta === '0') {
+                    inversionNeta = calculatedTotal.toString();
+                }
+                
+                // Calcular comisión desde las variables globales
+                if (comisionValue === '0' && window.mmreFee) {
+                    var calculatedComision = 0;
+                    if (window.mmreFeeType === 'fixed') {
+                        calculatedComision = parseFloat(window.mmreFee) || 0;
+                    } else {
+                        calculatedComision = calculatedTotal * (parseFloat(window.mmreFee) / 100) || 0;
+                    }
+                    comisionValue = calculatedComision.toString();
+                }
+                
+                // Calcular pauta + comisión
+                if (pautaComision === '0') {
+                    var calculatedPauta = calculatedTotal + (parseFloat(comisionValue) || 0);
+                    pautaComision = calculatedPauta.toString();
+                }
+                
+                // Calcular IGV
+                if (igvValue === '0' && window.mmreIgv) {
+                    var calculatedIgv = (parseFloat(pautaComision) || 0) * (parseFloat(window.mmreIgv) / 100) || 0;
+                    igvValue = calculatedIgv.toString();
+                }
+                
+                // Calcular total final
+                if (totalFinal === '0') {
+                    var calculatedFinal = (parseFloat(pautaComision) || 0) + (parseFloat(igvValue) || 0);
+                    totalFinal = calculatedFinal.toString();
+                }
+            }
+            
+            // Determinar tipo de comisión para la etiqueta
+            var comisionType = '';
+            if (window.mmreFeeType === 'fixed') {
+                comisionType = '(Valor Fijo)';
+            } else {
+                comisionType = '(' + (window.mmreFee || '0') + '%)';
+            }
+            
+            // Debug: mostrar valores calculados
+            console.log('Valores calculados para Excel:', {
+                inversionNeta: inversionNeta,
+                comisionValue: comisionValue,
+                comisionType: comisionType,
+                pautaComision: pautaComision,
+                igvValue: igvValue,
+                totalFinal: totalFinal
+            });
             
             // Estructura de totales generales únicamente (columnas F-H para etiquetas)
             var totalsData = [
@@ -1244,8 +1344,8 @@ $(document).ready(function () {
                     };
                     
                     // Formato numérico
-                    if (rowData[8] && rowData[8] !== '' && !isNaN(parseFloat(rowData[8].replace(/,/g, '')))) {
-                        row.getCell(9).value = parseFloat(rowData[8].replace(/,/g, ''));
+                    if (rowData[8] && rowData[8] !== '' && !isNaN(parseFloat(String(rowData[8]).replace(/,/g, '')))) {
+                        row.getCell(9).value = parseFloat(String(rowData[8]).replace(/,/g, ''));
                         row.getCell(9).numFmt = currency + ' #,##0.00';
                     }
                     
