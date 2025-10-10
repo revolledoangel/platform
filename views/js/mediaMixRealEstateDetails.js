@@ -1039,9 +1039,9 @@ $(document).ready(function () {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF95A5A6' } },
+                                top: { style: 'medium', color: { argb: 'FF28A745' } },
                                 left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF95A5A6' } },
+                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
                                 right: { style: 'thin', color: { argb: 'FF95A5A6' } }
                             };
                             
@@ -1056,9 +1056,9 @@ $(document).ready(function () {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF95A5A6' } },
+                                top: { style: 'medium', color: { argb: 'FF28A745' } },
                                 left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF95A5A6' } },
+                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
                                 right: { style: 'thin', color: { argb: 'FF95A5A6' } }
                             };
                         } else {
@@ -1153,22 +1153,25 @@ $(document).ready(function () {
             var igvValue = '0';
             var totalFinal = '0';
             
-            // Calcular directamente desde las variables globales y la tabla
+            // MÉTODO CORRECTO: Sumar los subtotales por proyecto (filas grises)
             var calculatedTotal = 0;
             $('#detailsTable tbody tr').each(function() {
                 var $row = $(this);
-                // Saltar filas de subtotales
-                if ($row.css('background-color') === 'rgb(245, 245, 245)') {
-                    return;
-                }
                 
-                var inversionCell = $row.find('td:nth-child(9)');
-                if (inversionCell.length > 0) {
-                    var cellText = inversionCell.text().trim();
-                    var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                    calculatedTotal += cellValue;
+                // BUSCAR SOLO las filas de subtotales (fondo gris)
+                if ($row.css('background-color') === 'rgb(245, 245, 245)') {
+                    var subtotalCell = $row.find('td:nth-child(9)'); // Columna de inversión
+                    if (subtotalCell.length > 0) {
+                        var cellText = subtotalCell.text().trim();
+                        // Extraer números: "USD 500.00" -> "500.00"
+                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
+                        calculatedTotal += cellValue;
+                        console.log('Subtotal encontrado:', cellText, '-> Valor:', cellValue, '-> Total acumulado:', calculatedTotal);
+                    }
                 }
             });
+            
+            console.log('Total calculado de subtotales:', calculatedTotal);
             
             inversionNeta = calculatedTotal.toString();
             
@@ -1190,13 +1193,16 @@ $(document).ready(function () {
             var comisionType = (feeType === 'fixed') ? '(Valor Fijo)' : '(' + fee + '%)';
             
             // Debug: mostrar valores calculados
-            console.log('Totales para Excel:', {
+            console.log('Totales finales para Excel:', {
                 inversionNeta: inversionNeta,
                 comisionValue: comisionValue,
                 comisionType: comisionType,
                 pautaComision: pautaComision,
                 igvValue: igvValue,
-                totalFinal: totalFinal
+                totalFinal: totalFinal,
+                fee: fee,
+                feeType: feeType,
+                igvPercent: igvPercent
             });
             
             // Estructura de totales generales únicamente (columnas F-H para etiquetas)
