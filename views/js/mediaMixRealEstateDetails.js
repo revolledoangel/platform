@@ -1155,23 +1155,108 @@ $(document).ready(function () {
             
             // MÉTODO CORRECTO: Sumar los subtotales por proyecto (filas grises)
             var calculatedTotal = 0;
-            $('#detailsTable tbody tr').each(function() {
+            console.log('=== DEBUGGING DETALLADO DE SUBTOTALES ===');
+            
+            // Primero, veamos todas las filas que contienen valores de inversión
+            $('#detailsTable tbody tr').each(function(index) {
                 var $row = $(this);
+                var $inversionCell = $row.find('td:nth-child(9)'); // Columna 9 = Inversión
                 
-                // BUSCAR SOLO las filas de subtotales (fondo gris)
-                if ($row.css('background-color') === 'rgb(245, 245, 245)') {
-                    var subtotalCell = $row.find('td:nth-child(9)'); // Columna de inversión
-                    if (subtotalCell.length > 0) {
-                        var cellText = subtotalCell.text().trim();
-                        // Extraer números: "USD 500.00" -> "500.00"
+                if ($inversionCell.length > 0) {
+                    var cellText = $inversionCell.text().trim();
+                    var backgroundColor = $row.css('background-color');
+                    var inlineStyle = $row.attr('style') || '';
+                    var classes = $row.attr('class') || '';
+                    var cellCount = $row.find('td').length;
+                    var nonEmptyCells = $row.find('td').filter(function() {
+                        return $(this).text().trim() !== '';
+                    }).length;
+                    
+                    console.log('FILA ' + index + ':', {
+                        inversionTexto: cellText,
+                        backgroundColor: backgroundColor,
+                        inlineStyle: inlineStyle,
+                        classes: classes,
+                        totalCeldas: cellCount,
+                        celdasConTexto: nonEmptyCells,
+                        esFilaSubtotal: nonEmptyCells <= 3 && cellText.includes('USD') // Detectar patrón subtotal
+                    });
+                    
+                    // MÉTODO MEJORADO: Detectar subtotales por patrón de contenido
+                    // Las filas de subtotal típicamente tienen:
+                    // - Pocas celdas con contenido (≤3)
+                    // - La celda de inversión tiene formato "USD X.XX"
+                    // - La celda de distribución tiene "100%"
+                    var distributionCell = $row.find('td:nth-child(10)').text().trim(); // Columna 10 = Distribución
+                    
+                    if (nonEmptyCells <= 3 && 
+                        cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
+                        distributionCell === '100%') {
+                        
+                        console.log('✅ SUBTOTAL DETECTADO en fila ' + index + ':', cellText);
                         var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
                         calculatedTotal += cellValue;
-                        console.log('Subtotal encontrado:', cellText, '-> Valor:', cellValue, '-> Total acumulado:', calculatedTotal);
+                        console.log('   → Valor extraído: ' + cellValue + ' → Total acumulado: ' + calculatedTotal);
+                    }
+                    
+                    // MÉTODO ALTERNATIVO: Por background-color específico (el que usas en PHP)
+                    else if (backgroundColor === 'rgb(245, 245, 245)' || 
+                            inlineStyle.includes('background') || 
+                            inlineStyle.includes('#f5f5f5')) {
+                        
+                        console.log('✅ SUBTOTAL POR ESTILO en fila ' + index + ':', cellText);
+                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
+                        calculatedTotal += cellValue;
+                        console.log('   → Valor extraído: ' + cellValue + ' → Total acumulado: ' + calculatedTotal);
                     }
                 }
             });
             
-            console.log('Total calculado de subtotales:', calculatedTotal);
+            // Si todavía no encontramos nada, buscar por el patrón específico del PHP
+            if (calculatedTotal === 0) {
+                console.log('⚠️ Método alternativo: buscando filas con style="background:#f5f5f5"...');
+                
+                $('tr[style*="background"]').each(function(index) {
+                    var $row = $(this);
+                    var $inversionCell = $row.find('td:nth-child(9)');
+                    
+                    if ($inversionCell.length > 0) {
+                        var cellText = $inversionCell.text().trim();
+                        console.log('Fila con background inline ' + index + ':', {
+                            style: $row.attr('style'),
+                            inversionTexto: cellText
+                        });
+                        
+                        if (cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
+                            var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
+                            calculatedTotal += cellValue;
+                            console.log('   → Subtotal encontrado: ' + cellValue + ' → Total: ' + calculatedTotal);
+                        }
+                    }
+                });
+            }
+            
+            // Último recurso: buscar directamente en el PHP generado
+            if (calculatedTotal === 0) {
+                console.log('⚠️ Último recurso: buscando por colspan y contenido específico...');
+                
+                $('#detailsTable tbody tr').each(function(index) {
+                    var $row = $(this);
+                    var $firstCell = $row.find('td:first');
+                    var colspan = $firstCell.attr('colspan');
+                    var cellText = $row.find('td:nth-child(9)').text().trim();
+                    
+                    // Si la primera celda tiene colspan="8" y hay valor de inversión, es subtotal
+                    if (colspan === '8' && cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
+                        console.log('✅ SUBTOTAL POR COLSPAN en fila ' + index + ':', cellText);
+                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
+                        calculatedTotal += cellValue;
+                        console.log('   → Valor: ' + cellValue + ' → Total: ' + calculatedTotal);
+                    }
+                });
+            }
+            
+            console.log('=== RESULTADO FINAL: ' + calculatedTotal + ' ===');
             
             inversionNeta = calculatedTotal.toString();
             
@@ -1439,42 +1524,30 @@ $(document).ready(function () {
             feeDisplay = '(' + fee + '%)';
         }
         
-        // Calcular pauta + comisión
-        var pautaComision = totalInversion + comision;
+        // Calcular pauta (inversión + comisión)
+        var pauta = totalInversion + comision;
         
-        // Calcular IGV
-        var igvCalculado = pautaComision * (parseFloat(igvPorcentaje) / 100);
+        // Calcular IGV y total final
+        var igv = pauta * (igvPorcentaje / 100);
+        var total = pauta + igv;
         
-        // Calcular total final
-        var inversionTotalIgv = pautaComision + igvCalculado;
+        // Actualizar campos en el modal de configuración
+        $('#configInversionNeta').val(totalInversion.toFixed(2));
+        $('#configComision').val(comision.toFixed(2));
+        $('#configPauta').val(pauta.toFixed(2));
+        $('#configIgv').val(igv.toFixed(2));
+        $('#configTotal').val(total.toFixed(2));
         
-        // Actualizar los elementos en pantalla
-        $('#inversionNetaTotal').html('<strong>' + currency + ' ' + number_format(totalInversion, 2) + '</strong>');
-        $('#comisionAgencia').html('<strong>' + currency + ' ' + number_format(comision, 2) + ' <small class="text-muted">' + feeDisplay + '</small></strong>');
-        $('#pautaComision').html('<strong>' + currency + ' ' + number_format(pautaComision, 2) + '</strong>');
-        $('#igvCalculado').html('<strong>' + currency + ' ' + number_format(igvCalculado, 2) + '</strong>');
-        $('#inversionTotalIgv').html('<strong style="color: #00a65a;">' + currency + ' ' + number_format(inversionTotalIgv, 2) + '</strong>');
-    }
-    
-    // Función auxiliar para formatear números
-    function number_format(number, decimals) {
-        return parseFloat(number).toLocaleString('en-US', {
-            minimumFractionDigits: decimals || 2,
-            maximumFractionDigits: decimals || 2
+        // Mostrar mensaje de éxito
+        swal({
+            icon: 'success',
+            title: 'Totales recalculados',
+            text: 'Los totales se recalcularon correctamente.'
         });
     }
-    // Recalcular totales cuando se carga la página
-    setTimeout(function() {
-
-        if (typeof recalcularTotales === 'function') {
-            recalcularTotales();
-        }
-    }, 500);
     
-    // Guardar configuración del mix - SIMPLIFICADO
-    $('#configMixForm').on('submit', function (e) {
-        // NO preventDefault - dejar que se envíe normalmente
-        // El PHP se encarga de todo
-        return true;
+    // Evento para botón de recalcular totales
+    $('#recalcularTotalesBtn').on('click', function() {
+        recalcularTotales();
     });
 });
