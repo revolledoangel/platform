@@ -245,7 +245,14 @@ class MediaMixRealEstateDetails_Controller {
 
     public function ctrUpdateMediaMixConfig()
     {
-        if (isset($_POST["configMediaMixId"])) {
+        // Solo ejecutar si hay datos POST válidos y específicos del modal de configuración
+        if (isset($_POST["configMediaMixId"]) && 
+            isset($_POST["configName"]) && 
+            isset($_POST["configCurrency"]) && 
+            isset($_POST["configFee"]) && 
+            isset($_POST["configFeeType"]) && 
+            isset($_POST["configIgv"])) {
+            
             $mediaMixId = $_POST["configMediaMixId"];
             $url = 'https://algoritmo.digital/backend/public/api/mmres/' . $mediaMixId;
 
@@ -276,7 +283,9 @@ class MediaMixRealEstateDetails_Controller {
                             type: "success",
                             title: "Configuración actualizada",
                             text: "Los cambios se aplicaron correctamente.",
-                        }).then(() => { location.reload(); });
+                        }).then(() => { 
+                            window.location = "mediaMixRealEstateDetails?mediaMixId=' . $mediaMixId . '"; 
+                        });
                     </script>';
             } else {
                 echo '<script>

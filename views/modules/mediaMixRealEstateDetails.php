@@ -23,9 +23,18 @@ if (!$mmreData) {
 $mmre = $mmreData['mmre'];
 $details = $mmreData['details'];
 
-// 3. PROCESAR ACTUALIZACIÓN DE CONFIGURACIÓN
-$updateConfig = new MediaMixRealEstateDetails_Controller();
-$updateConfig->ctrUpdateMediaMixConfig();
+// 3. PROCESAR ACTUALIZACIÓN DE CONFIGURACIÓN SOLO SI SE ENVIÓ EL FORMULARIO ESPECÍFICO
+if (isset($_POST['configMediaMixId']) && 
+    isset($_POST['configName']) && 
+    isset($_POST['configCurrency']) && 
+    isset($_POST['configFee']) && 
+    isset($_POST['configFeeType']) && 
+    isset($_POST['configIgv']) &&
+    $_POST['configMediaMixId'] == $_GET['mediaMixId']) { // Validación adicional
+    
+    $updateConfig = new MediaMixRealEstateDetails_Controller();
+    $updateConfig->ctrUpdateMediaMixConfig();
+}
 
 // Lógica del CRUD para los detalles (asegúrate de que esto esté antes del HTML)
 //$createDetail = new MediaMixRealEstateDetails_Controller();
