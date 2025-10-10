@@ -448,7 +448,7 @@ if (isset($_POST['configMediaMixId']) &&
                         ?>
                         <tr>
                             <?php if ($firstProjectRow): ?>
-                            <td rowspan="<?php echo $projectRowspan; ?>" style="vertical-align: middle; text-align: center;"><strong><?php echo htmlspecialchars($project); ?></strong></td>
+                            <td rowspan="<?php echo $projectRowspan + 1; ?>" style="vertical-align: middle; text-align: center;"><strong><?php echo htmlspecialchars($project); ?></strong></td>
                             <?php $firstProjectRow = false; endif; ?>
                             <?php if ($firstPlatformRow): ?>
                             <td rowspan="<?php echo $platformRowspan; ?>" style="vertical-align: middle; text-align: center;"><?php echo htmlspecialchars($platform); ?></td>
@@ -476,10 +476,11 @@ if (isset($_POST['configMediaMixId']) &&
                             </td>
                         </tr>
                         <?php endforeach; endforeach; ?>
-                        <tr style="background:#f5f5f5;font-weight:bold;">
-                            <td colspan="8"></td>
-                            <td><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format($projectTotal, 2); ?></td>
-                            <td>100%</td>
+                        <!-- AGREGAR FILA DE SUBTOTAL POR PROYECTO -->
+                        <tr style="background-color:#f5f5f5;font-weight:bold;">
+                            <td colspan="8" style="text-align:right;"><strong>Subtotal <?php echo htmlspecialchars($project); ?>:</strong></td>
+                            <td style="text-align:right;"><strong><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format($projectTotal, 2); ?></strong></td>
+                            <td style="text-align:right;"><strong>100%</strong></td>
                             <td></td>
                             <td></td>
                             <td></td>

@@ -1155,9 +1155,8 @@ $(document).ready(function () {
             
             // MÉTODO CORRECTO: Sumar los subtotales por proyecto (filas grises)
             var calculatedTotal = 0;
-            console.log('=== DEBUGGING DETALLADO DE SUBTOTALES ===');
+            console.log('=== DEBUGGING SUBTOTALES ACTUALIZADO ===');
             
-            // Primero, veamos todas las filas que contienen valores de inversión
             $('#detailsTable tbody tr').each(function(index) {
                 var $row = $(this);
                 var $inversionCell = $row.find('td:nth-child(9)'); // Columna 9 = Inversión
@@ -1166,95 +1165,70 @@ $(document).ready(function () {
                     var cellText = $inversionCell.text().trim();
                     var backgroundColor = $row.css('background-color');
                     var inlineStyle = $row.attr('style') || '';
-                    var classes = $row.attr('class') || '';
-                    var cellCount = $row.find('td').length;
-                    var nonEmptyCells = $row.find('td').filter(function() {
-                        return $(this).text().trim() !== '';
-                    }).length;
+                    var firstCellText = $row.find('td:first').text().trim();
+                    
+                    // NUEVO MÉTODO: Detectar filas de subtotal por patrón específico del PHP
+                    // Las filas de subtotal tienen:
+                    // 1. style="background-color:#f5f5f5" 
+                    // 2. O backgroundColor calculado como rgb(245, 245, 245)
+                    // 3. O contienen "Subtotal" en la primera celda
+                    // 4. O tienen colspan="8" en la primera celda
+                    
+                    var isSubtotalRow = false;
+                    var subtotalReason = '';
+                    
+                    // Método 1: Por background-color inline
+                    if (inlineStyle.includes('background-color:#f5f5f5') || 
+                        inlineStyle.includes('background:#f5f5f5') ||
+                        backgroundColor === 'rgb(245, 245, 245)') {
+                        isSubtotalRow = true;
+                        subtotalReason = 'por background-color';
+                    }
+                    
+                    // Método 2: Por texto "Subtotal" en la primera celda
+                    else if (firstCellText.toLowerCase().includes('subtotal')) {
+                        isSubtotalRow = true;
+                        subtotalReason = 'por texto "Subtotal"';
+                    }
+                    
+                    // Método 3: Por colspan="8" en la primera celda (estructura de subtotal)
+                    else if ($row.find('td:first').attr('colspan') === '8') {
+                        isSubtotalRow = true;
+                        subtotalReason = 'por colspan="8"';
+                    }
+                    
+                    // Método 4: Por patrón de contenido (pocas celdas con contenido + formato moneda)
+                    else {
+                        var nonEmptyCells = $row.find('td').filter(function() {
+                            return $(this).text().trim() !== '';
+                        }).length;
+                        var distributionCell = $row.find('td:nth-child(10)').text().trim();
+                        
+                        if (nonEmptyCells <= 4 && 
+                            cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
+                            distributionCell === '100%') {
+                            isSubtotalRow = true;
+                            subtotalReason = 'por patrón de contenido';
+                        }
+                    }
                     
                     console.log('FILA ' + index + ':', {
                         inversionTexto: cellText,
                         backgroundColor: backgroundColor,
                         inlineStyle: inlineStyle,
-                        classes: classes,
-                        totalCeldas: cellCount,
-                        celdasConTexto: nonEmptyCells,
-                        esFilaSubtotal: nonEmptyCells <= 3 && cellText.includes('USD') // Detectar patrón subtotal
+                        firstCellText: firstCellText,
+                        isSubtotalRow: isSubtotalRow,
+                        subtotalReason: subtotalReason
                     });
                     
-                    // MÉTODO MEJORADO: Detectar subtotales por patrón de contenido
-                    // Las filas de subtotal típicamente tienen:
-                    // - Pocas celdas con contenido (≤3)
-                    // - La celda de inversión tiene formato "USD X.XX"
-                    // - La celda de distribución tiene "100%"
-                    var distributionCell = $row.find('td:nth-child(10)').text().trim(); // Columna 10 = Distribución
-                    
-                    if (nonEmptyCells <= 3 && 
-                        cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
-                        distributionCell === '100%') {
-                        
-                        console.log('✅ SUBTOTAL DETECTADO en fila ' + index + ':', cellText);
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                        calculatedTotal += cellValue;
-                        console.log('   → Valor extraído: ' + cellValue + ' → Total acumulado: ' + calculatedTotal);
-                    }
-                    
-                    // MÉTODO ALTERNATIVO: Por background-color específico (el que usas en PHP)
-                    else if (backgroundColor === 'rgb(245, 245, 245)' || 
-                            inlineStyle.includes('background') || 
-                            inlineStyle.includes('#f5f5f5')) {
-                        
-                        console.log('✅ SUBTOTAL POR ESTILO en fila ' + index + ':', cellText);
+                    if (isSubtotalRow && cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
+                        console.log('✅ SUBTOTAL DETECTADO (' + subtotalReason + ') en fila ' + index + ':', cellText);
                         var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
                         calculatedTotal += cellValue;
                         console.log('   → Valor extraído: ' + cellValue + ' → Total acumulado: ' + calculatedTotal);
                     }
                 }
             });
-            
-            // Si todavía no encontramos nada, buscar por el patrón específico del PHP
-            if (calculatedTotal === 0) {
-                console.log('⚠️ Método alternativo: buscando filas con style="background:#f5f5f5"...');
-                
-                $('tr[style*="background"]').each(function(index) {
-                    var $row = $(this);
-                    var $inversionCell = $row.find('td:nth-child(9)');
-                    
-                    if ($inversionCell.length > 0) {
-                        var cellText = $inversionCell.text().trim();
-                        console.log('Fila con background inline ' + index + ':', {
-                            style: $row.attr('style'),
-                            inversionTexto: cellText
-                        });
-                        
-                        if (cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
-                            var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                            calculatedTotal += cellValue;
-                            console.log('   → Subtotal encontrado: ' + cellValue + ' → Total: ' + calculatedTotal);
-                        }
-                    }
-                });
-            }
-            
-            // Último recurso: buscar directamente en el PHP generado
-            if (calculatedTotal === 0) {
-                console.log('⚠️ Último recurso: buscando por colspan y contenido específico...');
-                
-                $('#detailsTable tbody tr').each(function(index) {
-                    var $row = $(this);
-                    var $firstCell = $row.find('td:first');
-                    var colspan = $firstCell.attr('colspan');
-                    var cellText = $row.find('td:nth-child(9)').text().trim();
-                    
-                    // Si la primera celda tiene colspan="8" y hay valor de inversión, es subtotal
-                    if (colspan === '8' && cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
-                        console.log('✅ SUBTOTAL POR COLSPAN en fila ' + index + ':', cellText);
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                        calculatedTotal += cellValue;
-                        console.log('   → Valor: ' + cellValue + ' → Total: ' + calculatedTotal);
-                    }
-                });
-            }
             
             console.log('=== RESULTADO FINAL: ' + calculatedTotal + ' ===');
             
