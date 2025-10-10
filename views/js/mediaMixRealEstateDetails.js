@@ -774,7 +774,7 @@ $(document).ready(function () {
         
         generateAndCopyCode(platformCode, clientCode, projectCode);
     });
-    // Función para exportar tabla a Excel con estilos modernos - ÚNICA VERSIÓN
+    // Función para exportar tabla a Excel con estilos modernos - VERSIÓN CORREGIDA
     function exportTableToExcel() {
         // Verificar si ExcelJS está disponible
         if (typeof ExcelJS === 'undefined') {
@@ -795,9 +795,7 @@ $(document).ready(function () {
             
             // Crear workbook con ExcelJS
             var workbook = new ExcelJS.Workbook();
-            var worksheet = workbook.addWorksheet('Detalles Mix', {
-                properties: { defaultColWidth: 15 }
-            });
+            var worksheet = workbook.addWorksheet('Detalles Mix');
             
             // Configurar propiedades básicas del documento
             workbook.creator = 'Algoritmo Digital Platform';
@@ -805,13 +803,13 @@ $(document).ready(function () {
             workbook.created = new Date();
             workbook.modified = new Date();
             
-            // Establecer anchos de columna PRIMERO
+            // Establecer anchos de columna
             var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 12, 10, 10, 12];
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });
             
-            // SECCIÓN 1: TÍTULO PRINCIPAL
+            // TÍTULO PRINCIPAL
             worksheet.addRow(['INFORMACIÓN DEL MIX DE MEDIOS']);
             worksheet.mergeCells('A1:L1');
             var titleRow = worksheet.getRow(1);
@@ -822,85 +820,39 @@ $(document).ready(function () {
             
             worksheet.addRow([]);
             
-            // SECCIÓN 2: INFORMACIÓN DETALLADA OCUPANDO TODO EL ANCHO
-            // Crear filas que ocupen las 12 columnas de la tabla
+            // INFORMACIÓN DETALLADA
             var infoRows = [
-                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', ''],
-                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', ''], 
-                ['Período:', '', periodName, '', '', '', '', '', '', '', '', ''],
-                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', ''],
-                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '']
+                ['Mix de Medios:', '', mixName],
+                ['Cliente:', '', clientName], 
+                ['Período:', '', periodName],
+                ['Moneda:', '', currency],
+                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' })]
             ];
             
             infoRows.forEach(function(rowData, index) {
-                var row = worksheet.addRow(rowData);
-                var rowNumber = index + 3; // Empezar desde la fila 3
+                var fullRowData = rowData.concat(new Array(9).fill('')); // Completar hasta 12 columnas
+                var row = worksheet.addRow(fullRowData);
+                var rowNumber = index + 3;
                 
-                // Merge de la etiqueta (columnas A-B)
+                // Merge etiqueta (columnas A-B)
                 worksheet.mergeCells(rowNumber, 1, rowNumber, 2);
                 var labelCell = row.getCell(1);
-                labelCell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF1F4E79' } };
+                labelCell.font = { name: 'Arial', size: 11, bold: true };
                 labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE7F3FF' } };
-                labelCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-                labelCell.border = {
-                    top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                    left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                    bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                    right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
-                };
+                labelCell.alignment = { vertical: 'middle', horizontal: 'left' };
                 
-                // Merge del valor (columnas C-L)
+                // Merge valor (columnas C-L)
                 worksheet.mergeCells(rowNumber, 3, rowNumber, 12);
                 var valueCell = row.getCell(3);
-                valueCell.font = { name: 'Arial', size: 11, color: { argb: 'FF2F5F8F' } };
+                valueCell.font = { name: 'Arial', size: 11 };
                 valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
-                valueCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-                valueCell.border = {
-                    top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                    left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                    bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                    right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
-                };
                 
-                // Altura fija con alineación vertical centrada
                 row.height = 25;
             });
             
             worksheet.addRow([]);
             
-            // Función para calcular altura automática
-            function calculateAutoHeight(rowData, columnWidths) {
-                if (!rowData || !Array.isArray(rowData) || !columnWidths || !Array.isArray(columnWidths)) {
-                    return 22;
-                }
-                
-                var maxLines = 1;
-                var avgCharWidth = 7;
-                
-                for (var i = 0; i < rowData.length && i < columnWidths.length; i++) {
-                    var cellValue = String(rowData[i] || '');
-                    if (cellValue.length > 0) {
-                        var columnWidthInPixels = columnWidths[i] * 7.5;
-                        var estimatedTextWidth = cellValue.length * avgCharWidth;
-                        var linesNeeded = Math.ceil(estimatedTextWidth / columnWidthInPixels);
-                        
-                        var naturalBreaks = (cellValue.match(/[,;\/\-\s]/g) || []).length;
-                        if (naturalBreaks > 0 && cellValue.length > 50) {
-                            linesNeeded = Math.max(linesNeeded, Math.ceil(cellValue.length / 40));
-                        }
-                        
-                        maxLines = Math.max(maxLines, linesNeeded);
-                    }
-                }
-                
-                var baseHeight = 18;
-                var lineHeight = 14;
-                var calculatedHeight = baseHeight + ((maxLines - 1) * lineHeight);
-                
-                return Math.max(20, Math.min(calculatedHeight, 100));
-            }
-            
-            // Headers de la tabla
+            // HEADERS DE LA TABLA
             var headers = [
                 'Proyecto', 'Plataforma', 'Objetivo', 'AON', 'Tipo Campaña',
                 'Canal', 'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
@@ -908,473 +860,213 @@ $(document).ready(function () {
             ];
             var headerRow = worksheet.addRow(headers);
             
-            // Estilo para headers
             headerRow.eachCell(function(cell, colNumber) {
                 cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF366092' } };
                 cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
                 cell.border = {
-                    top: { style: 'thin', color: { argb: 'FF000000' } },
-                    left: { style: 'thin', color: { argb: 'FF000000' } },
-                    bottom: { style: 'thin', color: { argb: 'FF000000' } },
-                    right: { style: 'thin', color: { argb: 'FF000000' } }
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
                 };
             });
             headerRow.height = 35;
             
-            // PROCESAR DATOS DE LA TABLA RESPETANDO LA ESTRUCTURA REAL E INCLUYENDO SUBTOTALES POR PROYECTO
-            var excelRows = [];
-            var mergeRanges = [];
-            var rowIndex = 0;
-            
-            // Crear matriz para rastrear celdas ocupadas
-            var occupiedCells = {};
-            
-            // Mapear subtotales por proyecto desde la tabla HTML
-            var projectSubtotals = {};
-            var currentProject = null;
-            var projectRows = [];
+            // PROCESAR DATOS DE LA TABLA SIMPLIFICADO
+            var currentRow = 10; // Empezar después de headers
             
             $('#detailsTable tbody tr').each(function() {
                 var $row = $(this);
+                var rowData = new Array(12).fill('');
+                var isSubtotal = $row.css('background-color') === 'rgb(245, 245, 245)';
                 
-                // Detectar filas de subtotales existentes (fondo gris)
-                if ($row.css('background-color') === 'rgb(245, 245, 245)') {
-                    // Esta es una fila de subtotal, extraer el monto
-                    var subtotalText = $row.find('td:nth-child(9)').text(); // Columna de inversión
-                    var subtotalValue = subtotalText.replace(/[^\d.,]/g, '') || '0';
+                if (isSubtotal) {
+                    // Fila de subtotal
+                    var subtotalValue = $row.find('td:nth-child(9)').text().replace(/[^\d.,]/g, '');
+                    rowData[8] = subtotalValue; // Columna I
+                    rowData[9] = '100%'; // Columna J
                     
-                    if (currentProject) {
-                        projectSubtotals[currentProject] = subtotalValue;
+                    var subtotalRow = worksheet.addRow(rowData);
+                    
+                    // Estilo para subtotal
+                    subtotalRow.getCell(9).font = { bold: true };
+                    subtotalRow.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                    subtotalRow.getCell(10).font = { bold: true };
+                    subtotalRow.getCell(10).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                    
+                    if (subtotalValue && !isNaN(parseFloat(subtotalValue))) {
+                        subtotalRow.getCell(9).value = parseFloat(subtotalValue);
+                        subtotalRow.getCell(9).numFmt = currency + ' #,##0.00';
                     }
                     
-                    // Agregar fila de subtotal a Excel
-                    var subtotalRowData = new Array(12).fill('');
-                    subtotalRowData[8] = subtotalValue; // Valor en columna I
-                    subtotalRowData[9] = '100%'; // Porcentaje en columna J
-                    
-                    excelRows.push(subtotalRowData);
-                    
-                    // Resetear para el siguiente proyecto
-                    currentProject = null;
-                    projectRows = [];
-                    rowIndex++;
-                    return;
-                }
-                
-                var excelRowData = new Array(12).fill('');
-                var colIndex = 0;
-                
-                $row.find('td').each(function() {
-                    var $cell = $(this);
-                    
-                    // Saltar columna de acciones (la que tiene botones)
-                    if ($cell.find('.btn').length > 0) {
-                        return;
-                    }
-                    
-                    // Encontrar la próxima posición disponible en la fila
-                    while (occupiedCells[rowIndex + '_' + colIndex]) {
-                        colIndex++;
-                    }
-                    
-                    // Si ya llegamos al límite de columnas, salir
-                    if (colIndex >= 12) {
-                        return;
-                    }
-                    
-                    var cellText = $cell.text().trim();
-                    var colspan = parseInt($cell.attr('colspan')) || 1;
-                    var rowspan = parseInt($cell.attr('rowspan')) || 1;
-                    
-                    // Detectar si es una nueva columna de proyecto
-                    if (colIndex === 0 && $cell.attr('rowspan')) {
-                        currentProject = cellText;
-                    }
-                    
-                    // Colocar el valor en la celda actual
-                    excelRowData[colIndex] = cellText;
-                    
-                    // Marcar todas las celdas ocupadas por este elemento
-                    for (var r = 0; r < rowspan; r++) {
-                        for (var c = 0; c < colspan; c++) {
-                            if (colIndex + c < 12) {
-                                occupiedCells[(rowIndex + r) + '_' + (colIndex + c)] = true;
-                            }
-                        }
-                    }
-                    
-                    // Si hay merge, registrarlo (ajustar número de fila por las nuevas filas de info)
-                    if (rowspan > 1 || colspan > 1) {
-                        mergeRanges.push({
-                            startRow: rowIndex + 10, // +10 por info general y headers
-                            endRow: rowIndex + rowspan - 1 + 10,
-                            startCol: colIndex + 1, // Excel es 1-based
-                            endCol: colIndex + colspan,
-                            value: cellText
-                        });
-                    }
-                    
-                    colIndex += colspan;
-                });
-                
-                excelRows.push(excelRowData);
-                rowIndex++;
-            });
-            
-            // Agregar todas las filas procesadas a Excel (incluyendo subtotales)
-            excelRows.forEach(function(rowData, index) {
-                var excelRow = worksheet.addRow(rowData);
-                
-                // Detectar si es una fila de subtotal (tiene valor solo en columna I y J)
-                var isSubtotalRow = rowData[8] && rowData[9] === '100%' && 
-                                   !rowData[0] && !rowData[1] && !rowData[2] && !rowData[3] && 
-                                   !rowData[4] && !rowData[5] && !rowData[6] && !rowData[7];
-                
-                if (isSubtotalRow) {
-                    // Estilo especial para filas de subtotal
-                    excelRow.eachCell(function(cell, colNumber) {
-                        if (colNumber === 9) { // Columna I - Inversión
-                            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
-                            cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                            cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF28A745' } },
-                                left: { style: 'thin', color: { argb: 'FF28A745' } },
-                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                                right: { style: 'thin', color: { argb: 'FF28A745' } }
-                            };
-                            
-                            // Formato numérico para subtotal
-                            var subtotalValue = parseFloat(rowData[8].replace(/,/g, ''));
-                            if (!isNaN(subtotalValue)) {
-                                cell.value = subtotalValue;
-                                cell.numFmt = currency + ' #,##0.00';
-                            }
-                        } else if (colNumber === 10) { // Columna J - Distribución
-                            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
-                            cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                            cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF28A745' } },
-                                left: { style: 'thin', color: { argb: 'FF28A745' } },
-                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                                right: { style: 'thin', color: { argb: 'FF28A745' } }
-                            };
-                        } else {
-                            // Otras columnas con fondo gris claro
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
-                            cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF28A745' } },
-                                left: { style: 'thin', color: { argb: 'FF28A745' } },
-                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                                right: { style: 'thin', color: { argb: 'FF28A745' } }
-                            };
-                        }
-                    });
-                    
-                    excelRow.height = 25;
                 } else {
-                    // Calcular altura automática para filas normales
-                    var autoHeight = calculateAutoHeight(rowData, columnWidths);
-                    excelRow.height = autoHeight;
-                    
-                    excelRow.eachCell(function(cell, colNumber) {
-                        // Estilo básico para datos normales
-                        cell.font = { name: 'Arial', size: 9 };
-                        cell.alignment = { 
-                            vertical: 'middle',
-                            wrapText: true
-                        };
-                        cell.border = {
-                            top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                            left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                            bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-                            right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
-                        };
+                    // Fila normal de datos
+                    var colIndex = 0;
+                    $row.find('td').each(function() {
+                        var $cell = $(this);
                         
-                        // Colores alternados (excluyendo las filas de subtotal)
-                        var normalRowIndex = index - Math.floor(index / 4); // Aproximado, excluyendo subtotales
-                        if (normalRowIndex % 2 === 0) {
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+                        // Saltar botones
+                        if ($cell.find('.btn').length > 0) return;
+                        
+                        if (colIndex < 12) {
+                            rowData[colIndex] = $cell.text().trim();
+                            colIndex++;
                         }
+                    });
+                    
+                    var dataRow = worksheet.addRow(rowData);
+                    
+                    // Aplicar estilos básicos
+                    dataRow.eachCell(function(cell, colNumber) {
+                        cell.font = { name: 'Arial', size: 9 };
+                        cell.alignment = { vertical: 'middle', wrapText: true };
+                        cell.border = {
+                            top: { style: 'thin' }, left: { style: 'thin' },
+                            bottom: { style: 'thin' }, right: { style: 'thin' }
+                        };
                         
-                        // Alineación por columna manteniendo centrado vertical
-                        if (colNumber === 1 || colNumber === 2 || colNumber === 4 || colNumber === 11) {
-                            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                        } else if (colNumber === 9 || colNumber === 10) {
-                            cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                        } else {
-                            cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                        // Alineación específica por columna
+                        if (colNumber === 4) { // AON
+                            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                        } else if (colNumber === 9 || colNumber === 10) { // Inversión y %
+                            cell.alignment = { vertical: 'middle', horizontal: 'right' };
                         }
                     });
                 }
+                currentRow++;
             });
             
-            // Aplicar merges
-            mergeRanges.forEach(function(merge) {
-                try {
-                    if (merge.startRow !== merge.endRow || merge.startCol !== merge.endCol) {
-                        worksheet.mergeCells(merge.startRow, merge.startCol, merge.endRow, merge.endCol);
-                        var cell = worksheet.getCell(merge.startRow, merge.startCol);
-                        cell.value = merge.value;
-                        cell.font = { name: 'Arial', size: 9, bold: true };
-                        cell.alignment = { 
-                            vertical: 'middle', 
-                            horizontal: 'center', 
-                            wrapText: true 
-                        };
-                        
-                        // Ajustar altura de celdas combinadas
-                        if (merge.value) {
-                            var mergedCellHeight = calculateAutoHeight([merge.value], [columnWidths[merge.startCol - 1]]);
-                            for (var r = merge.startRow; r <= merge.endRow; r++) {
-                                var targetRow = worksheet.getRow(r);
-                                if (targetRow.height < mergedCellHeight) {
-                                    targetRow.height = mergedCellHeight;
-                                }
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.log('Error al combinar celdas:', merge, e);
-                }
-            });
+            // TOTALES - MÉTODO DIRECTO Y SIMPLIFICADO
+            worksheet.addRow([]); // Separador
             
-            // INTEGRAR SOLO TOTALES GENERALES (SIN SUBTOTALES POR PROYECTO)
-            // Agregar fila vacía para separar
-            var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
-            separatorRow.height = 15;
-            
-            // MÉTODO MEJORADO: Extraer totales directamente de la tabla HTML visible
+            // Extraer totales del HTML visible - MÉTODO MÁS DIRECTO
             var inversionNeta = '0';
             var comisionValue = '0';
             var pautaComision = '0';
             var igvValue = '0';
             var totalFinal = '0';
             
-            // Método 1: Buscar en los elementos específicos de la sección de totales
-            var inversionNetaEl = document.getElementById('inversionNetaTotal');
-            var comisionEl = document.getElementById('comisionAgencia');
-            var pautaEl = document.getElementById('pautaComision');
-            var igvEl = document.getElementById('igvCalculado');
-            var totalEl = document.getElementById('inversionTotalIgv');
-            
-            if (inversionNetaEl) {
-                inversionNeta = inversionNetaEl.textContent.replace(/[^\d.,]/g, '') || '0';
-            }
-            if (comisionEl) {
-                comisionValue = comisionEl.textContent.replace(/[^\d.,]/g, '') || '0';
-            }
-            if (pautaEl) {
-                pautaComision = pautaEl.textContent.replace(/[^\d.,]/g, '') || '0';
-            }
-            if (igvEl) {
-                igvValue = igvEl.textContent.replace(/[^\d.,]/g, '') || '0';
-            }
-            if (totalEl) {
-                totalFinal = totalEl.textContent.replace(/[^\d.,]/g, '') || '0';
-            }
-            
-            // Método 2: Si no encuentra los elementos por ID, buscar por contenido en todas las tablas
-            if (inversionNeta === '0' && comisionValue === '0' && pautaComision === '0') {
-                $('table tr').each(function() {
-                    var $row = $(this);
-                    var cellCount = $row.find('td').length;
+            // Intentar extraer desde elementos específicos primero
+            $('.table tr').each(function() {
+                var $row = $(this);
+                var $cells = $row.find('td');
+                
+                if ($cells.length >= 2) {
+                    var firstText = $cells.first().text().toLowerCase().trim();
+                    var lastText = $cells.last().text().trim();
+                    var numValue = lastText.replace(/[^\d.,]/g, '');
                     
-                    if (cellCount >= 2) {
-                        var firstCellText = $row.find('td').first().text().trim().toLowerCase();
-                        var lastCellText = $row.find('td').last().text().trim();
-                        var numericValue = lastCellText.replace(/[^\d.,]/g, '') || '0';
-                        
-                        if (firstCellText.includes('inversión neta total')) {
-                            inversionNeta = numericValue;
-                        } else if (firstCellText.includes('comisión agencia')) {
-                            comisionValue = numericValue;
-                        } else if (firstCellText.includes('pauta') && firstCellText.includes('comisión')) {
-                            pautaComision = numericValue;
-                        } else if (firstCellText.includes('igv') && !firstCellText.includes('total')) {
-                            igvValue = numericValue;
-                        } else if (firstCellText.includes('inversión total') || firstCellText.includes('total') && firstCellText.includes('igv')) {
-                            totalFinal = numericValue;
+                    if (firstText.includes('inversión neta total')) {
+                        inversionNeta = numValue;
+                        console.log('Inversión Neta encontrada:', inversionNeta);
+                    } else if (firstText.includes('comisión')) {
+                        comisionValue = numValue;
+                        console.log('Comisión encontrada:', comisionValue);
+                    } else if (firstText.includes('pauta') && firstText.includes('comisión')) {
+                        pautaComision = numValue;
+                        console.log('Pauta+Comisión encontrada:', pautaComision);
+                    } else if (firstText.includes('igv') && !firstText.includes('total')) {
+                        igvValue = numValue;
+                        console.log('IGV encontrado:', igvValue);
+                    } else if (firstText.includes('total') && firstText.includes('igv')) {
+                        totalFinal = numValue;
+                        console.log('Total Final encontrado:', totalFinal);
+                    }
+                }
+            });
+            
+            // Si no encontramos valores, calcular manualmente
+            if (inversionNeta === '0') {
+                console.log('No se encontraron totales en HTML, calculando manualmente...');
+                
+                var calculatedTotal = 0;
+                $('#detailsTable tbody tr').each(function() {
+                    var $row = $(this);
+                    if ($row.css('background-color') !== 'rgb(245, 245, 245)') {
+                        var invCell = $row.find('td:nth-child(9)');
+                        if (invCell.length > 0) {
+                            var value = parseFloat(invCell.text().replace(/[^\d.,]/g, '')) || 0;
+                            calculatedTotal += value;
                         }
                     }
                 });
-            }
-            
-            // Método 3: FALLBACK - Calcular directamente de la tabla de detalles y variables PHP
-            if (inversionNeta === '0') {
-                console.log('Usando método fallback para calcular totales');
                 
-                // Sumar inversiones de la tabla principal (excluyendo filas de subtotal)
-                var calculatedInversion = 0;
-                $('#detailsTable tbody tr').each(function() {
-                    var $row = $(this);
-                    
-                    // Saltar filas de subtotales (fondo gris)
-                    if ($row.css('background-color') === 'rgb(245, 245, 245)' || 
-                        $row.hasClass('subtotal-row') ||
-                        $row.find('td').length < 9) {
-                        return;
-                    }
-                    
-                    // Obtener la celda de inversión (columna 9)
-                    var inversionCell = $row.find('td:nth-child(9)');
-                    if (inversionCell.length > 0) {
-                        var cellText = inversionCell.text().trim();
-                        // Extraer solo números, incluyendo decimales
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '').replace(',', '')) || 0;
-                        calculatedInversion += cellValue;
-                    }
+                inversionNeta = calculatedTotal.toString();
+                
+                // Usar variables globales para calcular el resto
+                var fee = parseFloat(window.mmreFee) || 0;
+                var feeType = window.mmreFeeType || 'percentage';
+                var igvPercent = parseFloat(window.mmreIgv) || 18;
+                
+                var comisionCalc = (feeType === 'fixed') ? fee : (calculatedTotal * fee / 100);
+                var pautaCalc = calculatedTotal + comisionCalc;
+                var igvCalc = pautaCalc * (igvPercent / 100);
+                var totalCalc = pautaCalc + igvCalc;
+                
+                comisionValue = comisionCalc.toString();
+                pautaComision = pautaCalc.toString();
+                igvValue = igvCalc.toString();
+                totalFinal = totalCalc.toString();
+                
+                console.log('Totales calculados:', {
+                    inversionNeta, comisionValue, pautaComision, igvValue, totalFinal
                 });
-                
-                inversionNeta = calculatedInversion.toString();
-                
-                // Calcular comisión usando las variables globales de PHP
-                var calculatedComision = 0;
-                if (window.mmreFeeType === 'fixed') {
-                    calculatedComision = parseFloat(window.mmreFee) || 0;
-                } else {
-                    calculatedComision = calculatedInversion * (parseFloat(window.mmreFee) / 100) || 0;
-                }
-                comisionValue = calculatedComision.toString();
-                
-                // Calcular pauta + comisión
-                var calculatedPauta = calculatedInversion + calculatedComision;
-                pautaComision = calculatedPauta.toString();
-                
-                // Calcular IGV
-                var calculatedIgv = calculatedPauta * (parseFloat(window.mmreIgv) / 100) || 0;
-                igvValue = calculatedIgv.toString();
-                
-                // Calcular total final
-                var calculatedFinal = calculatedPauta + calculatedIgv;
-                totalFinal = calculatedFinal.toString();
             }
             
-            // Determinar tipo de comisión para la etiqueta
-            var comisionType = '';
-            if (window.mmreFeeType === 'fixed') {
-                comisionType = '(Valor Fijo)';
-            } else {
-                comisionType = '(' + (window.mmreFee || '0') + '%)';
-            }
+            var comisionType = (window.mmreFeeType === 'fixed') ? '(Valor Fijo)' : '(' + (window.mmreFee || '0') + '%)';
             
-            // Debug: mostrar valores finales
-            console.log('Totales finales para Excel:', {
-                inversionNeta: inversionNeta,
-                comisionValue: comisionValue,
-                comisionType: comisionType,
-                pautaComision: pautaComision,
-                igvValue: igvValue,
-                totalFinal: totalFinal,
-                currency: currency,
-                metodoUsado: inversionNetaEl ? 'ID elements' : 'fallback calculation'
-            });
-            
-            // Estructura de totales generales únicamente (columnas F-H para etiquetas)
+            // Agregar totales al Excel
             var totalsData = [
-                ['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', ''],
-                ['', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', ''],
-                ['', '', '', '', '', 'Subtotal (Pauta + Comisión):', '', '', pautaComision, '', '', ''],
-                ['', '', '', '', '', 'IGV (' + (window.mmreIgv || '18') + '%):', '', '', igvValue, '', '', ''],
-                ['', '', '', '', '', '', '', '', '', '', '', ''], // Fila vacía
-                ['', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '']
+                ['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta],
+                ['', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue],
+                ['', '', '', '', '', 'Subtotal (Pauta + Comisión):', '', '', pautaComision],
+                ['', '', '', '', '', 'IGV (' + (window.mmreIgv || '18') + '%):', '', '', igvValue],
+                ['', '', '', '', '', '', '', '', ''], // Separador
+                ['', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal]
             ];
             
             totalsData.forEach(function(rowData, index) {
-                var row = worksheet.addRow(rowData);
-                var isFinalTotal = rowData[5] && rowData[5].includes('TOTAL INVERSIÓN + IGV');
-                var isGeneralTotal = rowData[5] && (rowData[5].includes('Inversión Neta') || rowData[5].includes('Comisión') || rowData[5].includes('Subtotal (Pauta') || rowData[5].includes('IGV'));
+                var fullRowData = rowData.concat(new Array(3).fill('')); // Completar hasta 12 columnas
+                var row = worksheet.addRow(fullRowData);
+                var isFinal = rowData[5] && rowData[5].includes('TOTAL INVERSIÓN');
+                var hasValue = rowData[5] && rowData[8];
                 
-                if (isFinalTotal) { // Total final
-                    // Merge etiqueta (columnas F-H)
+                if (hasValue) {
+                    // Merge etiqueta (F-H)
                     worksheet.mergeCells(row.number, 6, row.number, 8);
                     var labelCell = row.getCell(6);
-                    labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    labelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                    labelCell.border = {
-                        top: { style: 'medium', color: { argb: 'FF28A745' } },
-                        left: { style: 'medium', color: { argb: 'FF28A745' } },
-                        bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                        right: { style: 'medium', color: { argb: 'FF28A745' } }
-                    };
                     
-                    // Valor en columna I
-                    row.getCell(9).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(9).border = {
-                        top: { style: 'medium', color: { argb: 'FF28A745' } },
-                        left: { style: 'medium', color: { argb: 'FF28A745' } },
-                        bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                        right: { style: 'medium', color: { argb: 'FF28A745' } }
-                    };
-                    
-                    // Formato numérico para el total
-                    if (totalFinal && totalFinal !== '0') {
-                        var numericValue = parseFloat(totalFinal.replace(/,/g, ''));
-                        if (!isNaN(numericValue)) {
-                            row.getCell(9).value = numericValue;
-                            row.getCell(9).numFmt = currency + ' #,##0.00';
-                        }
-                    }
-                    
-                    row.height = 35;
-                    
-                } else if (isGeneralTotal) { // Totales generales
-                    var isSubtotal = rowData[5].includes('Subtotal (Pauta');
-                    
-                    // Merge etiqueta (columnas F-H)
-                    worksheet.mergeCells(row.number, 6, row.number, 8);
-                    var labelCell = row.getCell(6);
-                    if (isSubtotal) {
-                        labelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
+                    if (isFinal) {
+                        labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                        
+                        var valueCell = row.getCell(9);
+                        valueCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                        valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                        
+                        row.height = 35;
                     } else {
-                        labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        labelCell.font = { name: 'Arial', size: 10, bold: true };
                         labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        
+                        var valueCell = row.getCell(9);
+                        valueCell.font = { name: 'Arial', size: 10 };
+                        valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        
+                        row.height = 28;
                     }
-                    labelCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true, indent: 1 };
-                    labelCell.border = {
-                        top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                        left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                        bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                        right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
-                    };
                     
-                    // Valor en columna I
-                    if (isSubtotal) {
-                        row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
-                    } else {
-                        row.getCell(9).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
-                    }
-                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(9).border = {
-                        top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                        left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                        bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
-                        right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
-                    };
+                    labelCell.alignment = { vertical: 'middle', horizontal: 'left' };
+                    valueCell.alignment = { vertical: 'middle', horizontal: 'right' };
                     
                     // Formato numérico
-                    if (rowData[8] && rowData[8] !== '' && !isNaN(parseFloat(String(rowData[8]).replace(/,/g, '')))) {
-                        row.getCell(9).value = parseFloat(String(rowData[8]).replace(/,/g, ''));
-                        row.getCell(9).numFmt = currency + ' #,##0.00';
+                    if (rowData[8] && !isNaN(parseFloat(rowData[8]))) {
+                        valueCell.value = parseFloat(rowData[8]);
+                        valueCell.numFmt = currency + ' #,##0.00';
                     }
-                    
-                    row.height = 28;
-                    
-                } else {
-                    // Fila vacía o separadora
-                    row.height = 10;
                 }
             });
             
-            // Generar nombre con fecha y hora de Lima, Perú
+            // Generar nombre del archivo
             var now = new Date();
             var limaDate = new Date(now.toLocaleString("en-US", {timeZone: "America/Lima"}));
             
@@ -1413,7 +1105,7 @@ $(document).ready(function () {
                 swal({
                     icon: 'error',
                     title: 'Error al generar Excel',
-                    text: 'Problema en la generación: ' + error.message
+                    text: 'Error: ' + error.message
                 });
             });
 
@@ -1422,7 +1114,7 @@ $(document).ready(function () {
             swal({
                 icon: 'error',
                 title: 'Error al exportar',
-                text: 'Error específico: ' + error.message
+                text: 'Error: ' + error.message
             });
         }
     }
