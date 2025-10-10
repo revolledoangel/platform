@@ -1153,68 +1153,101 @@ $(document).ready(function () {
             var igvValue = '0';
             var totalFinal = '0';
             
-            // Buscar en todas las filas de la tabla de totales
-            $('.table tr').each(function() {
-                var $row = $(this);
-                var $firstCell = $row.find('td').first();
-                var $lastCell = $row.find('td').last();
-                
-                if ($firstCell.length && $lastCell.length) {
-                    var labelText = $firstCell.text().trim().toLowerCase();
-                    var valueText = $lastCell.text().trim();
-                    
-                    // Extraer solo números del valor
-                    var numericValue = valueText.replace(/[^\d.,]/g, '') || '0';
-                    
-                    if (labelText.includes('inversión neta total')) {
-                        inversionNeta = numericValue;
-                    } else if (labelText.includes('comisión agencia')) {
-                        comisionValue = numericValue;
-                    } else if (labelText.includes('pauta') && labelText.includes('comisión')) {
-                        pautaComision = numericValue;
-                    } else if (labelText.includes('igv')) {
-                        igvValue = numericValue;
-                    } else if (labelText.includes('inversión total') && labelText.includes('igv')) {
-                        totalFinal = numericValue;
-                    }
-                }
-            });
+            // Método 1: Buscar en los elementos específicos de la sección de totales
+            var inversionNetaEl = document.getElementById('inversionNetaTotal');
+            var comisionEl = document.getElementById('comisionAgencia');
+            var pautaEl = document.getElementById('pautaComision');
+            var igvEl = document.getElementById('igvCalculado');
+            var totalEl = document.getElementById('inversionTotalIgv');
             
-            // FALLBACK: Si no encontramos valores en las tablas, calcular desde la tabla de datos
+            if (inversionNetaEl) {
+                inversionNeta = inversionNetaEl.textContent.replace(/[^\d.,]/g, '') || '0';
+            }
+            if (comisionEl) {
+                comisionValue = comisionEl.textContent.replace(/[^\d.,]/g, '') || '0';
+            }
+            if (pautaEl) {
+                pautaComision = pautaEl.textContent.replace(/[^\d.,]/g, '') || '0';
+            }
+            if (igvEl) {
+                igvValue = igvEl.textContent.replace(/[^\d.,]/g, '') || '0';
+            }
+            if (totalEl) {
+                totalFinal = totalEl.textContent.replace(/[^\d.,]/g, '') || '0';
+            }
+            
+            // Método 2: Si no encuentra los elementos por ID, buscar por contenido en todas las tablas
+            if (inversionNeta === '0' && comisionValue === '0' && pautaComision === '0') {
+                $('table tr').each(function() {
+                    var $row = $(this);
+                    var cellCount = $row.find('td').length;
+                    
+                    if (cellCount >= 2) {
+                        var firstCellText = $row.find('td').first().text().trim().toLowerCase();
+                        var lastCellText = $row.find('td').last().text().trim();
+                        var numericValue = lastCellText.replace(/[^\d.,]/g, '') || '0';
+                        
+                        if (firstCellText.includes('inversión neta total')) {
+                            inversionNeta = numericValue;
+                        } else if (firstCellText.includes('comisión agencia')) {
+                            comisionValue = numericValue;
+                        } else if (firstCellText.includes('pauta') && firstCellText.includes('comisión')) {
+                            pautaComision = numericValue;
+                        } else if (firstCellText.includes('igv') && !firstCellText.includes('total')) {
+                            igvValue = numericValue;
+                        } else if (firstCellText.includes('inversión total') || firstCellText.includes('total') && firstCellText.includes('igv')) {
+                            totalFinal = numericValue;
+                        }
+                    }
+                });
+            }
+            
+            // Método 3: FALLBACK - Calcular directamente de la tabla de detalles y variables PHP
             if (inversionNeta === '0') {
-                var calculatedTotal = 0;
+                console.log('Usando método fallback para calcular totales');
+                
+                // Sumar inversiones de la tabla principal (excluyendo filas de subtotal)
+                var calculatedInversion = 0;
                 $('#detailsTable tbody tr').each(function() {
                     var $row = $(this);
-                    // Saltar filas de subtotales
-                    if ($row.css('background-color') === 'rgb(245, 245, 245)') {
+                    
+                    // Saltar filas de subtotales (fondo gris)
+                    if ($row.css('background-color') === 'rgb(245, 245, 245)' || 
+                        $row.hasClass('subtotal-row') ||
+                        $row.find('td').length < 9) {
                         return;
                     }
                     
+                    // Obtener la celda de inversión (columna 9)
                     var inversionCell = $row.find('td:nth-child(9)');
                     if (inversionCell.length > 0) {
                         var cellText = inversionCell.text().trim();
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                        calculatedTotal += cellValue;
+                        // Extraer solo números, incluyendo decimales
+                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '').replace(',', '')) || 0;
+                        calculatedInversion += cellValue;
                     }
                 });
                 
-                inversionNeta = calculatedTotal.toString();
+                inversionNeta = calculatedInversion.toString();
                 
-                // Calcular el resto basado en las variables globales
+                // Calcular comisión usando las variables globales de PHP
                 var calculatedComision = 0;
                 if (window.mmreFeeType === 'fixed') {
                     calculatedComision = parseFloat(window.mmreFee) || 0;
                 } else {
-                    calculatedComision = calculatedTotal * (parseFloat(window.mmreFee) / 100) || 0;
+                    calculatedComision = calculatedInversion * (parseFloat(window.mmreFee) / 100) || 0;
                 }
                 comisionValue = calculatedComision.toString();
                 
-                var calculatedPauta = calculatedTotal + calculatedComision;
+                // Calcular pauta + comisión
+                var calculatedPauta = calculatedInversion + calculatedComision;
                 pautaComision = calculatedPauta.toString();
                 
+                // Calcular IGV
                 var calculatedIgv = calculatedPauta * (parseFloat(window.mmreIgv) / 100) || 0;
                 igvValue = calculatedIgv.toString();
                 
+                // Calcular total final
                 var calculatedFinal = calculatedPauta + calculatedIgv;
                 totalFinal = calculatedFinal.toString();
             }
@@ -1227,15 +1260,16 @@ $(document).ready(function () {
                 comisionType = '(' + (window.mmreFee || '0') + '%)';
             }
             
-            // Debug: mostrar valores extraídos
-            console.log('Totales extraídos del HTML:', {
+            // Debug: mostrar valores finales
+            console.log('Totales finales para Excel:', {
                 inversionNeta: inversionNeta,
                 comisionValue: comisionValue,
                 comisionType: comisionType,
                 pautaComision: pautaComision,
                 igvValue: igvValue,
                 totalFinal: totalFinal,
-                currency: currency
+                currency: currency,
+                metodoUsado: inversionNetaEl ? 'ID elements' : 'fallback calculation'
             });
             
             // Estructura de totales generales únicamente (columnas F-H para etiquetas)
@@ -1498,6 +1532,7 @@ $(document).ready(function () {
     }
     // Recalcular totales cuando se carga la página
     setTimeout(function() {
+
         if (typeof recalcularTotales === 'function') {
             recalcularTotales();
         }
