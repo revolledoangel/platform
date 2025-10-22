@@ -1356,10 +1356,14 @@ $(document).ready(function () {
     });
 
     // Manejar cambio de tipo de fee en modal configuración
-    $('input[name="configFeeType"]').on('change', function() {
+    $('input[name="configFeeType_ui"]').on('change', function() {
         var feeType = $(this).val();
         var $symbol = $('#configFeeSymbol');
         var $input = $('#configFeeInput');
+        var $hidden = $('#configFeeTypeHidden');
+        
+        // Actualizar el hidden que se enviará en el form
+        $hidden.val(feeType);
         
         if (feeType === 'percentage') {
             $symbol.html('<i class="fa fa-percent"></i>');
@@ -1369,23 +1373,26 @@ $(document).ready(function () {
             $input.attr('placeholder', 'Ej: 1500');
         }
     });
-    
-    // REMOVER COMPLETAMENTE el manejo del submit para que funcione tradicionalmente
-    // $('#configMixForm').on('submit', function (e) { ... });
+
+    // Asegurar que antes de enviar el formulario el hidden esté sincronizado
+    $('#configMixForm').on('submit', function () {
+        var uiVal = $('input[name="configFeeType_ui"]:checked').val() || $('#configFeeTypeHidden').val();
+        $('#configFeeTypeHidden').val(uiVal);
+        // dejar que el formulario se envíe normalmente
+    });
 
     // Nueva función para recalcular totales
     function recalcularTotales() {
-        // Obtener información del mix desde las variables globales
         var currency = window.currency || 'USD';
-        var fee = window.mmreFee || 0;
+        var fee = parseFloat(window.mmreFee) || 0;
         var feeType = window.mmreFeeType || 'percentage';
-        var igvPorcentaje = window.mmreIgv || 18;
+        var igvPorcentaje = parseFloat(window.mmreIgv) || 18;
         
-        // Calcular inversión neta total desde la tabla
+        // Calcular inversión neta total
         var totalInversion = 0;
         $('#detailsTable tbody tr').each(function() {
-            var inversionText = $(this).find('td:nth-child(9)').text(); // Columna de inversión
-            if (inversionText && !$(this).css('background-color').includes('245, 245, 245')) { // No contar filas de subtotal
+            var inversionText = $(this).find('td:nth-child(9)').text();
+            if (inversionText && !$(this).css('background-color').includes('245, 245, 245')) {
                 var inversionValue = parseFloat(inversionText.replace(/[^0-9.-]/g, ''));
                 if (!isNaN(inversionValue)) {
                     totalInversion += inversionValue;
@@ -1397,48 +1404,27 @@ $(document).ready(function () {
         var comision = 0;
         var feeDisplay = '';
         
-        if (feeType === 'fixed') {
-            comision = parseFloat(fee);
-            feeDisplay = '(fijo)';
-        } else {
-            comision = totalInversion * (parseFloat(fee) / 100);
-            feeDisplay = '(' + fee + '%)';
-        }
-        
-        // Calcular pauta (inversión + comisión)
-        var pauta = totalInversion + comision;
-        
-        // Calcular IGV y total final
-        var igv = pauta * (igvPorcentaje / 100);
-        var total = pauta + igv;
-        
-        // Actualizar campos en el modal de configuración
-        var igvPorcentaje = window.mmreIgv || 18;
-        
-        // Calcular inversión neta total desde la tabla
-        var totalInversion = 0;
-        $('#detailsTable tbody tr').each(function() {
-            var inversionText = $(this).find('td:nth-child(9)').text(); // Columna de inversión
-            if (inversionText && !$(this).css('background-color').includes('245, 245, 245')) { // No contar filas de subtotal
-                var inversionValue = parseFloat(inversionText.replace(/[^0-9.-]/g, ''));
-                if (!isNaN(inversionValue)) {
-                    totalInversion += inversionValue;
-                }
-            }
+        console.log('Calculando comisión:', {
+            feeType: feeType,
+            fee: fee,
+            totalInversion: totalInversion
         });
         
-        // Calcular comisión según tipo de fee
-        var comision = 0;
-        var feeDisplay = '';
-        
         if (feeType === 'fixed') {
-            comision = parseFloat(fee);
+            comision = fee; // Usar el valor directamente si es fijo
             feeDisplay = '(fijo)';
         } else {
-            comision = totalInversion * (parseFloat(fee) / 100);
+            comision = totalInversion * (fee / 100); // Calcular porcentaje
             feeDisplay = '(' + fee + '%)';
         }
         
+        // Actualizar display de comisión
+        $('#comisionAgencia').html(
+            currency + ' ' + comision.toFixed(2) + 
+            ' <small class="text-muted">' + feeDisplay + '</small>'
+        );
+        
+        // Resto de cálculos...
         // Calcular pauta (inversión + comisión)
         var pauta = totalInversion + comision;
         

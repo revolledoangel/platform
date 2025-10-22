@@ -245,15 +245,16 @@ class MediaMixRealEstateDetails_Controller {
 
     public function ctrUpdateMediaMixConfig()
     {
-        // Solo ejecutar si hay datos POST válidos y específicos del modal de configuración
-        if (isset($_POST["configMediaMixId"]) && 
-            isset($_POST["configName"]) && 
-            isset($_POST["configCurrency"]) && 
-            isset($_POST["configFee"]) && 
-            isset($_POST["configFeeType"]) && 
-            isset($_POST["configIgv"])) {
-            
+        if (isset($_POST["configMediaMixId"])) {
             $mediaMixId = $_POST["configMediaMixId"];
+            
+            // Agregar logs detallados al inicio
+            error_log('================== INICIO UPDATE CONFIG ==================');
+            error_log('POST data completa: ' . print_r($_POST, true));
+            error_log('Fee Type (desde POST): ' . $_POST["configFeeType"]);
+            error_log('Fee Type Hidden (desde POST): ' . $_POST["configFeeTypeHidden"]);
+            error_log('Fee Value (desde POST): ' . $_POST["configFee"]);
+            
             $url = 'https://algoritmo.digital/backend/public/api/mmres/' . $mediaMixId;
 
             $body = [
@@ -263,6 +264,10 @@ class MediaMixRealEstateDetails_Controller {
                 "fee_type" => $_POST["configFeeType"],
                 "igv" => $_POST["configIgv"],
             ];
+
+            // Log del body antes de enviarlo
+            error_log('Body a enviar a la API: ' . print_r($body, true));
+            
             $jsonData = json_encode($body);
 
             $ch = curl_init($url);
@@ -273,28 +278,35 @@ class MediaMixRealEstateDetails_Controller {
                 'Content-Type: application/json',
                 'Accept: application/json'
             ]);
+            
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            
+            // Log de la respuesta
+            error_log('Código de respuesta HTTP: ' . $httpCode);
+            error_log('Respuesta de la API: ' . $response);
+            error_log('================== FIN UPDATE CONFIG ==================');
+            
             curl_close($ch);
 
             if ($httpCode === 200) {
                 echo '<script>
-                        swal({
-                            type: "success",
-                            title: "Configuración actualizada",
-                            text: "Los cambios se aplicaron correctamente.",
-                        }).then(() => { 
-                            window.location = "mediaMixRealEstateDetails?mediaMixId=' . $mediaMixId . '"; 
-                        });
-                    </script>';
+                    swal({
+                        type: "success",
+                        title: "Configuración actualizada",
+                        text: "Los cambios se aplicaron correctamente."
+                    }).then(() => { 
+                        window.location = "mediaMixRealEstateDetails?mediaMixId=' . $mediaMixId . '";
+                    });
+                </script>';
             } else {
                 echo '<script>
-                        swal({
-                            type: "error",
-                            title: "Error al actualizar",
-                            text: "No se pudieron guardar los cambios.",
-                        });
-                    </script>';
+                    swal({
+                        type: "error",
+                        title: "Error al actualizar",
+                        text: "No se pudieron guardar los cambios."
+                    });
+                </script>';
             }
         }
     }

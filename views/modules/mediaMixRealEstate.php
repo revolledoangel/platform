@@ -178,6 +178,7 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                                         <select class="form-control" name="newCurrency" required>
                                             <option value="USD">USD</option>
                                             <option value="PEN">PEN</option>
+                                            <option value="CLP">CLP</option>
                                         </select>
                                     </div>
                                 </div>
@@ -285,6 +286,7 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                                         <select class="form-control" name="editCurrency" required>
                                             <option value="USD">USD</option>
                                             <option value="PEN">PEN</option>
+                                            <option value="CLP">CLP</option>
                                         </select>
                                     </div>
                                 </div>

@@ -364,14 +364,19 @@ if (isset($_POST['configMediaMixId']) &&
                                         <input type="number" step="any" class="form-control" name="configFee" 
                                                id="configFeeInput" value="<?php echo htmlspecialchars($mmre['fee']); ?>" required>
                                     </div>
+
+                                    <!-- Input hidden para el tipo de fee -->
+                                    <input type="hidden" name="configFeeType" id="configFeeTypeHidden" 
+                                           value="<?php echo htmlspecialchars($mmre['fee_type'] ?? 'percentage'); ?>">
+
                                     <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
                                         <label class="radio-inline">
-                                            <input type="radio" name="configFeeType" value="percentage" 
+                                            <input type="radio" name="configFeeType_ui" value="percentage" 
                                                    <?php echo (!isset($mmre['fee_type']) || $mmre['fee_type'] === 'percentage') ? 'checked' : ''; ?>> 
                                             Porcentaje (%)
                                         </label>
                                         <label class="radio-inline">
-                                            <input type="radio" name="configFeeType" value="fixed" 
+                                            <input type="radio" name="configFeeType_ui" value="fixed" 
                                                    <?php echo (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') ? 'checked' : ''; ?>> 
                                             Valor Fijo
                                         </label>
@@ -641,7 +646,7 @@ if (isset($_POST['configMediaMixId']) &&
     window.clientName = <?php echo json_encode($mmre['client_name']); ?>;
     window.currency = <?php echo json_encode($mmre['currency']); ?>;
     window.periodName = <?php echo json_encode($mmre['period_name']); ?>;
-    window.mmreFee = <?php echo json_encode($mmre['fee']); ?>;
+    window.mmreFee = <?php echo floatval($mmre['fee']); ?>; // Asegurar que es número
     window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
-    window.mmreIgv = <?php echo json_encode($mmre['igv']); ?>;
+    window.mmreIgv = <?php echo floatval($mmre['igv']); ?>; // Asegurar que es número
 </script>
