@@ -432,12 +432,15 @@ if (isset($_POST['configMediaMixId']) &&
                         foreach ($grouped as $project => $platforms):
                             $projectRowspan = 0;
                             $projectTotal = 0;
+                            
+                            // CALCULAR CORRECTAMENTE EL TOTAL DEL PROYECTO
                             foreach ($platforms as $rows) {
                                 $projectRowspan += count($rows);
                                 foreach ($rows as $d) {
                                     $projectTotal += floatval($d['investment']);
                                 }
                             }
+                            
                             $firstProjectRow = true;
                             foreach ($platforms as $platform => $rows):
                                 $platformRowspan = count($rows);
@@ -476,10 +479,16 @@ if (isset($_POST['configMediaMixId']) &&
                             </td>
                         </tr>
                         <?php endforeach; endforeach; ?>
+                        
+                        <!-- FILA DE SUBTOTAL POR PROYECTO - FUERA DEL ROWSPAN -->
                         <tr style="background:#f5f5f5;font-weight:bold;">
-                            <td colspan="8"></td>
-                            <td><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format($projectTotal, 2); ?></td>
-                            <td>100%</td>
+                            <td colspan="8" style="text-align:right; padding-right: 10px;"></td>
+                            <td style="text-align:right;">
+                                <strong><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format($projectTotal, 2); ?></strong>
+                            </td>
+                            <td style="text-align:right;">
+                                <strong>100%</strong>
+                            </td>
                             <td></td>
                             <td></td>
                             <td></td>
@@ -597,6 +606,35 @@ if (isset($_POST['configMediaMixId']) &&
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<style>
+    /* Centrar contenido de todas las celdas de la tabla */
+    #detailsTable td, 
+    #detailsTable th {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    /* Mantener alineación a la derecha solo para montos y porcentajes */
+    #detailsTable td:nth-child(9),  /* Columna de Inversión */
+    #detailsTable td:nth-child(10)  /* Columna de Distribución */
+    {
+        text-align: right !important;
+        vertical-align: middle !important;
+    }
+    
+    /* Centrar contenido de filas de subtotales */
+    #detailsTable tr[style*="background:#f5f5f5"] td {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    /* Mantener alineación a la derecha para montos en subtotales */
+    #detailsTable tr[style*="background:#f5f5f5"] td:nth-child(9),
+    #detailsTable tr[style*="background:#f5f5f5"] td:nth-child(10) {
+        text-align: right !important;
+        vertical-align: middle !important;
+    }
+</style>
 <script>
     // Solo variables globales - NO FUNCIONES
     window.mmreId = <?php echo (int) $mmre['id']; ?>;

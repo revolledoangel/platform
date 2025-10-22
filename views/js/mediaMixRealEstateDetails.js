@@ -806,7 +806,9 @@ $(document).ready(function () {
             workbook.modified = new Date();
             
             // Establecer anchos de columna PRIMERO
-            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 12, 10, 10, 12];
+            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L
+            // Incrementé I (índice 8) y J (índice 9) para mejor visualización de montos y %
+            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 18, 14, 10, 12];
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });
@@ -930,38 +932,10 @@ $(document).ready(function () {
             // Crear matriz para rastrear celdas ocupadas
             var occupiedCells = {};
             
-            // Mapear subtotales por proyecto desde la tabla HTML
-            var projectSubtotals = {};
-            var currentProject = null;
-            var projectRows = [];
-            
             $('#detailsTable tbody tr').each(function() {
                 var $row = $(this);
                 
-                // Detectar filas de subtotales existentes (fondo gris)
-                if ($row.css('background-color') === 'rgb(245, 245, 245)') {
-                    // Esta es una fila de subtotal, extraer el monto
-                    var subtotalText = $row.find('td:nth-child(9)').text(); // Columna de inversión
-                    var subtotalValue = subtotalText.replace(/[^\d.,]/g, '') || '0';
-                    
-                    if (currentProject) {
-                        projectSubtotals[currentProject] = subtotalValue;
-                    }
-                    
-                    // Agregar fila de subtotal a Excel
-                    var subtotalRowData = new Array(12).fill('');
-                    subtotalRowData[8] = subtotalValue; // Valor en columna I
-                    subtotalRowData[9] = '100%'; // Porcentaje en columna J
-                    
-                    excelRows.push(subtotalRowData);
-                    
-                    // Resetear para el siguiente proyecto
-                    currentProject = null;
-                    projectRows = [];
-                    rowIndex++;
-                    return;
-                }
-                
+                // Crear fila para cada detalle
                 var excelRowData = new Array(12).fill('');
                 var colIndex = 0;
                 
@@ -986,11 +960,6 @@ $(document).ready(function () {
                     var cellText = $cell.text().trim();
                     var colspan = parseInt($cell.attr('colspan')) || 1;
                     var rowspan = parseInt($cell.attr('rowspan')) || 1;
-                    
-                    // Detectar si es una nueva columna de proyecto
-                    if (colIndex === 0 && $cell.attr('rowspan')) {
-                        currentProject = cellText;
-                    }
                     
                     // Colocar el valor en la celda actual
                     excelRowData[colIndex] = cellText;
@@ -1026,54 +995,74 @@ $(document).ready(function () {
             excelRows.forEach(function(rowData, index) {
                 var excelRow = worksheet.addRow(rowData);
                 
-                // Detectar si es una fila de subtotal (tiene valor solo en columna I y J)
-                var isSubtotalRow = rowData[8] && rowData[9] === '100%' && 
-                                   !rowData[0] && !rowData[1] && !rowData[2] && !rowData[3] && 
-                                   !rowData[4] && !rowData[5] && !rowData[6] && !rowData[7];
+                // DETECTAR SUBTOTALES DE FORMA MÁS ESPECÍFICA Y CORRECTA
+                var isSubtotalRow = false;
+                
+                // Verificar si es fila de subtotal por el patrón exacto:
+                // - Las primeras 8 columnas vacías (debido a colspan="8")
+                // - Columna 9 con formato de moneda USD/PEN
+                // - Columna 10 con "100%"
+                var emptyColumns = 0;
+                for (var i = 0; i < 8; i++) {
+                    if (!rowData[i] || rowData[i] === '' || rowData[i] === null) {
+                        emptyColumns++;
+                    }
+                }
+                
+                if (emptyColumns === 8 && 
+                    rowData[8] && 
+                    rowData[8].match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
+                    rowData[9] === '100%') {
+                    
+                    isSubtotalRow = true;
+                    console.log('✅ SUBTOTAL CORRECTO detectado en fila ' + index + ': ' + rowData[8]);
+                }
                 
                 if (isSubtotalRow) {
                     // Estilo especial para filas de subtotal
                     excelRow.eachCell(function(cell, colNumber) {
-                        if (colNumber === 9) { // Columna I - Inversión
+                        if (colNumber === 9) { // Columna I - Solo el monto del subtotal
                             cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF28A745' } },
-                                left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                                right: { style: 'thin', color: { argb: 'FF95A5A6' } }
+                                top: { style: 'thin', color: { argb: 'FF85929E' } },
+                                left: { style: 'thin', color: { argb: 'FF85929E' } },
+                                bottom: { style: 'thin', color: { argb: 'FF85929E' } },
+                                right: { style: 'thin', color: { argb: 'FF85929E' } }
                             };
                             
                             // Formato numérico para subtotal
                             var subtotalValue = parseFloat(rowData[8].replace(/,/g, ''));
                             if (!isNaN(subtotalValue)) {
                                 cell.value = subtotalValue;
-                                cell.numFmt = currency + ' #,##0.00';
+                                cell.numFmt = '"' + currency + '" #,##0.00';
                             }
-                        } else if (colNumber === 10) { // Columna J - Distribución
+                        } else if (colNumber === 10) { // Columna J - Distribución 100%
                             cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF28A745' } },
-                                left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF28A745' } },
-                                right: { style: 'thin', color: { argb: 'FF95A5A6' } }
+                                top: { style: 'thin', color: { argb: 'FF85929E' } },
+                                left: { style: 'thin', color: { argb: 'FF85929E' } },
+                                bottom: { style: 'thin', color: { argb: 'FF85929E' } },
+                                right: { style: 'thin', color: { argb: 'FF85929E' } }
                             };
+                            cell.value = '100%';
                         } else {
-                            // Otras columnas con fondo gris claro
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                            // Todas las demás columnas en blanco con fondo sutil
+                            cell.value = '';
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                             cell.border = {
-                                top: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                left: { style: 'thin', color: { argb: 'FF95A5A6' } },
-                                bottom: { style: 'medium', color: { argb: 'FF95A5A6' } },
-                                right: { style: 'thin', color: { argb: 'FF95A5A6' } }
+                                top: { style: 'thin', color: { argb: 'FF85929E' } },
+                                left: { style: 'thin', color: { argb: 'FF85929E' } },
+                                bottom: { style: 'thin', color: { argb: 'FF85929E' } },
+                                right: { style: 'thin', color: { argb: 'FF85929E' } }
                             };
                         }
                     });
                     
-                    excelRow.height = 25;
+                    excelRow.height = 22;
                 } else {
                     // Calcular altura automática para filas normales
                     var autoHeight = calculateAutoHeight(rowData, columnWidths);
@@ -1146,130 +1135,32 @@ $(document).ready(function () {
             var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
             separatorRow.height = 15;
             
-            // Obtener totales del HTML - MÉTODO DIRECTO DESDE PHP
+            // Obtener totales del HTML - USAR EL VALOR QUE YA CALCULÓ PHP EN LA PÁGINA
             var inversionNeta = '0';
             var comisionValue = '0';
             var pautaComision = '0';
             var igvValue = '0';
             var totalFinal = '0';
             
-            // MÉTODO CORRECTO: Sumar los subtotales por proyecto (filas grises)
-            var calculatedTotal = 0;
-            console.log('=== DEBUGGING DETALLADO DE SUBTOTALES ===');
+            // Leer directamente de la celda HTML que muestra "Inversión Neta Total"
+            var inversionText = $('#inversionNetaTotal').text() || '';
+            // Extraer número (el texto contiene moneda + número, ej. "USD 1,234.00")
+            var inversionNumber = parseFloat(String(inversionText).replace(/[^0-9\.\-\,]/g, '').replace(/,/g, '')) || 0;
             
-            // Primero, veamos todas las filas que contienen valores de inversión
-            $('#detailsTable tbody tr').each(function(index) {
-                var $row = $(this);
-                var $inversionCell = $row.find('td:nth-child(9)'); // Columna 9 = Inversión
-                
-                if ($inversionCell.length > 0) {
-                    var cellText = $inversionCell.text().trim();
-                    var backgroundColor = $row.css('background-color');
-                    var inlineStyle = $row.attr('style') || '';
-                    var classes = $row.attr('class') || '';
-                    var cellCount = $row.find('td').length;
-                    var nonEmptyCells = $row.find('td').filter(function() {
-                        return $(this).text().trim() !== '';
-                    }).length;
-                    
-                    console.log('FILA ' + index + ':', {
-                        inversionTexto: cellText,
-                        backgroundColor: backgroundColor,
-                        inlineStyle: inlineStyle,
-                        classes: classes,
-                        totalCeldas: cellCount,
-                        celdasConTexto: nonEmptyCells,
-                        esFilaSubtotal: nonEmptyCells <= 3 && cellText.includes('USD') // Detectar patrón subtotal
-                    });
-                    
-                    // MÉTODO MEJORADO: Detectar subtotales por patrón de contenido
-                    // Las filas de subtotal típicamente tienen:
-                    // - Pocas celdas con contenido (≤3)
-                    // - La celda de inversión tiene formato "USD X.XX"
-                    // - La celda de distribución tiene "100%"
-                    var distributionCell = $row.find('td:nth-child(10)').text().trim(); // Columna 10 = Distribución
-                    
-                    if (nonEmptyCells <= 3 && 
-                        cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
-                        distributionCell === '100%') {
-                        
-                        console.log('✅ SUBTOTAL DETECTADO en fila ' + index + ':', cellText);
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                        calculatedTotal += cellValue;
-                        console.log('   → Valor extraído: ' + cellValue + ' → Total acumulado: ' + calculatedTotal);
-                    }
-                    
-                    // MÉTODO ALTERNATIVO: Por background-color específico (el que usas en PHP)
-                    else if (backgroundColor === 'rgb(245, 245, 245)' || 
-                            inlineStyle.includes('background') || 
-                            inlineStyle.includes('#f5f5f5')) {
-                        
-                        console.log('✅ SUBTOTAL POR ESTILO en fila ' + index + ':', cellText);
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                        calculatedTotal += cellValue;
-                        console.log('   → Valor extraído: ' + cellValue + ' → Total acumulado: ' + calculatedTotal);
-                    }
-                }
-            });
-            
-            // Si todavía no encontramos nada, buscar por el patrón específico del PHP
-            if (calculatedTotal === 0) {
-                console.log('⚠️ Método alternativo: buscando filas con style="background:#f5f5f5"...');
-                
-                $('tr[style*="background"]').each(function(index) {
-                    var $row = $(this);
-                    var $inversionCell = $row.find('td:nth-child(9)');
-                    
-                    if ($inversionCell.length > 0) {
-                        var cellText = $inversionCell.text().trim();
-                        console.log('Fila con background inline ' + index + ':', {
-                            style: $row.attr('style'),
-                            inversionTexto: cellText
-                        });
-                        
-                        if (cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
-                            var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                            calculatedTotal += cellValue;
-                            console.log('   → Subtotal encontrado: ' + cellValue + ' → Total: ' + calculatedTotal);
-                        }
-                    }
-                });
-            }
-            
-            // Último recurso: buscar directamente en el PHP generado
-            if (calculatedTotal === 0) {
-                console.log('⚠️ Último recurso: buscando por colspan y contenido específico...');
-                
-                $('#detailsTable tbody tr').each(function(index) {
-                    var $row = $(this);
-                    var $firstCell = $row.find('td:first');
-                    var colspan = $firstCell.attr('colspan');
-                    var cellText = $row.find('td:nth-child(9)').text().trim();
-                    
-                    // Si la primera celda tiene colspan="8" y hay valor de inversión, es subtotal
-                    if (colspan === '8' && cellText.match(/^[A-Z]{3}\s[\d,]+\.?\d*$/)) {
-                        console.log('✅ SUBTOTAL POR COLSPAN en fila ' + index + ':', cellText);
-                        var cellValue = parseFloat(cellText.replace(/[^\d.,]/g, '')) || 0;
-                        calculatedTotal += cellValue;
-                        console.log('   → Valor: ' + cellValue + ' → Total: ' + calculatedTotal);
-                    }
-                });
-            }
-            
-            console.log('=== RESULTADO FINAL: ' + calculatedTotal + ' ===');
-            
-            inversionNeta = calculatedTotal.toString();
-            
-            // Calcular el resto usando las variables globales de PHP
+            // Variables globales de configuración
             var fee = parseFloat(window.mmreFee) || 0;
             var feeType = window.mmreFeeType || 'percentage';
             var igvPercent = parseFloat(window.mmreIgv) || 18;
             
-            var calculatedComision = (feeType === 'fixed') ? fee : (calculatedTotal * fee / 100);
-            var calculatedPauta = calculatedTotal + calculatedComision;
+            // Calcular comision según tipo
+            var calculatedComision = (feeType === 'fixed') ? parseFloat(fee) : (inversionNumber * fee / 100);
+            // Calcular pauta, igv y total final
+            var calculatedPauta = inversionNumber + calculatedComision;
             var calculatedIgv = calculatedPauta * (igvPercent / 100);
             var calculatedFinal = calculatedPauta + calculatedIgv;
             
+            // Asignar variables en formato adecuado (strings para la estructura previa)
+            inversionNeta = inversionNumber.toString();
             comisionValue = calculatedComision.toString();
             pautaComision = calculatedPauta.toString();
             igvValue = calculatedIgv.toString();
@@ -1277,14 +1168,13 @@ $(document).ready(function () {
             
             var comisionType = (feeType === 'fixed') ? '(Valor Fijo)' : '(' + fee + '%)';
             
-            // Debug: mostrar valores calculados
-            console.log('Totales finales para Excel:', {
-                inversionNeta: inversionNeta,
-                comisionValue: comisionValue,
-                comisionType: comisionType,
-                pautaComision: pautaComision,
-                igvValue: igvValue,
-                totalFinal: totalFinal,
+            // Debug mínimo (opcional)
+            console.log('Totales (desde HTML):', {
+                inversionNumber: inversionNumber,
+                calculatedComision: calculatedComision,
+                calculatedPauta: calculatedPauta,
+                calculatedIgv: calculatedIgv,
+                calculatedFinal: calculatedFinal,
                 fee: fee,
                 feeType: feeType,
                 igvPercent: igvPercent
@@ -1319,7 +1209,10 @@ $(document).ready(function () {
                         right: { style: 'medium', color: { argb: 'FF28A745' } }
                     };
                     
-                    // Valor en columna I
+                    // Valor en columna I (numérico con formato)
+                    var numericTotal = parseFloat(totalFinal) || 0;
+                    row.getCell(9).value = numericTotal;
+                    row.getCell(9).numFmt = '"' + currency + '" #,##0.00';
                     row.getCell(9).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
                     row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
                     row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
@@ -1329,15 +1222,6 @@ $(document).ready(function () {
                         bottom: { style: 'medium', color: { argb: 'FF28A745' } },
                         right: { style: 'medium', color: { argb: 'FF28A745' } }
                     };
-                    
-                    // Formato numérico para el total
-                    if (totalFinal && totalFinal !== '0') {
-                        var numericValue = parseFloat(totalFinal);
-                        if (!isNaN(numericValue)) {
-                            row.getCell(9).value = numericValue;
-                            row.getCell(9).numFmt = currency + ' #,##0.00';
-                        }
-                    }
                     
                     row.height = 35;
                     
@@ -1362,7 +1246,10 @@ $(document).ready(function () {
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
                     
-                    // Valor en columna I
+                    // Valor en columna I (numérico)
+                    var numericVal = parseFloat(rowData[8]) || 0;
+                    row.getCell(9).value = numericVal;
+                    row.getCell(9).numFmt = '"' + currency + '" #,##0.00';
                     if (isSubtotal) {
                         row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
                         row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
@@ -1377,12 +1264,6 @@ $(document).ready(function () {
                         bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
-                    
-                    // Formato numérico
-                    if (rowData[8] && rowData[8] !== '' && !isNaN(parseFloat(String(rowData[8])))) {
-                        row.getCell(9).value = parseFloat(String(rowData[8]));
-                        row.getCell(9).numFmt = currency + ' #,##0.00';
-                    }
                     
                     row.height = 28;
                     
@@ -1498,6 +1379,40 @@ $(document).ready(function () {
         var currency = window.currency || 'USD';
         var fee = window.mmreFee || 0;
         var feeType = window.mmreFeeType || 'percentage';
+        var igvPorcentaje = window.mmreIgv || 18;
+        
+        // Calcular inversión neta total desde la tabla
+        var totalInversion = 0;
+        $('#detailsTable tbody tr').each(function() {
+            var inversionText = $(this).find('td:nth-child(9)').text(); // Columna de inversión
+            if (inversionText && !$(this).css('background-color').includes('245, 245, 245')) { // No contar filas de subtotal
+                var inversionValue = parseFloat(inversionText.replace(/[^0-9.-]/g, ''));
+                if (!isNaN(inversionValue)) {
+                    totalInversion += inversionValue;
+                }
+            }
+        });
+        
+        // Calcular comisión según tipo de fee
+        var comision = 0;
+        var feeDisplay = '';
+        
+        if (feeType === 'fixed') {
+            comision = parseFloat(fee);
+            feeDisplay = '(fijo)';
+        } else {
+            comision = totalInversion * (parseFloat(fee) / 100);
+            feeDisplay = '(' + fee + '%)';
+        }
+        
+        // Calcular pauta (inversión + comisión)
+        var pauta = totalInversion + comision;
+        
+        // Calcular IGV y total final
+        var igv = pauta * (igvPorcentaje / 100);
+        var total = pauta + igv;
+        
+        // Actualizar campos en el modal de configuración
         var igvPorcentaje = window.mmreIgv || 18;
         
         // Calcular inversión neta total desde la tabla
