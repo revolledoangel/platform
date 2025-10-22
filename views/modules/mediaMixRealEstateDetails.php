@@ -364,6 +364,7 @@ if (isset($_POST['configMediaMixId']) &&
                                                 <select class="form-control" name="configCurrency" required>
                                                     <option value="USD" <?php echo $mmre['currency'] === 'USD' ? 'selected' : ''; ?>>USD</option>
                                                     <option value="PEN" <?php echo $mmre['currency'] === 'PEN' ? 'selected' : ''; ?>>PEN</option>
+                                                    <option value="CLP" <?php echo $mmre['currency'] === 'CLP' ? 'selected' : ''; ?>>CLP</option>
                                                 </select>
                                             </div>
                                         </div>
