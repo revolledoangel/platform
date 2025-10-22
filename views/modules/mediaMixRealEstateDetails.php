@@ -307,6 +307,7 @@ if (isset($_POST['configMediaMixId']) &&
                 <div class="modal-content">
                     <form id="configMixForm" method="post" autocomplete="off">
                         <input type="hidden" name="configMediaMixId" value="<?php echo htmlspecialchars($mmre['id']); ?>">
+                        
                         <div class="modal-header" style="background:#17a2b8;color:#fff">
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">×</span>
@@ -325,6 +326,33 @@ if (isset($_POST['configMediaMixId']) &&
                                         <input type="text" class="form-control" name="configName" 
                                                value="<?php echo htmlspecialchars($mmre['name']); ?>"
                                                placeholder="Ej: Campaña Enero">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fee de Agencia:</label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon" id="configFeeSymbol">
+                                            <?php if (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed'): ?>
+                                                <i class="fa fa-money"></i>
+                                            <?php else: ?>
+                                                <i class="fa fa-percent"></i>
+                                            <?php endif; ?>
+                                        </span>
+                                        <input type="number" step="any" class="form-control" name="configFee" 
+                                               id="configFeeInput" value="<?php echo htmlspecialchars($mmre['fee']); ?>" required>
+                                    </div>
+
+                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
+                                        <label class="radio-inline">
+                                            <input type="radio" name="configFeeType" value="percentage" 
+                                                   <?php echo (!isset($mmre['fee_type']) || $mmre['fee_type'] === 'percentage') ? 'checked' : ''; ?>> 
+                                            Porcentaje (%)
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="configFeeType" value="fixed" 
+                                                   <?php echo (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') ? 'checked' : ''; ?>> 
+                                            Valor Fijo
+                                        </label>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -349,37 +377,6 @@ if (isset($_POST['configMediaMixId']) &&
                                                        value="<?php echo htmlspecialchars($mmre['igv']); ?>" required>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Fee de Agencia:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-addon" id="configFeeSymbol">
-                                            <?php if (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed'): ?>
-                                                <i class="fa fa-money"></i>
-                                            <?php else: ?>
-                                                <i class="fa fa-percent"></i>
-                                            <?php endif; ?>
-                                        </span>
-                                        <input type="number" step="any" class="form-control" name="configFee" 
-                                               id="configFeeInput" value="<?php echo htmlspecialchars($mmre['fee']); ?>" required>
-                                    </div>
-
-                                    <!-- Input hidden para el tipo de fee -->
-                                    <input type="hidden" name="configFeeType" id="configFeeTypeHidden" 
-                                           value="<?php echo htmlspecialchars($mmre['fee_type'] ?? 'percentage'); ?>">
-
-                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
-                                        <label class="radio-inline">
-                                            <input type="radio" name="configFeeType_ui" value="percentage" 
-                                                   <?php echo (!isset($mmre['fee_type']) || $mmre['fee_type'] === 'percentage') ? 'checked' : ''; ?>> 
-                                            Porcentaje (%)
-                                        </label>
-                                        <label class="radio-inline">
-                                            <input type="radio" name="configFeeType_ui" value="fixed" 
-                                                   <?php echo (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') ? 'checked' : ''; ?>> 
-                                            Valor Fijo
-                                        </label>
                                     </div>
                                 </div>
                             </div>

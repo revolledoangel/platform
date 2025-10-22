@@ -246,65 +246,61 @@ class MediaMixRealEstateDetails_Controller {
     public function ctrUpdateMediaMixConfig()
     {
         if (isset($_POST["configMediaMixId"])) {
-            $mediaMixId = $_POST["configMediaMixId"];
+            $mediaMixId = intval($_POST["configMediaMixId"]);
             
-            // Agregar logs detallados al inicio
-            error_log('================== INICIO UPDATE CONFIG ==================');
-            error_log('POST data completa: ' . print_r($_POST, true));
-            error_log('Fee Type (desde POST): ' . $_POST["configFeeType"]);
-            error_log('Fee Type Hidden (desde POST): ' . $_POST["configFeeTypeHidden"]);
-            error_log('Fee Value (desde POST): ' . $_POST["configFee"]);
+            // Conexión directa a la base de datos
+            $host = 'srv1013.hstgr.io';
+            $port = 3306;
+            $db   = 'u961992735_plataforma';
+            $user = 'u961992735_plataforma';
+            $pass = 'Peru+*963.';
             
-            $url = 'https://algoritmo.digital/backend/public/api/mmres/' . $mediaMixId;
-
-            $body = [
-                "name" => $_POST["configName"],
-                "currency" => $_POST["configCurrency"],
-                "fee" => $_POST["configFee"],
-                "fee_type" => $_POST["configFeeType"],
-                "igv" => $_POST["configIgv"],
-            ];
-
-            // Log del body antes de enviarlo
-            error_log('Body a enviar a la API: ' . print_r($body, true));
-            
-            $jsonData = json_encode($body);
-
-            $ch = curl_init($url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type: application/json',
-                'Accept: application/json'
-            ]);
-            
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            
-            // Log de la respuesta
-            error_log('Código de respuesta HTTP: ' . $httpCode);
-            error_log('Respuesta de la API: ' . $response);
-            error_log('================== FIN UPDATE CONFIG ==================');
-            
-            curl_close($ch);
-
-            if ($httpCode === 200) {
-                echo '<script>
-                    swal({
-                        type: "success",
-                        title: "Configuración actualizada",
-                        text: "Los cambios se aplicaron correctamente."
-                    }).then(() => { 
-                        window.location = "mediaMixRealEstateDetails?mediaMixId=' . $mediaMixId . '";
-                    });
-                </script>';
-            } else {
+            try {
+                $conn = new mysqli($host, $user, $pass, $db, $port);
+                if ($conn->connect_error) {
+                    throw new Exception("Connection failed: " . $conn->connect_error);
+                }
+                
+                // Preparar los valores a actualizar
+                $name = $conn->real_escape_string($_POST["configName"]);
+                $currency = $conn->real_escape_string($_POST["configCurrency"]);
+                $fee = floatval($_POST["configFee"]);
+                $feeType = $conn->real_escape_string($_POST["configFeeType"]);
+                $igv = floatval($_POST["configIgv"]);
+                
+                // Query de actualización
+                $sql = "UPDATE mediamixrealestates 
+                        SET name = '$name',
+                            currency = '$currency',
+                            fee = $fee,
+                            fee_type = '$feeType',
+                            igv = $igv,
+                            updated_at = NOW()
+                        WHERE id = $mediaMixId";
+                
+                if ($conn->query($sql)) {
+                    echo '<script>
+                        swal({
+                            type: "success",
+                            title: "Configuración actualizada",
+                            text: "Los cambios se aplicaron correctamente."
+                        }).then(() => { 
+                            window.location = "mediaMixRealEstateDetails?mediaMixId=' . $mediaMixId . '";
+                        });
+                    </script>';
+                } else {
+                    throw new Exception("Error updating record: " . $conn->error);
+                }
+                
+                $conn->close();
+                
+            } catch (Exception $e) {
+                error_log("Error en ctrUpdateMediaMixConfig: " . $e->getMessage());
                 echo '<script>
                     swal({
                         type: "error",
                         title: "Error al actualizar",
-                        text: "No se pudieron guardar los cambios."
+                        text: "No se pudieron guardar los cambios. Error: ' . $e->getMessage() . '"
                     });
                 </script>';
             }

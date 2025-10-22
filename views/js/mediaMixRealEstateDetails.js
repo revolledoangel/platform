@@ -1356,14 +1356,12 @@ $(document).ready(function () {
     });
 
     // Manejar cambio de tipo de fee en modal configuración
-    $('input[name="configFeeType_ui"]').on('change', function() {
+    $('input[name="configFeeType"]').on('change', function() {
         var feeType = $(this).val();
+        console.log('Changing fee type to:', feeType); // Debug
+        
         var $symbol = $('#configFeeSymbol');
         var $input = $('#configFeeInput');
-        var $hidden = $('#configFeeTypeHidden');
-        
-        // Actualizar el hidden que se enviará en el form
-        $hidden.val(feeType);
         
         if (feeType === 'percentage') {
             $symbol.html('<i class="fa fa-percent"></i>');
@@ -1374,11 +1372,21 @@ $(document).ready(function () {
         }
     });
 
-    // Asegurar que antes de enviar el formulario el hidden esté sincronizado
-    $('#configMixForm').on('submit', function () {
-        var uiVal = $('input[name="configFeeType_ui"]:checked').val() || $('#configFeeTypeHidden').val();
-        $('#configFeeTypeHidden').val(uiVal);
-        // dejar que el formulario se envíe normalmente
+    // Actualizar el form submit para usar POST normal
+    $('#configMixForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Debug para verificar los valores antes del envío
+        console.log('Form data:', {
+            feeType: $('input[name="configFeeType"]:checked').val(),
+            fee: $('#configFeeInput').val(),
+            name: $('input[name="configName"]').val(),
+            currency: $('select[name="configCurrency"]').val(),
+            igv: $('input[name="configIgv"]').val()
+        });
+        
+        // Enviar el formulario normalmente
+        this.submit();
     });
 
     // Nueva función para recalcular totales
