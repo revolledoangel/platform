@@ -808,14 +808,14 @@ $(document).ready(function () {
             // Establecer anchos de columna PRIMERO
             // Columnas: A,B,C,D,E,F,G,H,I,J,K,L
             // Incrementé I (índice 8) y J (índice 9) para mejor visualización de montos y %
-            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 18, 14, 10, 12];
+            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 18, 14, 10, 12, 13];
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });
             
             // SECCIÓN 1: TÍTULO PRINCIPAL
             worksheet.addRow(['INFORMACIÓN DEL MIX DE MEDIOS']);
-            worksheet.mergeCells('A1:L1');
+            worksheet.mergeCells('A1:M1'); // Cambiado de L1 a M1
             var titleRow = worksheet.getRow(1);
             titleRow.getCell(1).font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
             titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF366092' } };
@@ -825,18 +825,18 @@ $(document).ready(function () {
             worksheet.addRow([]);
             
             // SECCIÓN 2: INFORMACIÓN DETALLADA OCUPANDO TODO EL ANCHO
-            // Crear filas que ocupen las 12 columnas de la tabla
+            // Crear filas que ocupen las 13 columnas (antes 12)
             var infoRows = [
-                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', ''],
-                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', ''], 
-                ['Período:', '', periodName, '', '', '', '', '', '', '', '', ''],
-                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', ''],
-                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '']
+                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', '', ''],
+                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', '', ''], 
+                ['Período:', '', periodName, '', '', '', '', '', '', '', '', '', ''],
+                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', '', ''],
+                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '', '']
             ];
             
             infoRows.forEach(function(rowData, index) {
                 var row = worksheet.addRow(rowData);
-                var rowNumber = index + 3; // Empezar desde la fila 3
+                var rowNumber = index + 3;
                 
                 // Merge de la etiqueta (columnas A-B)
                 worksheet.mergeCells(rowNumber, 1, rowNumber, 2);
@@ -851,8 +851,8 @@ $(document).ready(function () {
                     right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                 };
                 
-                // Merge del valor (columnas C-L)
-                worksheet.mergeCells(rowNumber, 3, rowNumber, 12);
+                // Merge del valor (columnas C-M)
+                worksheet.mergeCells(rowNumber, 3, rowNumber, 13); // Cambiado de 12 a 13
                 var valueCell = row.getCell(3);
                 valueCell.font = { name: 'Arial', size: 11, color: { argb: 'FF2F5F8F' } };
                 valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
@@ -906,7 +906,7 @@ $(document).ready(function () {
             var headers = [
                 'Proyecto', 'Plataforma', 'Objetivo', 'AON', 'Tipo Campaña',
                 'Canal', 'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
-                'Distribución (%)', 'Estado', 'Proyección'
+                'Distribución (%)', 'Estado', 'Proyección', 'CPR'
             ];
             var headerRow = worksheet.addRow(headers);
             
@@ -936,7 +936,7 @@ $(document).ready(function () {
                 var $row = $(this);
                 
                 // Crear fila para cada detalle
-                var excelRowData = new Array(12).fill('');
+                var excelRowData = new Array(13).fill('');
                 var colIndex = 0;
                 
                 $row.find('td').each(function() {
@@ -953,7 +953,7 @@ $(document).ready(function () {
                     }
                     
                     // Si ya llegamos al límite de columnas, salir
-                    if (colIndex >= 12) {
+                    if (colIndex >= 13) {
                         return;
                     }
                     
@@ -967,7 +967,7 @@ $(document).ready(function () {
                     // Marcar todas las celdas ocupadas por este elemento
                     for (var r = 0; r < rowspan; r++) {
                         for (var c = 0; c < colspan; c++) {
-                            if (colIndex + c < 12) {
+                            if (colIndex + c < 13) {
                                 occupiedCells[(rowIndex + r) + '_' + (colIndex + c)] = true;
                             }
                         }
@@ -1021,44 +1021,46 @@ $(document).ready(function () {
                 if (isSubtotalRow) {
                     // Estilo especial para filas de subtotal
                     excelRow.eachCell(function(cell, colNumber) {
-                        if (colNumber === 9) { // Columna I - Solo el monto del subtotal
-                            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
-                            cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                            cell.border = {
-                                top: { style: 'thin', color: { argb: 'FF85929E' } },
-                                left: { style: 'thin', color: { argb: 'FF85929E' } },
-                                bottom: { style: 'thin', color: { argb: 'FF85929E' } },
-                                right: { style: 'thin', color: { argb: 'FF85929E' } }
-                            };
-                            
-                            // Formato numérico para subtotal
-                            var subtotalValue = parseFloat(rowData[8].replace(/,/g, ''));
-                            if (!isNaN(subtotalValue)) {
-                                cell.value = subtotalValue;
-                                cell.numFmt = '"' + currency + '" #,##0.00';
+                        if (colNumber <= 13) { // Asegurar que procese hasta la columna M
+                            if (colNumber === 9) { // Columna I - Solo el monto del subtotal
+                                cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
+                                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
+                                cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                                cell.border = {
+                                    top: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    left: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    bottom: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    right: { style: 'thin', color: { argb: 'FF85929E' } }
+                                };
+                                
+                                // Formato numérico para subtotal
+                                var subtotalValue = parseFloat(rowData[8].replace(/,/g, ''));
+                                if (!isNaN(subtotalValue)) {
+                                    cell.value = subtotalValue;
+                                    cell.numFmt = '"' + currency + '" #,##0.00';
+                                }
+                            } else if (colNumber === 10) { // Columna J - Distribución 100%
+                                cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
+                                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
+                                cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                                cell.border = {
+                                    top: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    left: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    bottom: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    right: { style: 'thin', color: { argb: 'FF85929E' } }
+                                };
+                                cell.value = '100%';
+                            } else {
+                                // Todas las demás columnas en blanco con fondo sutil
+                                cell.value = '';
+                                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
+                                cell.border = {
+                                    top: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    left: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    bottom: { style: 'thin', color: { argb: 'FF85929E' } },
+                                    right: { style: 'thin', color: { argb: 'FF85929E' } }
+                                };
                             }
-                        } else if (colNumber === 10) { // Columna J - Distribución 100%
-                            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
-                            cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                            cell.border = {
-                                top: { style: 'thin', color: { argb: 'FF85929E' } },
-                                left: { style: 'thin', color: { argb: 'FF85929E' } },
-                                bottom: { style: 'thin', color: { argb: 'FF85929E' } },
-                                right: { style: 'thin', color: { argb: 'FF85929E' } }
-                            };
-                            cell.value = '100%';
-                        } else {
-                            // Todas las demás columnas en blanco con fondo sutil
-                            cell.value = '';
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
-                            cell.border = {
-                                top: { style: 'thin', color: { argb: 'FF85929E' } },
-                                left: { style: 'thin', color: { argb: 'FF85929E' } },
-                                bottom: { style: 'thin', color: { argb: 'FF85929E' } },
-                                right: { style: 'thin', color: { argb: 'FF85929E' } }
-                            };
                         }
                     });
                     
@@ -1075,6 +1077,14 @@ $(document).ready(function () {
                             vertical: 'middle',
                             wrapText: true
                         };
+                        
+                        // Alineación especial para columnas numéricas
+                        if (colNumber === 9 || colNumber === 10 || colNumber === 13) {
+                            cell.alignment.horizontal = 'right';
+                        } else {
+                            cell.alignment.horizontal = 'center';
+                        }
+
                         cell.border = {
                             top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
                             left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
@@ -1082,19 +1092,32 @@ $(document).ready(function () {
                             right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
                         };
                         
-                        // Colores alternados (excluyendo las filas de subtotal)
-                        var normalRowIndex = index - Math.floor(index / 4); // Aproximado, excluyendo subtotales
+                        // Colores alternados
+                        var normalRowIndex = index - Math.floor(index / 4);
                         if (normalRowIndex % 2 === 0) {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
                         }
-                        
-                        // Alineación por columna manteniendo centrado vertical
-                        if (colNumber === 1 || colNumber === 2 || colNumber === 4 || colNumber === 11) {
-                            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                        } else if (colNumber === 9 || colNumber === 10) {
+
+                        // Agregar CPR en columna 13 
+                        if (colNumber === 13) {
+                            var investment = parseFloat(String(rowData[8]).replace(/[^0-9.-]/g, ''));
+                            var projection = parseFloat(String(rowData[11]).replace(/[^0-9.-]/g, ''));
+                            var objective = rowData[2];
+                            
+                            if (!isNaN(investment) && !isNaN(projection) && projection > 0) {
+                                var cpr = investment / projection;
+                                if (objective && objective.toLowerCase() === 'alcance') {
+                                    cpr *= 1000;
+                                    cell.value = parseFloat(cpr.toFixed(2));
+                                    cell.numFmt = '#,##0.00" CPM"';
+                                } else {
+                                    cell.value = parseFloat(cpr.toFixed(2));
+                                    cell.numFmt = '#,##0.00" CPR"';
+                                }
+                            } else {
+                                cell.value = 'N/A';
+                            }
                             cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                        } else {
-                            cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
                         }
                     });
                 }

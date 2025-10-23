@@ -422,6 +422,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <th>Distribución</th>
                             <th>Estado</th>
                             <th>Proyección</th>
+                            <th>CPR</th>
                             <th style="width: 120px;">Acciones</th>
                         </tr>
                     </thead>
@@ -469,6 +470,21 @@ if (isset($_POST['configMediaMixId']) &&
                             <td><?php echo $distribution . '%'; ?></td>
                             <td><?php echo htmlspecialchars($d['state']); ?></td>
                             <td><?php echo $projectionResult; ?></td>
+                            <td><?php 
+                                $investment = floatval($d['investment']);
+                                $projection = floatval($d['projection']);
+                                if ($projection > 0) {
+                                    $cpr = $investment / $projection;
+                                    if (isset($d['objectives_names'][0]) && strtolower($d['objectives_names'][0]) === 'alcance') {
+                                        $cpr *= 1000;
+                                        echo number_format($cpr, 2);
+                                    } else {
+                                        echo number_format($cpr, 2);
+                                    }
+                                } else {
+                                    echo 'N/A';
+                                }
+                            ?></td>
                             <td style="white-space: nowrap;">
                                 <button class="btn btn-xs btn-warning btn-editDetail" title="Editar" data-detail-id="<?php echo $d['id']; ?>"><i class="fa fa-pencil"></i></button>
                                 <button class="btn btn-xs btn-info btn-copyCode" 
@@ -492,6 +508,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <td style="text-align:right;">
                                 <strong>100%</strong>
                             </td>
+                            <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
