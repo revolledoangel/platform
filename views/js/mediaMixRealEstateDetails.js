@@ -806,9 +806,8 @@ $(document).ready(function () {
             workbook.modified = new Date();
             
             // Establecer anchos de columna PRIMERO
-            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L
-            // Incrementé I (índice 8) y J (índice 9) para mejor visualización de montos y %
-            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 18, 14, 10, 12, 13];
+            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L,M
+            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 18, 14, 10, 12, 13, 15]; // Añadido 15 para la columna de acciones
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });

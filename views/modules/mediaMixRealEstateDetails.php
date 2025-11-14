@@ -423,7 +423,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <th>Estado</th>
                             <th>Proyección</th>
                             <th>CPR</th>
-                            <th style="width: 120px;">Acciones</th>
+                            <th style="width: 150px;">Acciones</th> <!-- Aumentado de 120px a 150px -->
                         </tr>
                     </thead>
                     <tbody>

@@ -119,4 +119,200 @@ $(document).ready(function () {
             }
         });
     });
+
+    /** Clonar Media Mix - NUEVO */
+    $('#mediaMixRealEstateTable tbody').on("click", ".btn-cloneMediaMix", function () {
+        var mediaMixId = $(this).attr("mediaMixId");
+        
+        // Obtener el client_id de la fila (está oculto en la columna 2)
+        var row = $(this).closest('tr');
+        var rowData = mediaMixTable.row(row).data();
+        var clientId = rowData[2]; // Columna client_id (índice 2)
+        
+        console.log('Clonar Mix ID:', mediaMixId, 'Cliente ID:', clientId);
+        
+        // Guardar los IDs en el modal
+        $('#cloneMixId').val(mediaMixId);
+        $('#cloneClientId').val(clientId);
+        
+        // Limpiar campos
+        $('#clonePeriodSelect').html('<option value="">Cargando períodos...</option>');
+        $('#cloneOnlyAon').prop('checked', false);
+        $('#cloneNewName').val(''); // Limpiar el nombre
+        
+        // Cargar períodos disponibles para este cliente
+        $.ajax({
+            url: 'ajax/mediaMixRealEstate.ajax.php',
+            method: 'POST',
+            data: { 
+                action: 'getAvailablePeriods',
+                client_id: clientId 
+            },
+            dataType: 'json',
+            success: function(periods) {
+                var options = '<option value="">-- Seleccione un período --</option>';
+                if (periods && periods.length > 0) {
+                    periods.forEach(function(period) {
+                        options += '<option value="' + period.id + '">' + period.name + '</option>';
+                    });
+                } else {
+                    options = '<option value="">No hay períodos disponibles</option>';
+                }
+                $('#clonePeriodSelect').html(options);
+            },
+            error: function() {
+                $('#clonePeriodSelect').html('<option value="">Error al cargar períodos</option>');
+            }
+        });
+        
+        // Mostrar el modal
+        $('#cloneMediaMixModal').modal('show');
+    });
+    
+    /** Confirmar clonación */
+    $('#confirmCloneBtn').on('click', function() {
+        var mixId = $('#cloneMixId').val();
+        var periodId = $('#clonePeriodSelect').val();
+        var onlyAon = $('#cloneOnlyAon').is(':checked') ? 1 : 0;
+        var newName = $('#cloneNewName').val().trim();
+        
+        if (!periodId) {
+            swal('Error', 'Debe seleccionar un período', 'error');
+            return;
+        }
+        
+        // Confirmar acción
+        var confirmText = onlyAon ? 'Se copiarán solo las campañas AON' : 'Se copiarán todas las campañas';
+        if (newName) {
+            confirmText += '\nNombre: ' + newName;
+        } else {
+            confirmText += '\nEl nombre se generará automáticamente';
+        }
+        
+        swal({
+            title: '¿Confirmar clonación?',
+            text: confirmText,
+            type: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, clonar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.value) {
+                // Mostrar loading
+                swal({
+                    title: 'Clonando...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    onOpen: () => {
+                        swal.showLoading();
+                    }
+                });
+                
+                // Llamada AJAX para clonar
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstate.ajax.php',
+                    method: 'POST',
+                    data: {
+                        action: 'cloneMix',
+                        mix_id: mixId,
+                        period_id: periodId,
+                        only_aon: onlyAon,
+                        new_name: newName
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            // Cerrar modal de clonación
+                            $('#cloneMediaMixModal').modal('hide');
+                            
+                            // Mostrar éxito con botón para ver el mix generado
+                            swal({
+                                type: 'success',
+                                title: '¡Clonación exitosa!',
+                                html: '<p>' + response.message + '</p>' +
+                                      '<p><strong>Nuevo Mix:</strong> ' + response.new_mix_name + '</p>',
+                                showCancelButton: true,
+                                confirmButtonText: '<i class="fa fa-eye"></i> Ver Mix Generado',
+                                cancelButtonText: 'Cerrar',
+                                confirmButtonColor: '#17a2b8',
+                                cancelButtonColor: '#6c757d'
+                            }).then((result) => {
+                                if (result.value) {
+                                    // Redirigir a los detalles del nuevo mix
+                                    window.location = 'mediaMixRealEstateDetails?mediaMixId=' + response.new_mix_id;
+                                } else {
+                                    // Recargar la tabla
+                                    mediaMixTable.ajax.reload();
+                                }
+                            });
+                        } else {
+                            swal({
+                                type: 'error',
+                                title: 'Error al clonar',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        swal({
+                            type: 'error',
+                            title: 'Error de conexión',
+                            text: 'No se pudo completar la clonación. Error: ' + error
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Prueba simple de consola
+    console.log('JavaScript cargado correctamente');
+
+    // Pruebas de evento de clonar
+    window.addEventListener('load', function() {
+        console.log('Página cargada - Debug');
+        
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-cloneMediaMix')) {
+                console.log('Click en botón clonar - delegación nativa');
+                var mediaMixId = e.target.closest('.btn-cloneMediaMix').getAttribute('mediaMixId');
+                console.log('ID del mix:', mediaMixId);
+                
+                // Resto del código de clonación aquí...
+            }
+        });
+    });
+
+    // Remover manejadores anteriores para evitar duplicación
+    $(document).off('click', '.btn-cloneMediaMix');
+
+    // Agregar el nuevo manejador de eventos
+    $('.btn-cloneMediaMix').on('click', function(e) {
+        e.preventDefault();
+        alert('Botón clonar presionado');
+        
+        var mediaMixId = $(this).attr("mediaMixId");
+        var periodsSelect = $('#filterPeriod');
+
+        swal({
+            title: "Clonar Mix de Medios",
+            content: {
+                element: "div",
+                attributes: {
+                    innerHTML: `
+                        <div class="form-group">
+                            <select class="form-control" id="periodSelect">
+                                ${periodsSelect.html()}
+                            </select>
+                        </div>
+                    `
+                }
+            },
+            buttons: true
+        });
+    });
 });

@@ -96,7 +96,7 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                                 <th>Moneda</th>
                                 <th>Fee (%)</th>
                                 <th>IGV (%)</th>
-                                <th style="width:120px">Acciones</th>
+                                <th style="width:150px">Acciones</th> <!-- Aumentado de 120px a 150px -->
                             </tr>
                         </thead>
                         <tbody>
@@ -326,6 +326,61 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                     <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Clonar Media Mix -->
+<div class="modal fade" id="cloneMediaMixModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#28a745;color:#fff">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title"><i class="fa fa-clone"></i> Clonar Mix de Medios</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cloneMixId" value="">
+                <input type="hidden" id="cloneClientId" value="">
+                
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> Se creará una copia del Mix de Medios con sus campañas en el período seleccionado.
+                </div>
+                
+                <div class="form-group">
+                    <label>Nombre del nuevo Mix: <small class="text-muted">(Opcional)</small></label>
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-tag"></i></span>
+                        <input type="text" class="form-control" id="cloneNewName" placeholder="Dejar vacío para generar automáticamente">
+                    </div>
+                    <small class="text-muted">Si no se especifica, se generará como: [Cliente] - [Período]</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Período destino: <span class="text-danger">*</span></label>
+                    <select class="form-control" id="clonePeriodSelect" required>
+                        <option value="">-- Seleccione un período --</option>
+                    </select>
+                    <small class="text-muted">Solo se muestran períodos sin Mix asignado para este cliente</small>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" id="cloneOnlyAon" value="1">
+                            <strong>Copiar solo campañas Always On (AON)</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted">Si no se marca, se copiarán todas las campañas</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmCloneBtn">
+                    <i class="fa fa-clone"></i> Clonar Mix
+                </button>
+            </div>
         </div>
     </div>
 </div>
