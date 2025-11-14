@@ -380,6 +380,19 @@ if (isset($_POST['configMediaMixId']) &&
                                         </div>
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label>Fee de Nacionalización (%):</label>
+                                            <div class="input-group">
+                                                <span class="input-group-addon"><i class="fa fa-percent"></i></span>
+                                                <input type="number" step="any" class="form-control" name="configNationalizationFee" 
+                                                       value="<?php echo htmlspecialchars($mmre['nationalization_fee']); ?>" required>
+                                            </div>
+                                            <small class="text-muted">Aplica actualmente a: LinkedIn</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -543,6 +556,32 @@ if (isset($_POST['configMediaMixId']) &&
                                         </strong>
                                     </td>
                                 </tr>
+                                <?php
+                                // Calcular nacionalización solo para campañas de LinkedIn
+                                $nacionalizacion = 0;
+                                $platformsWithNationalization = ['linkedin']; // Lista de plataformas con nacionalización
+                                
+                                foreach ($details as $d) {
+                                    if ($d['platform_name'] && in_array(strtolower($d['platform_name']), $platformsWithNationalization)) {
+                                        $nacionalizacion += floatval($d['investment']) * (floatval($mmre['nationalization_fee']) / 100);
+                                    }
+                                }
+                                
+                                // Solo mostrar la fila si hay nacionalización
+                                if ($nacionalizacion > 0):
+                                ?>
+                                <tr class="warning">
+                                    <td class="text-right"><strong>Nacionalización LinkedIn (<?php echo $mmre['nationalization_fee']; ?>%):</strong></td>
+                                    <td class="text-right" style="font-size: 16px;">
+                                        <strong id="nacionalizacionLinkedin">
+                                            <?php
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($nacionalizacion, 2);
+                                            ?>
+                                            <small class="text-muted">(LinkedIn)</small>
+                                        </strong>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
                                 <tr class="warning">
                                     <td class="text-right"><strong>Comisión Agencia:</strong></td>
                                     <td class="text-right" style="font-size: 16px;">
@@ -567,11 +606,11 @@ if (isset($_POST['configMediaMixId']) &&
                                     </td>
                                 </tr>
                                 <tr class="active">
-                                    <td class="text-right"><strong>Pauta + Comisión:</strong></td>
+                                    <td class="text-right"><strong>Subtotal (Pauta + <?php echo $nacionalizacion > 0 ? 'Nacionalización + ' : ''; ?>Comisión):</strong></td>
                                     <td class="text-right" style="font-size: 18px;">
                                         <strong id="pautaComision">
                                             <?php
-                                            $pautaComision = $totalInversion + $comision;
+                                            $pautaComision = $totalInversion + $nacionalizacion + $comision;
                                             echo htmlspecialchars($mmre['currency']) . ' ' . number_format($pautaComision, 2);
                                             ?>
                                         </strong>
@@ -614,45 +653,54 @@ if (isset($_POST['configMediaMixId']) &&
                 </div>
             </div>
         </div>
+
+        <!-- Botón flotante para ir a totales -->
+        <div id="floatingTotalsBtn" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none;">
+            <button class="btn btn-warning btn-lg" style="border-radius: 50%; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" 
+                    title="Ver totales">
+                <i class="fa fa-calculator" style="font-size: 20px;"></i>
+            </button>
+        </div>
     </section>
 </div>
-
-<!-- Botón flotante para ir a totales -->
-<div id="floatingTotalsBtn" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none;">
-    <button class="btn btn-warning btn-lg" style="border-radius: 50%; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" 
-            title="Ver totales">
-        <i class="fa fa-calculator" style="font-size: 20px;"></i>
-    </button>
-</div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
     /* Centrar contenido de todas las celdas de la tabla */
-    #detailsTable td, 
-    #detailsTable th {
+    #detailsTable td, #detailsTable th {
         text-align: center !important;
         vertical-align: middle !important;
-    }
-    
-    /* Mantener alineación a la derecha solo para montos y porcentajes */
-    #detailsTable td:nth-child(9),  /* Columna de Inversión */
+    }    /* Mantener alineación a la derecha solo para montos y porcentajes */ #detailsTable td:nth-child(9),  /* Columna de Inversión */s: 50%; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" 
     #detailsTable td:nth-child(10)  /* Columna de Distribución */
-    {
+    {   <i class="fa fa-calculator" style="font-size: 20px;"></i>
         text-align: right !important;
         vertical-align: middle !important;
     }
-    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     /* Centrar contenido de filas de subtotales */
-    #detailsTable tr[style*="background:#f5f5f5"] td {
-        text-align: center !important;
+    #detailsTable tr[style*="background:#f5f5f5"] td {la */
+        text-align: center !important; {
         vertical-align: middle !important;
-    }
-    
+    }   vertical-align: middle !important;
+    }    /* Mantener alineación a la derecha solo para montos y porcentajes */
     /* Mantener alineación a la derecha para montos en subtotales */
     #detailsTable tr[style*="background:#f5f5f5"] td:nth-child(9),
     #detailsTable tr[style*="background:#f5f5f5"] td:nth-child(10) {
         text-align: right !important;
         vertical-align: middle !important;
+    }
+</style>
+<script>entrar contenido de filas de subtotales */
+    // Solo variables globales - NO FUNCIONESf5"] td {
+    window.mmreId = <?php echo (int) $mmre['id']; ?>;
+    window.clientName = <?php echo json_encode($mmre['client_name']); ?>;
+    window.currency = <?php echo json_encode($mmre['currency']); ?>;
+    window.periodName = <?php echo json_encode($mmre['period_name']); ?>;
+    window.mmreFee = <?php echo floatval($mmre['fee']); ?>;otales */
+    window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
+    window.mmreIgv = <?php echo floatval($mmre['igv']); ?>;ild(10) {
+    window.mmreNationalizationFee = <?php echo floatval($mmre['nationalization_fee'] ?? 30); ?>;ext-align: right !important;
+
+</script>        vertical-align: middle !important;
     }
 </style>
 <script>
@@ -661,7 +709,7 @@ if (isset($_POST['configMediaMixId']) &&
     window.clientName = <?php echo json_encode($mmre['client_name']); ?>;
     window.currency = <?php echo json_encode($mmre['currency']); ?>;
     window.periodName = <?php echo json_encode($mmre['period_name']); ?>;
-    window.mmreFee = <?php echo floatval($mmre['fee']); ?>; // Asegurar que es número
+    window.mmreFee = <?php echo floatval($mmre['fee']); ?>;
     window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
-    window.mmreIgv = <?php echo floatval($mmre['igv']); ?>; // Asegurar que es número
+    window.mmreIgv = <?php echo floatval($mmre['igv']); ?>;
 </script>

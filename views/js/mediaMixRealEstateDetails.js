@@ -1154,11 +1154,13 @@ $(document).ready(function () {
             
             // INTEGRAR SOLO TOTALES GENERALES (SIN SUBTOTALES POR PROYECTO)
             // Agregar fila vacía para separar
-            var separatorRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
+            var separatorRow = worksheet.addRow(['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', '', '']);
             separatorRow.height = 15;
             
             // Obtener totales del HTML - USAR EL VALOR QUE YA CALCULÓ PHP EN LA PÁGINA
             var inversionNeta = '0';
+            var nacionalizacionLinkedin = '0';
+            var hasNacionalizacion = false;
             var comisionValue = '0';
             var pautaComision = '0';
             var igvValue = '0';
@@ -1169,15 +1171,26 @@ $(document).ready(function () {
             // Extraer número (el texto contiene moneda + número, ej. "USD 1,234.00")
             var inversionNumber = parseFloat(String(inversionText).replace(/[^0-9\.\-\,]/g, '').replace(/,/g, '')) || 0;
             
+            // Verificar si existe nacionalización y obtener su valor
+            if ($('#nacionalizacionLinkedin').length > 0) {
+                var nacionalizacionText = $('#nacionalizacionLinkedin').text() || '';
+                var nacionalizacionNumber = parseFloat(String(nacionalizacionText).replace(/[^0-9\.\-\,]/g, '').replace(/,/g, '')) || 0;
+                if (nacionalizacionNumber > 0) {
+                    hasNacionalizacion = true;
+                    nacionalizacionLinkedin = nacionalizacionNumber.toString();
+                }
+            }
+            
             // Variables globales de configuración
             var fee = parseFloat(window.mmreFee) || 0;
             var feeType = window.mmreFeeType || 'percentage';
             var igvPercent = parseFloat(window.mmreIgv) || 18;
+            var nationalizationFeePercent = parseFloat(window.mmreNationalizationFee) || 30;
             
             // Calcular comision según tipo
             var calculatedComision = (feeType === 'fixed') ? parseFloat(fee) : (inversionNumber * fee / 100);
-            // Calcular pauta, igv y total final
-            var calculatedPauta = inversionNumber + calculatedComision;
+            // Calcular pauta, igv y total final (incluir nacionalización si existe)
+            var calculatedPauta = inversionNumber + (hasNacionalizacion ? parseFloat(nacionalizacionLinkedin) : 0) + calculatedComision;
             var calculatedIgv = calculatedPauta * (igvPercent / 100);
             var calculatedFinal = calculatedPauta + calculatedIgv;
             
@@ -1191,31 +1204,43 @@ $(document).ready(function () {
             var comisionType = (feeType === 'fixed') ? '(Valor Fijo)' : '(' + fee + '%)';
             
             // Debug mínimo (opcional)
-            console.log('Totales (desde HTML):', {
+            console.log('Totales Excel (con nacionalización):', {
                 inversionNumber: inversionNumber,
+                hasNacionalizacion: hasNacionalizacion,
+                nacionalizacionLinkedin: nacionalizacionLinkedin,
                 calculatedComision: calculatedComision,
                 calculatedPauta: calculatedPauta,
                 calculatedIgv: calculatedIgv,
                 calculatedFinal: calculatedFinal,
-                fee: fee,
-                feeType: feeType,
-                igvPercent: igvPercent
+                nationalizationFeePercent: nationalizationFeePercent
             });
             
-            // Estructura de totales generales únicamente (columnas F-H para etiquetas)
+            // Estructura de totales generales (incluir nacionalización si aplica)
             var totalsData = [
-                ['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', ''],
-                ['', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', ''],
-                ['', '', '', '', '', 'Subtotal (Pauta + Comisión):', '', '', pautaComision, '', '', ''],
-                ['', '', '', '', '', 'IGV (' + igvPercent + '%):', '', '', igvValue, '', '', ''],
-                ['', '', '', '', '', '', '', '', '', '', '', ''], // Fila vacía
-                ['', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '']
+                ['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', '', '']
             ];
+            
+            // Agregar fila de nacionalización solo si existe
+            if (hasNacionalizacion) {
+                totalsData.push(['', '', '', '', '', 'Nacionalización LinkedIn (' + nationalizationFeePercent + '%):', '', '', nacionalizacionLinkedin, '', '', '', '']);
+            }
+            
+            // Continuar con resto de totales
+            totalsData.push(['', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', '', '']);
+            
+            // Subtotal con texto dinámico según si hay nacionalización
+            var subtotalLabel = hasNacionalizacion ? 'Subtotal (Pauta + Nacionalización + Comisión):' : 'Subtotal (Pauta + Comisión):';
+            totalsData.push(['', '', '', '', '', subtotalLabel, '', '', pautaComision, '', '', '', '']);
+            
+            totalsData.push(['', '', '', '', '', 'IGV (' + igvPercent + '%):', '', '', igvValue, '', '', '', '']);
+            totalsData.push(['', '', '', '', '', '', '', '', '', '', '', '', '']); // Fila vacía
+            totalsData.push(['', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '', '']);
             
             totalsData.forEach(function(rowData, index) {
                 var row = worksheet.addRow(rowData);
                 var isFinalTotal = rowData[5] && rowData[5].includes('TOTAL INVERSIÓN + IGV');
-                var isGeneralTotal = rowData[5] && (rowData[5].includes('Inversión Neta') || rowData[5].includes('Comisión') || rowData[5].includes('Subtotal (Pauta') || rowData[5].includes('IGV'));
+                var isGeneralTotal = rowData[5] && (rowData[5].includes('Inversión Neta') || rowData[5].includes('Nacionalización') || rowData[5].includes('Comisión') || rowData[5].includes('Subtotal (Pauta') || rowData[5].includes('IGV'));
+                var isNacionalizacion = rowData[5] && rowData[5].includes('Nacionalización LinkedIn');
                 
                 if (isFinalTotal) { // Total final
                     // Merge etiqueta (columnas F-H)
@@ -1253,7 +1278,12 @@ $(document).ready(function () {
                     // Merge etiqueta (columnas F-H)
                     worksheet.mergeCells(row.number, 6, row.number, 8);
                     var labelCell = row.getCell(6);
-                    if (isSubtotal) {
+                    
+                    // Estilo para nacionalización (mismo estilo que otros totales, sin color destacado)
+                    if (isNacionalizacion) {
+                        labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                    } else if (isSubtotal) {
                         labelCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
                         labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
                     } else {
@@ -1272,7 +1302,11 @@ $(document).ready(function () {
                     var numericVal = parseFloat(rowData[8]) || 0;
                     row.getCell(9).value = numericVal;
                     row.getCell(9).numFmt = '"' + currency + '" #,##0.00';
-                    if (isSubtotal) {
+                    
+                    if (isNacionalizacion) {
+                        row.getCell(9).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                    } else if (isSubtotal) {
                         row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
                         row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
                     } else {

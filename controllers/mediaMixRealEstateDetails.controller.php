@@ -13,7 +13,7 @@ class MediaMixRealEstateDetails_Controller {
         $mmreId = intval($mmreId);
         // Mix general con código del cliente
         $mmre = null;
-        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code, m.currency, m.fee, m.fee_type, m.igv
+        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code, m.currency, m.fee, m.fee_type, m.igv, m.nationalization_fee
                 FROM mediamixrealestates m
                 LEFT JOIN periods p ON m.period_id = p.id
                 LEFT JOIN clients c ON m.client_id = c.id
@@ -267,6 +267,7 @@ class MediaMixRealEstateDetails_Controller {
                 $fee = floatval($_POST["configFee"]);
                 $feeType = $conn->real_escape_string($_POST["configFeeType"]);
                 $igv = floatval($_POST["configIgv"]);
+                $nationalizationFee = floatval($_POST["configNationalizationFee"]);
                 
                 // Query de actualización
                 $sql = "UPDATE mediamixrealestates 
@@ -275,6 +276,7 @@ class MediaMixRealEstateDetails_Controller {
                             fee = $fee,
                             fee_type = '$feeType',
                             igv = $igv,
+                            nationalization_fee = $nationalizationFee,
                             updated_at = NOW()
                         WHERE id = $mediaMixId";
                 
