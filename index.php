@@ -77,7 +77,18 @@ $moduleDependencies = [
         ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
     ],
     'mediaMixEcommerce' => [
-        ['controller' => 'mediaMixEcommerce.controller.php', 'model' => 'mediaMixEcommerce.model.php']
+        ['controller' => 'mediaMixEcommerce.controller.php', 'model' => null],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'mediaMixEcommerceDetails' => [
+        ['controller' => 'mediaMixEcommerceDetails.controller.php', 'model' => null],
+        ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
+        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php'],
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php'],
+        ['controller' => 'channels.controller.php', 'model' => 'channels.model.php'],
+        ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
+        ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
     ],
     'mediaMixOthers' => [
         ['controller' => 'mediaMixOthers.controller.php', 'model' => 'mediaMixOthers.model.php']
