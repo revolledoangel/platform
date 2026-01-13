@@ -77,7 +77,7 @@ class AjaxComments
                             </button>
                         </div>';
 
-            // Truncar textos a 180 caracteres
+            // Truncar textos a 100 caracteres
             $clientName = htmlspecialchars($comment["client_name"]);
             $platformName = htmlspecialchars($comment["platform_name"]);
             $periodName = htmlspecialchars($comment["period_name"]);
@@ -86,12 +86,12 @@ class AjaxComments
             $recommendation = $comment["recommendation"];
             $conclusion = $comment["conclusion"];
             
-            $recommendation = truncateHTML($recommendation, 180);
-            $conclusion = truncateHTML($conclusion, 180);
+            $recommendation = truncateHTML($recommendation, 100);
+            $conclusion = truncateHTML($conclusion, 100);
 
             // Truncar nombres en la última palabra completa
-            if (mb_strlen($clientName) > 180) {
-                $clientName = mb_substr($clientName, 0, 180);
+            if (mb_strlen($clientName) > 100) {
+                $clientName = mb_substr($clientName, 0, 100);
                 $lastSpace = mb_strrpos($clientName, ' ');
                 if ($lastSpace !== false) {
                     $clientName = mb_substr($clientName, 0, $lastSpace);
@@ -99,8 +99,8 @@ class AjaxComments
                 $clientName .= '...';
             }
             
-            if (mb_strlen($platformName) > 180) {
-                $platformName = mb_substr($platformName, 0, 180);
+            if (mb_strlen($platformName) > 100) {
+                $platformName = mb_substr($platformName, 0, 100);
                 $lastSpace = mb_strrpos($platformName, ' ');
                 if ($lastSpace !== false) {
                     $platformName = mb_substr($platformName, 0, $lastSpace);
@@ -108,8 +108,8 @@ class AjaxComments
                 $platformName .= '...';
             }
             
-            if (mb_strlen($periodName) > 180) {
-                $periodName = mb_substr($periodName, 0, 180);
+            if (mb_strlen($periodName) > 100) {
+                $periodName = mb_substr($periodName, 0, 100);
                 $lastSpace = mb_strrpos($periodName, ' ');
                 if ($lastSpace !== false) {
                     $periodName = mb_substr($periodName, 0, $lastSpace);
