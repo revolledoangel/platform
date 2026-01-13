@@ -161,6 +161,9 @@ session_start();
 <!-- Select2 -->
 <script src="views/bower_components/select2/dist/js/select2.full.js"></script>
 
+<!-- CKEditor -->
+<script src="views/bower_components/ckeditor/ckeditor.js"></script>
+
 <script src="views/js/template.js"></script>
 
 <script src="views/js/users.js"></script>

@@ -10,7 +10,7 @@ $(document).ready(function () {
             url: "https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
         },
         "columnDefs": [
-            { "targets": [1, 3], "visible": false, "searchable": true } // Ocultar columnas de IDs
+            { "targets": [1, 3, 5], "visible": false, "searchable": true } // Ocultar columnas de IDs
         ]
     });
 
@@ -30,16 +30,56 @@ $(document).ready(function () {
 
     // Filtrado por Plataforma (columna 3 - platform_id oculta)
     $('#filterPlatform').on('change', function () {
+        var selectedValue = $(this).val();
+        commentsTable.column(3).search(selectedValue ? '^' + selectedValue + '$' : '', true, false);
+
+        // Redibujar solo si no hay otros filtros procesándose
+        if ($('#filterClient').data('isFiltering') !== true && $('#filterPeriod').data('isFiltering') !== true) {
+            commentsTable.draw();
+        }
+    });
+
+    // Filtrado por Periodo (columna 5 - period_id oculta)
+    $('#filterPeriod').on('change', function () {
         // Marcamos que este filtro está en proceso para evitar doble dibujado
         $(this).data('isFiltering', true);
         var selectedValue = $(this).val();
-        commentsTable.column(3).search(selectedValue ? '^' + selectedValue + '$' : '', true, false).draw();
+        commentsTable.column(5).search(selectedValue ? '^' + selectedValue + '$' : '', true, false).draw();
         $(this).data('isFiltering', false);
     });
 
     // Aplicar filtros al cargar la página
     $('#filterClient').trigger('change');
     $('#filterPlatform').trigger('change');
+    $('#filterPeriod').trigger('change');
+
+    /** Ver Comentario */
+    $(document).on("click", ".btn-viewComment", function () {
+        const commentId = $(this).attr("commentId");
+
+        fetch(`https://algoritmo.digital/backend/public/api/comments/${commentId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    // Obtener nombres de los selects en la página
+                    const clientName = data.client_name || data.client?.name || $('#filterClient option[value="' + data.client_id + '"]').text();
+                    const platformName = data.platform_name || data.platform?.name || $('#filterPlatform option[value="' + data.platform_id + '"]').text();
+                    const periodName = data.period_name || data.period?.name || $('#filterPeriod option[value="' + data.period_id + '"]').text();
+                    
+                    // Mostrar datos completos en el modal
+                    $("#viewCommentClient").text(clientName);
+                    $("#viewCommentPlatform").text(platformName);
+                    $("#viewCommentPeriod").text(periodName);
+                    $("#viewCommentRecommendation").html(data.recommendation || '');
+                    $("#viewCommentConclusion").html(data.conclusion || '');
+                } else {
+                    alert("No se pudo cargar la información del comentario.");
+                }
+            })
+            .catch(err => {
+                console.error("Error al obtener el comentario:", err);
+            });
+    });
 
     /** Editar Comentario */
     $(document).on("click", ".btn-editComment", function () {
@@ -49,16 +89,19 @@ $(document).ready(function () {
             .then(res => res.json())
             .then(data => {
                 if (data) {
-                    // Limpiar
-                    $("#editCommentModal textarea").val("");
-
                     // Cargar datos
                     $("input[name='editCommentId']").val(data.id);
                     $("#editCommentClient").val(data.client_id).trigger('change');
                     $("#editCommentPlatform").val(data.platform_id).trigger('change');
                     $("#editCommentPeriod").val(data.period_id).trigger('change');
-                    $("#editCommentConclusion").val(data.conclusion);
-                    $("#editCommentRecommendation").val(data.recommendation);
+                    
+                    // Cargar contenido en CKEditor
+                    if (CKEDITOR.instances.editCommentConclusion) {
+                        CKEDITOR.instances.editCommentConclusion.setData(data.conclusion || '');
+                    }
+                    if (CKEDITOR.instances.editCommentRecommendation) {
+                        CKEDITOR.instances.editCommentRecommendation.setData(data.recommendation || '');
+                    }
                 } else {
                     alert("No se pudo cargar la información del comentario.");
                 }
@@ -77,8 +120,8 @@ $(document).ready(function () {
             client_id: $("#editCommentClient").val(),
             platform_id: $("#editCommentPlatform").val(),
             period_id: $("#editCommentPeriod").val(),
-            conclusion: $("#editCommentConclusion").val().trim(),
-            recommendation: $("#editCommentRecommendation").val().trim()
+            conclusion: CKEDITOR.instances.editCommentConclusion.getData(),
+            recommendation: CKEDITOR.instances.editCommentRecommendation.getData()
         };
 
         fetch(`https://algoritmo.digital/backend/public/api/comments/${id}`, {
@@ -130,9 +173,96 @@ $(document).ready(function () {
             cancelButtonText: "Cancelar"
         }).then((result) => {
             if (result.value) {
-                window.location = `index.php?route=comments&commentId=${commentId}`;
+                fetch(`https://algoritmo.digital/backend/public/api/comments/${commentId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                })
+                    .then(res => res.json())
+                    .then(response => {
+                        if (response && (response.success || response.message)) {
+                            swal({
+                                icon: "success",
+                                title: "¡Comentario eliminado!",
+                                text: "El comentario ha sido eliminado correctamente."
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            swal({
+                                icon: "error",
+                                title: "Error",
+                                text: "No se pudo eliminar el comentario."
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error al eliminar:", error);
+                        swal({
+                            icon: "error",
+                            title: "Error de red",
+                            text: "No se pudo conectar con el servidor."
+                        });
+                    });
             }
         });
+    });
+
+    /** Inicializar CKEditor cuando se abra el modal de creación */
+    $('#addCommentModal').on('shown.bs.modal', function () {
+        if (typeof CKEDITOR !== 'undefined') {
+            if (!CKEDITOR.instances.commentRecommendation) {
+                CKEDITOR.replace('commentRecommendation', {
+                    height: 150,
+                    toolbar: [
+                        { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline'] },
+                        { name: 'paragraph', items: ['BulletedList'] }
+                    ],
+                    removePlugins: 'elementspath',
+                    resize_enabled: false
+                });
+            }
+            if (!CKEDITOR.instances.commentConclusion) {
+                CKEDITOR.replace('commentConclusion', {
+                    height: 150,
+                    toolbar: [
+                        { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline'] },
+                        { name: 'paragraph', items: ['BulletedList'] }
+                    ],
+                    removePlugins: 'elementspath',
+                    resize_enabled: false
+                });
+            }
+        }
+    });
+
+    /** Inicializar CKEditor cuando se abra el modal de edición */
+    $('#editCommentModal').on('shown.bs.modal', function () {
+        if (typeof CKEDITOR !== 'undefined') {
+            if (!CKEDITOR.instances.editCommentRecommendation) {
+                CKEDITOR.replace('editCommentRecommendation', {
+                    height: 150,
+                    toolbar: [
+                        { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline'] },
+                        { name: 'paragraph', items: ['BulletedList'] }
+                    ],
+                    removePlugins: 'elementspath',
+                    resize_enabled: false
+                });
+            }
+            if (!CKEDITOR.instances.editCommentConclusion) {
+                CKEDITOR.replace('editCommentConclusion', {
+                    height: 150,
+                    toolbar: [
+                        { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline'] },
+                        { name: 'paragraph', items: ['BulletedList'] }
+                    ],
+                    removePlugins: 'elementspath',
+                    resize_enabled: false
+                });
+            }
+        }
     });
 
 });
