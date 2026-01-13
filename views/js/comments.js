@@ -1,5 +1,46 @@
 $(document).ready(function () {
 
+    /** Cargar tabla */
+    var commentsTable = $('#commentsTable').DataTable({
+        ajax: "ajax/comments.ajax.php?action=list",
+        deferRender: true,
+        retrieve: true,
+        processing: true,
+        language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+        },
+        "columnDefs": [
+            { "targets": [1, 3], "visible": false, "searchable": true } // Ocultar columnas de IDs
+        ]
+    });
+
+    // Inicializar Select2 después de cargar la tabla
+    $('.select2').select2();
+
+    // Filtrado por Cliente (columna 1 - client_id oculta)
+    $('#filterClient').on('change', function () {
+        var selectedValue = $(this).val();
+        commentsTable.column(1).search(selectedValue ? '^' + selectedValue + '$' : '', true, false);
+
+        // Redibujar la tabla solo si el filtro de plataforma no está procesándose
+        if ($('#filterPlatform').data('isFiltering') !== true) {
+            commentsTable.draw();
+        }
+    });
+
+    // Filtrado por Plataforma (columna 3 - platform_id oculta)
+    $('#filterPlatform').on('change', function () {
+        // Marcamos que este filtro está en proceso para evitar doble dibujado
+        $(this).data('isFiltering', true);
+        var selectedValue = $(this).val();
+        commentsTable.column(3).search(selectedValue ? '^' + selectedValue + '$' : '', true, false).draw();
+        $(this).data('isFiltering', false);
+    });
+
+    // Aplicar filtros al cargar la página
+    $('#filterClient').trigger('change');
+    $('#filterPlatform').trigger('change');
+
     /** Editar Comentario */
     $(document).on("click", ".btn-editComment", function () {
         const commentId = $(this).attr("commentId");
@@ -92,17 +133,6 @@ $(document).ready(function () {
                 window.location = `index.php?route=comments&commentId=${commentId}`;
             }
         });
-    });
-
-    /** Cargar tabla */
-    $('#commentsTable').DataTable({
-        ajax: "ajax/comments.ajax.php?action=list",
-        deferRender: true,
-        retrieve: true,
-        processing: true,
-        language: {
-            url: "https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
-        }
     });
 
 });

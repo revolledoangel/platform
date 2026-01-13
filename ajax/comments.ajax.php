@@ -30,12 +30,14 @@ class AjaxComments
                         </div>';
 
             $data[] = [
-                htmlspecialchars($comment["client_name"]),
-                htmlspecialchars($comment["platform_name"]),
-                htmlspecialchars($comment["period_name"]),
-                htmlspecialchars($comment["recommendation"]),
-                htmlspecialchars($comment["conclusion"]),
-                $acciones
+                htmlspecialchars($comment["client_name"]),      // Columna 0 - Nombre (visible)
+                $comment["client_id"],                          // Columna 1 - ID (oculta)
+                htmlspecialchars($comment["platform_name"]),    // Columna 2 - Nombre (visible)
+                $comment["platform_id"],                        // Columna 3 - ID (oculta)
+                htmlspecialchars($comment["period_name"]),      // Columna 4 - Nombre (visible)
+                htmlspecialchars($comment["recommendation"]),   // Columna 5
+                htmlspecialchars($comment["conclusion"]),       // Columna 6
+                $acciones                                       // Columna 7
             ];
         }
 

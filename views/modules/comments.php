@@ -16,6 +16,32 @@
 
             <div class="box-header with-border">
 
+                <div class="form-group pull-left" style="width:300px; margin-bottom:20px;">
+                    <label for="filterClient">Filtrar por Cliente:</label>
+                    <select id="filterClient" class="form-control select2" style="width:100%;">
+                        <option value="">-- Todos los clientes --</option>
+                        <?php
+                        $clientes = Clients_controller::ctrShowClients();
+                        foreach ($clientes as $cliente) {
+                            echo '<option value="' . htmlspecialchars($cliente["id"]) . '">' . htmlspecialchars($cliente["name"]) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="form-group pull-left" style="width:300px; margin-left:20px; margin-bottom:20px;">
+                    <label for="filterPlatform">Filtrar por Plataforma:</label>
+                    <select id="filterPlatform" class="form-control select2" style="width:100%;">
+                        <option value="">-- Todas las plataformas --</option>
+                        <?php
+                        $platforms = Platforms_controller::ctrShowPlatforms();
+                        foreach ($platforms as $platform) {
+                            echo '<option value="' . htmlspecialchars($platform["id"]) . '">' . htmlspecialchars($platform["name"]) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+
                 <button class="btn btn-primary pull-right" data-toggle="modal" data-target="#addCommentModal">
                     Agregar Comentarios
                 </button>
@@ -26,7 +52,9 @@
                     <thead>
                         <tr>
                             <th>Cliente</th>
+                            <th style="display:none;">Client ID</th>
                             <th>Plataforma</th>
+                            <th style="display:none;">Platform ID</th>
                             <th>Periodo</th>
                             <th>Hallazgos - Recomendaciones</th>
                             <th>Comentario - Conclusiones</th>
@@ -145,6 +173,84 @@
             $createComment->ctrCreateComment();
             ?>
 
+        </form>
+    </div>
+</div><!-- Modal para editar comentario -->
+<div class="modal fade" id="editCommentModal" tabindex="-1" role="dialog" aria-labelledby="editCommentLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form role="form" method="post" id="editCommentForm" autocomplete="off">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#00013b;color:#fff">
+                    <h4 class="modal-title">Editar Comentario</h4>
+                </div>
+
+                <div class="modal-body">
+                    <div class="box-body">
+                        <input type="hidden" name="editCommentId">
+
+                        <!-- Seleccionar Periodo -->
+                        <div class="form-group">
+                            <label for="editCommentPeriod">Periodo</label>
+                            <select class="form-control select2" id="editCommentPeriod" name="editCommentPeriod" required style="width:100%;">
+                                <option value="">-- Selecciona un periodo --</option>
+                                <?php
+                                $periodsJson = @file_get_contents('https://algoritmo.digital/backend/public/api/periods');
+                                $periods = json_decode($periodsJson, true);
+                                if (is_array($periods)) {
+                                    foreach ($periods as $period) {
+                                        echo '<option value="' . htmlspecialchars($period["id"]) . '">' . htmlspecialchars($period["name"]) . '</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <!-- Seleccionar Cliente -->
+                        <div class="form-group">
+                            <label for="editCommentClient">Cliente</label>
+                            <select class="form-control select2" id="editCommentClient" name="editCommentClient" required style="width:100%;">
+                                <option value="">-- Selecciona un cliente --</option>
+                                <?php
+                                $clientes = Clients_controller::ctrShowClients();
+                                foreach ($clientes as $cliente) {
+                                    echo '<option value="' . $cliente["id"] . '">' . htmlspecialchars($cliente["name"]) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <!-- Seleccionar Plataforma -->
+                        <div class="form-group">
+                            <label for="editCommentPlatform">Plataforma</label>
+                            <select class="form-control select2" id="editCommentPlatform" name="editCommentPlatform" required style="width:100%;">
+                                <option value="">-- Selecciona una plataforma --</option>
+                                <?php
+                                $platforms = Platforms_controller::ctrShowPlatforms();
+                                foreach ($platforms as $platform) {
+                                    echo '<option value="' . $platform["id"] . '">' . htmlspecialchars($platform["name"]) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editCommentRecommendation">Hallazgos - Recomendaciones</label>
+                            <textarea id="editCommentRecommendation" name="editCommentRecommendation" class="form-control" rows="3" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editCommentConclusion">Comentario - Conclusiones</label>
+                            <textarea id="editCommentConclusion" name="editCommentConclusion" class="form-control" rows="3" required></textarea>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar comentario</button>
+                </div>
+            </div>
         </form>
     </div>
 </div>
