@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +9,16 @@
     <link rel="stylesheet" href="../views/bower_components/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="../views/img/template/algoritmo-icon.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
+
 <body>
     <div class="viewer-container">
+        <div id="download-section" style="text-align: right; margin-bottom: 20px;">
+            <button id="downloadPdfBtn" class="btn btn-primary" style="display: none;">
+                <i class="fa fa-file-pdf-o"></i> Descargar PDF
+            </button>
+        </div>
         <div id="content">
             <div class="loading">
                 <i class="fa fa-spinner"></i>
@@ -52,8 +60,8 @@
                 .then(allComments => {
                     // Filtrar comentarios por hashed_code y period_id
                     const filteredComments = allComments.filter(comment => {
-                        return comment.hashed_code === hashedCode && 
-                               comment.period_id === periodId;
+                        return comment.hashed_code === hashedCode &&
+                            comment.period_id === periodId;
                     });
 
                     if (filteredComments.length === 0) {
@@ -113,6 +121,9 @@
                     });
 
                     document.getElementById('content').innerHTML = html;
+
+                    // Mostrar el botón de descarga PDF
+                    document.getElementById('downloadPdfBtn').style.display = 'inline-block';
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -135,6 +146,63 @@
             };
             return text.replace(/[&<>"']/g, m => map[m]);
         }
+
+        // Función para descargar PDF
+        document.getElementById('downloadPdfBtn').addEventListener('click', function () {
+            const button = this;
+            const originalText = button.innerHTML;
+
+            // Cambiar el botón a estado de carga
+            button.disabled = true;
+            button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando PDF...';
+
+            const element = document.getElementById('content');
+            const clientName = document.querySelector('.viewer-header h1')?.textContent || 'comentarios';
+            const periodName = document.querySelector('.viewer-header p')?.textContent.replace('Periodo: ', '') || '';
+            const filename = `${clientName}_${periodName}.pdf`.replace(/\s+/g, '_');
+
+            const opt = {
+                margin: [10, 10, 15, 10],
+                filename: filename,
+                image: {
+                    type: 'jpeg',
+                    quality: 0.98
+                },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    scrollX: -2,
+                    scrollY: 0,
+                    windowWidth: element.scrollWidth + 515
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait'
+                },
+                pagebreak: {
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    avoid: ['.comment-card', '.comment-section']
+                }
+            };
+
+            html2pdf()
+                .set(opt)
+                .from(element)
+                .save()
+                .then(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                })
+                .catch(err => {
+                    console.error('Error al generar PDF:', err);
+                    alert('Error al generar el PDF. Por favor, inténtalo nuevamente.');
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                });
+        });
     </script>
 </body>
+
 </html>

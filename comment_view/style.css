@@ -18,6 +18,7 @@ body {
     margin-bottom: 30px;
     padding-bottom: 20px;
     border-bottom: 2px solid #00013b;
+    /*page-break-after: avoid;*/
 }
 
 .viewer-header h1 {
@@ -37,6 +38,8 @@ body {
     border: 1px solid #e0e0e0;
     border-radius: 5px;
     background-color: #fafafa;
+    page-break-inside: avoid;
+    break-inside: avoid;
 }
 
 .comment-platform {
@@ -65,6 +68,19 @@ body {
     padding: 10px;
     background-color: white;
     border-radius: 4px;
+}
+
+.comment-content ul {
+    padding-left: 20px;
+}
+
+.comment-content li {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.comment-content ul li::marker {
+    font-size: 14px;
 }
 
 .no-comments {
