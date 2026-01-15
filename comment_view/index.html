@@ -162,7 +162,7 @@
             const filename = `${clientName}_${periodName}.pdf`.replace(/\s+/g, '_');
 
             const opt = {
-                margin: [10, 10, 15, 10],
+                margin: [10, 5, 15, 5],
                 filename: filename,
                 image: {
                     type: 'jpeg',
@@ -172,13 +172,15 @@
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    scrollX: -2,
-                    scrollY: 0,
-                    windowWidth: element.scrollWidth + 515
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    windowWidth: element.offsetWidth,
+                    x: 0,
+                    y: 0
                 },
                 jsPDF: {
                     unit: 'mm',
-                    format: 'a4',
+                    format: 'letter',
                     orientation: 'portrait'
                 },
                 pagebreak: {
