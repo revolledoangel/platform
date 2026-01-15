@@ -53,6 +53,54 @@ $(document).ready(function () {
     $('#filterPlatform').trigger('change');
     $('#filterPeriod').trigger('change');
 
+    /** Crear Comentario */
+    $("#addCommentForm").on("submit", function (e) {
+        e.preventDefault();
+
+        const body = {
+            client_id: $("#newCommentClient").val(),
+            platform_id: $("#newCommentPlatform").val(),
+            period_id: $("#newCommentPeriod").val(),
+            conclusion: CKEDITOR.instances.commentConclusion.getData(),
+            recommendation: CKEDITOR.instances.commentRecommendation.getData()
+        };
+
+        fetch('https://algoritmo.digital/backend/public/api/comments', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        })
+            .then(res => res.json())
+            .then(response => {
+                if (response && response.id) {
+                    swal({
+                        icon: "success",
+                        title: "Comentario creado",
+                        text: "El comentario se creó correctamente."
+                    }).then(() => {
+                        $("#addCommentModal").modal("hide");
+                        location.reload();
+                    });
+                } else {
+                    swal({
+                        icon: "error",
+                        title: "Error",
+                        text: "No se pudo crear el comentario."
+                    });
+                }
+            })
+            .catch(error => {
+                console.error("Error en creación:", error);
+                swal({
+                    icon: "error",
+                    title: "Error de red",
+                    text: "No se pudo conectar con el servidor."
+                });
+            });
+    });
+
     /** Ver Comentario */
     $(document).on("click", ".btn-viewComment", function () {
         const commentId = $(this).attr("commentId");
@@ -235,6 +283,108 @@ $(document).ready(function () {
                 });
             }
         }
+    });
+
+    /** Generar URL de reporte */
+    $('#generateReportBtn').on('click', function() {
+        const clientId = $('#reportClient').val();
+        const periodId = $('#reportPeriod').val();
+
+        if (!clientId || !periodId) {
+            swal({
+                icon: "warning",
+                title: "Campos incompletos",
+                text: "Por favor selecciona un cliente y un periodo."
+            });
+            return;
+        }
+
+        // Mostrar loading
+        $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Generando...');
+
+        // Obtener comentarios para buscar el hashed_code
+        fetch('https://algoritmo.digital/backend/public/api/comments')
+            .then(res => res.json())
+            .then(comments => {
+                console.log('Comentarios recibidos:', comments);
+                console.log('Buscando cliente ID:', clientId, 'periodo ID:', periodId);
+                
+                // Buscar un comentario que coincida con el cliente Y el periodo para obtener su hashed_code
+                const clientComment = comments.find(comment => {
+                    const matchClient = comment.client_id == clientId;
+                    const matchPeriod = comment.period_id == periodId;
+                    console.log(`Comentario ID ${comment.id}: cliente match=${matchClient}, periodo match=${matchPeriod}`);
+                    return matchClient && matchPeriod;
+                });
+
+                console.log('Comentario encontrado:', clientComment);
+
+                if (clientComment && clientComment.hashed_code) {
+                    // Generar la URL
+                    const pathArray = window.location.pathname.split('/');
+                    const basePath = pathArray.slice(0, pathArray.indexOf('index.php') > -1 ? pathArray.indexOf('index.php') : pathArray.length - 1).join('/');
+                    const baseUrl = window.location.origin + basePath;
+                    const reportUrl = `${baseUrl}/comment_view/?code=${clientComment.hashed_code}&period=${periodId}`;
+                    
+                    console.log('URL generada:', reportUrl);
+                    
+                    // Mostrar la URL
+                    $('#reportUrl').val(reportUrl);
+                    $('#openUrlBtn').attr('href', reportUrl);
+                    $('#reportUrlContainer').slideDown();
+                } else {
+                    console.error('No se encontró hashed_code. Cliente encontrado:', clientComment);
+                    swal({
+                        icon: "error",
+                        title: "Error",
+                        text: "No se encontraron comentarios para este cliente en el periodo seleccionado."
+                    });
+                }
+
+                // Restaurar botón
+                $('#generateReportBtn').prop('disabled', false).html('<i class="fa fa-cog"></i> Generar Reporte');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                swal({
+                    icon: "error",
+                    title: "Error",
+                    text: "No se pudo generar el reporte."
+                });
+                $('#generateReportBtn').prop('disabled', false).html('<i class="fa fa-cog"></i> Generar Reporte');
+            });
+    });
+
+    /** Copiar URL al portapapeles */
+    $('#copyUrlBtn').on('click', function() {
+        const urlInput = document.getElementById('reportUrl');
+        urlInput.select();
+        urlInput.setSelectionRange(0, 99999); // Para móviles
+
+        try {
+            document.execCommand('copy');
+            swal({
+                icon: "success",
+                title: "¡Copiado!",
+                text: "La URL ha sido copiada al portapapeles.",
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            swal({
+                icon: "error",
+                title: "Error",
+                text: "No se pudo copiar la URL. Por favor cópiala manualmente."
+            });
+        }
+    });
+
+    /** Limpiar URL al cerrar el modal */
+    $('#reportModal').on('hidden.bs.modal', function() {
+        $('#reportClient').val('').trigger('change');
+        $('#reportPeriod').val('').trigger('change');
+        $('#reportUrlContainer').hide();
+        $('#reportUrl').val('');
     });
 
     /** Inicializar CKEditor cuando se abra el modal de edición */

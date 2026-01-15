@@ -53,6 +53,13 @@ session_start();
 
     <?php
 
+    // Ruta pública para viewer de comentarios (sin autenticación)
+    if (isset($_GET["route"]) && $_GET["route"] === "commentsViewer") {
+        include "modules/commentsViewer.php";
+        echo '</body></html>';
+        exit;
+    }
+
     if (isset($_SESSION["startSession"]) && $_SESSION["startSession"] == true) {
 
         echo '<div class="wrapper">';

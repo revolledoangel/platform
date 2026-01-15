@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comentarios - Algoritmo</title>
+    <link rel="stylesheet" href="../views/bower_components/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../views/bower_components/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="../views/img/template/algoritmo-icon.png">
+</head>
+<body>
+    <div class="viewer-container">
+        <div id="content">
+            <div class="loading">
+                <i class="fa fa-spinner"></i>
+                <p>Cargando comentarios...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../views/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="../views/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script>
+        // Obtener parámetros de la URL
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        const hashedCode = getUrlParameter('code');
+        const periodId = parseInt(getUrlParameter('period'));
+
+        // Validar parámetros
+        if (!hashedCode || !periodId) {
+            document.getElementById('content').innerHTML = `
+                <div class="error-message">
+                    <strong>Error:</strong> Parámetros incorrectos. Se requiere code y period.
+                </div>
+            `;
+        } else {
+            // Obtener comentarios desde la API
+            fetch('https://algoritmo.digital/backend/public/api/comments')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al cargar los comentarios');
+                    }
+                    return response.json();
+                })
+                .then(allComments => {
+                    // Filtrar comentarios por hashed_code y period_id
+                    const filteredComments = allComments.filter(comment => {
+                        return comment.hashed_code === hashedCode && 
+                               comment.period_id === periodId;
+                    });
+
+                    if (filteredComments.length === 0) {
+                        document.getElementById('content').innerHTML = `
+                            <div class="no-comments">
+                                <i class="fa fa-info-circle" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
+                                <p>No se encontraron comentarios para este cliente en el periodo seleccionado.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // Obtener información del primer comentario para el header
+                    const firstComment = filteredComments[0];
+                    const clientName = firstComment.client_name;
+                    const periodName = firstComment.period_name;
+
+                    // Construir el HTML
+                    let html = `
+                        <div class="viewer-header">
+                            <h1>${escapeHtml(clientName)}</h1>
+                            <p>Periodo: ${escapeHtml(periodName)}</p>
+                        </div>
+                    `;
+
+                    filteredComments.forEach(comment => {
+                        html += `
+                            <div class="comment-card">
+                                <div class="comment-platform">
+                                    <i class="fa fa-tv"></i> ${escapeHtml(comment.platform_name)}
+                                </div>
+                        `;
+
+                        if (comment.recommendation) {
+                            html += `
+                                <div class="comment-section">
+                                    <h4><i class="fa fa-lightbulb-o"></i> Hallazgos - Recomendaciones</h4>
+                                    <div class="comment-content">
+                                        ${comment.recommendation}
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        if (comment.conclusion) {
+                            html += `
+                                <div class="comment-section">
+                                    <h4><i class="fa fa-check-circle"></i> Comentario - Conclusiones</h4>
+                                    <div class="comment-content">
+                                        ${comment.conclusion}
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        html += `</div>`;
+                    });
+
+                    document.getElementById('content').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('content').innerHTML = `
+                        <div class="error-message">
+                            <strong>Error:</strong> No se pudieron cargar los comentarios. ${error.message}
+                        </div>
+                    `;
+                });
+        }
+
+        // Función para escapar HTML (solo para texto plano, no para el contenido de comentarios)
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

@@ -66,6 +66,12 @@ $deleteComment->ctrDeleteComment();
                     Agregar Comentarios
                 </button>
 
+                <button class="btn btn-success pull-right" data-toggle="modal" data-target="#reportModal" style="margin-right: 16px;">
+                    <i class="fa fa-file-text-o"></i> Ver Reporte
+                </button>
+
+                </button>
+
             </div>
             <div class="box-body">
                 <style>
@@ -115,7 +121,7 @@ $deleteComment->ctrDeleteComment();
 <div class="modal fade" id="addCommentModal" tabindex="-1" role="dialog" aria-labelledby="addCommentLabel"
     aria-hidden="true">
     <div class="modal-dialog">
-        <form role="form" method="post" autocomplete="off">
+        <form role="form" id="addCommentForm" method="post" autocomplete="off">
             <div class="modal-content">
                 <div class="modal-header" style="background:#00013b;color:#fff">
                     <h4 class="modal-title">Nuevo Comentario</h4>
@@ -339,6 +345,73 @@ $deleteComment->ctrDeleteComment();
                 <div class="form-group">
                     <label>Comentario - Conclusiones</label>
                     <div id="viewCommentConclusion" class="form-control-static" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 50px;"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para generar reporte -->
+<div class="modal fade" id="reportModal" tabindex="-1" role="dialog" aria-labelledby="reportModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#00013b;color:#fff">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true" style="color:#fff;">&times;</span>
+                </button>
+                <h4 class="modal-title" id="reportModalLabel">Generar Reporte de Comentarios</h4>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="reportClient">Cliente</label>
+                    <select id="reportClient" class="form-control select2" style="width:100%;" required>
+                        <option value="">-- Selecciona un cliente --</option>
+                        <?php
+                        $clientes = Clients_controller::ctrShowClients();
+                        foreach ($clientes as $cliente) {
+                            echo '<option value="' . $cliente["id"] . '">' . htmlspecialchars($cliente["name"]) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reportPeriod">Periodo</label>
+                    <select id="reportPeriod" class="form-control select2" style="width:100%;" required>
+                        <option value="">-- Selecciona un periodo --</option>
+                        <?php
+                        $periods = Periods_controller::ctrShowPeriods();
+                        foreach ($periods as $period) {
+                            echo '<option value="' . $period["id"] . '">' . htmlspecialchars($period["name"]) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary" id="generateReportBtn">
+                        <i class="fa fa-cog"></i> Generar Reporte
+                    </button>
+                </div>
+
+                <div class="form-group" id="reportUrlContainer" style="display:none;">
+                    <label>URL del Reporte</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="reportUrl" readonly>
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="button" id="copyUrlBtn" title="Copiar URL">
+                                <i class="fa fa-copy"></i>
+                            </button>
+                            <a class="btn btn-info" id="openUrlBtn" href="#" target="_blank" title="Abrir en nueva pestaña">
+                                <i class="fa fa-external-link"></i>
+                            </a>
+                        </span>
+                    </div>
                 </div>
             </div>
 

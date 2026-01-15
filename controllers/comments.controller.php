@@ -70,7 +70,7 @@ class Comments_Controller
                             confirmButtonText: "Cerrar"
                         }).then((result)=> {
                             if(result.value){
-                                //window.location = "comments";
+                                window.location = "comments";
                             }
                         });
                     </script>';

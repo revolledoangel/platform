@@ -1,0 +1,99 @@
+body {
+    font-family: 'Source Sans Pro', Arial, sans-serif;
+    background-color: #f4f6f9;
+    padding: 20px;
+}
+
+.viewer-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.viewer-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #00013b;
+}
+
+.viewer-header h1 {
+    color: #00013b;
+    font-size: 28px;
+    margin-bottom: 5px;
+}
+
+.viewer-header p {
+    color: #666;
+    font-size: 16px;
+}
+
+.comment-card {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    background-color: #fafafa;
+}
+
+.comment-platform {
+    font-weight: bold;
+    color: #00013b;
+    font-size: 18px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.comment-section {
+    margin-bottom: 20px;
+}
+
+.comment-section h4 {
+    color: #444;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.comment-content {
+    color: #555;
+    line-height: 1.6;
+    padding: 10px;
+    background-color: white;
+    border-radius: 4px;
+}
+
+.no-comments {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.loading i {
+    font-size: 48px;
+    color: #00013b;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
