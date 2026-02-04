@@ -88,12 +88,7 @@ $perfil = $_SESSION["perfil"] ?? "";
                     <li class="<?= ($currentRoute == 'mediaMixRealEstate') ? 'active' : '' ?>">
                         <a href="mediaMixRealEstate"><i class="fa fa-circle-o"></i> Mix Inmobiliario</a>
                     </li>
-                    <li class="<?= ($currentRoute == 'mediaMixEcommerce') ? 'active' : '' ?>">
-                        <a href="mediaMixEcommerce"><i class="fa fa-circle-o"></i> Mix Ecommerce</a>
-                    </li>
-                    <li class="<?= ($currentRoute == 'mediaMixOthers') ? 'active' : '' ?>">
-                        <a href="mediaMixOthers"><i class="fa fa-circle-o"></i> Mix Otros</a>
-                    </li>
+                    
                 </ul>
             </li>
 
