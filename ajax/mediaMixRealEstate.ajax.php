@@ -155,6 +155,93 @@ class AjaxMediaMixRealEstate
         }
     }
 
+    // Método para sincronizar un Mix de Medios de la API a la BD local
+    public function ajaxSyncMediaMixToDB()
+    {
+        $host = 'srv1013.hstgr.io';
+        $port = 3306;
+        $db   = 'u961992735_plataforma';
+        $user = 'u961992735_plataforma';
+        $pass = 'Peru+*963.';
+        
+        try {
+            $mix_id = intval($_POST['mix_id']);
+            
+            // Obtener de la API
+            $apiUrl = "https://algoritmo.digital/backend/public/api/mmres/" . $mix_id;
+            $ch = curl_init($apiUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+            $apiResponse = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode !== 200 || empty($apiResponse)) {
+                throw new Exception("No se pudo obtener el Mix de la API");
+            }
+            
+            $mixData = json_decode($apiResponse, true);
+            if (!$mixData || !isset($mixData['id'])) {
+                throw new Exception("Datos inválidos de la API");
+            }
+            
+            // Log de los datos obtenidos
+            error_log("=== DATOS DEL MIX DESDE API ===");
+            error_log("Mix ID: " . $mixData['id']);
+            error_log("Nombre: " . $mixData['name']);
+            error_log("Cliente ID: " . $mixData['client_id']);
+            error_log("Período ID: " . $mixData['period_id']);
+            error_log("Datos completos: " . print_r($mixData, true));
+            error_log("================================");
+            
+            // Guardar en BD local
+            $conn = new mysqli($host, $user, $pass, $db, $port);
+            if ($conn->connect_error) {
+                throw new Exception("Error de conexión: " . $conn->connect_error);
+            }
+            
+            // Verificar si ya existe
+            $checkSql = "SELECT id FROM mediamixrealestates WHERE id = $mix_id";
+            $checkResult = $conn->query($checkSql);
+            
+            // Asegurar valores por defecto
+            $feeType = isset($mixData['fee_type']) ? $mixData['fee_type'] : 'percentage';
+            $currency = isset($mixData['currency']) ? $mixData['currency'] : 'USD';
+            $fee = isset($mixData['fee']) ? $mixData['fee'] : 0;
+            $igv = isset($mixData['igv']) ? $mixData['igv'] : 18;
+            
+            if ($checkResult->num_rows > 0) {
+                // Ya existe, actualizar
+                $updateSql = "UPDATE mediamixrealestates SET 
+                             name = '{$conn->real_escape_string($mixData['name'])}',
+                             period_id = {$mixData['period_id']},
+                             client_id = {$mixData['client_id']},
+                             currency = '{$currency}',
+                             fee = {$fee},
+                             fee_type = '{$feeType}',
+                             igv = {$igv},
+                             updated_at = NOW()
+                             WHERE id = $mix_id";
+                $conn->query($updateSql);
+            } else {
+                // No existe, insertar
+                $insertSql = "INSERT INTO mediamixrealestates 
+                             (id, name, period_id, client_id, currency, fee, fee_type, igv, created_at, updated_at)
+                             VALUES 
+                             ($mix_id, '{$conn->real_escape_string($mixData['name'])}', {$mixData['period_id']}, 
+                              {$mixData['client_id']}, '{$currency}', {$fee}, 
+                              '{$feeType}', {$igv}, NOW(), NOW())";
+                $conn->query($insertSql);
+            }
+            
+            $conn->close();
+            echo json_encode(['success' => true, 'message' => 'Sincronizado correctamente']);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     // Método para clonar un Mix de Medios completo
     public function ajaxCloneMediaMix()
     {
@@ -178,12 +265,16 @@ class AjaxMediaMixRealEstate
             $only_aon = intval($_POST['only_aon']);
             $new_name = trim($_POST['new_name'] ?? '');
             
-            // 1. Obtener datos del Mix original
+            // 1. Obtener datos del Mix original desde la BASE DE DATOS LOCAL
             $sqlOriginal = "SELECT * FROM mediamixrealestates WHERE id = $source_mix_id";
             $resultOriginal = $conn->query($sqlOriginal);
             
-            if (!$resultOriginal || $resultOriginal->num_rows === 0) {
-                throw new Exception("Mix de Medios original no encontrado");
+            if (!$resultOriginal) {
+                throw new Exception("Error en consulta BD: " . $conn->error);
+            }
+            
+            if ($resultOriginal->num_rows === 0) {
+                throw new Exception("Mix ID $source_mix_id no existe en BD local. Sincroniza primero los datos.");
             }
             
             $originalMix = $resultOriginal->fetch_assoc();
@@ -223,6 +314,10 @@ class AjaxMediaMixRealEstate
             $sqlDetails = "SELECT * FROM mediamixrealestate_details 
                           WHERE mediamixrealestate_id = $source_mix_id $aonCondition";
             $resultDetails = $conn->query($sqlDetails);
+            
+            if (!$resultDetails) {
+                throw new Exception("Error al consultar detalles: " . $conn->error);
+            }
             
             $copiedDetails = 0;
             
@@ -329,6 +424,13 @@ if (isset($_POST["get_periods"])) {
 if (isset($_POST["action"]) && $_POST["action"] === "getAvailablePeriods" && isset($_POST["client_id"])) {
     $periodos = new AjaxMediaMixRealEstate();
     $periodos->ajaxGetAvailablePeriods();
+    return;
+}
+
+// Acción: sincronizar mix a BD local
+if (isset($_POST["action"]) && $_POST["action"] === "syncMix") {
+    $sync = new AjaxMediaMixRealEstate();
+    $sync->ajaxSyncMediaMixToDB();
     return;
 }
 

@@ -377,7 +377,7 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="confirmCloneBtn">
+                <button type="button" class="btn btn-success" id="confirmCloneBtnRealEstate">
                     <i class="fa fa-clone"></i> Clonar Mix
                 </button>
             </div>
