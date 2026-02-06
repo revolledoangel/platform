@@ -75,7 +75,10 @@ $moduleDependencies = [
         ['controller' => 'channels.controller.php', 'model' => 'channels.model.php'],
         ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
         ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
-    ],
+    ]
+];
+
+/*,
     'mediaMixEcommerce' => [
         ['controller' => 'mediaMixEcommerce.controller.php', 'model' => null],
         ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
@@ -92,8 +95,7 @@ $moduleDependencies = [
     ],
     'mediaMixOthers' => [
         ['controller' => 'mediaMixOthers.controller.php', 'model' => 'mediaMixOthers.model.php']
-    ]
-];
+    ] */
 
 if (isset($moduleDependencies[$route])) {
     foreach ($moduleDependencies[$route] as $dep) {

@@ -195,9 +195,9 @@ session_start();
 
 <script src="views/js/mediaMixRealEstateDetails.js"></script>
 
-<script src="views/js/mediaMixEcommerce.js"></script>
+<!--<script src="views/js/mediaMixEcommerce.js"></script>
 
-<script src="views/js/mediaMixEcommerceDetails.js"></script>
+<script src="views/js/mediaMixEcommerceDetails.js"></script>-->
 
 <script src="views/js/campaigns.js"></script>
 
