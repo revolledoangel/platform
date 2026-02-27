@@ -170,26 +170,16 @@ $(document).ready(function () {
     });
     
     /** Confirmar clonación */
-    $('#confirmCloneBtnRealEstate').on('click', function() {
-        console.log('=== INICIO CONFIRMACIÓN CLONAR (REAL ESTATE) ===');
-        
+    $('#confirmCloneBtn').on('click', function() {
         var mixId = $('#cloneMixId').val();
         var periodId = $('#clonePeriodSelect').val();
         var onlyAon = $('#cloneOnlyAon').is(':checked') ? 1 : 0;
         var newName = $('#cloneNewName').val().trim();
         
-        console.log('Mix ID:', mixId);
-        console.log('Period ID:', periodId);
-        console.log('Only AON:', onlyAon);
-        console.log('New Name:', newName);
-        
         if (!periodId) {
-            console.log('ERROR: No se seleccionó período');
             swal('Error', 'Debe seleccionar un período', 'error');
             return;
         }
-        
-        console.log('Validación de período OK');
         
         // Confirmar acción
         var confirmText = onlyAon ? 'Se copiarán solo las campañas AON' : 'Se copiarán todas las campañas';
@@ -198,9 +188,6 @@ $(document).ready(function () {
         } else {
             confirmText += '\nEl nombre se generará automáticamente';
         }
-        
-        console.log('Texto de confirmación:', confirmText);
-        console.log('Mostrando SweetAlert de confirmación...');
         
         swal({
             title: '¿Confirmar clonación?',
@@ -211,14 +198,8 @@ $(document).ready(function () {
             cancelButtonColor: '#d33',
             confirmButtonText: 'Sí, clonar',
             cancelButtonText: 'Cancelar'
-        }).then(function(result) {
-            console.log('=== DENTRO DEL .THEN() ===');
-            console.log('Resultado del SweetAlert:', result);
-            console.log('result.value:', result.value);
-            
+        }).then((result) => {
             if (result.value) {
-                console.log('=== USUARIO CONFIRMÓ - INICIANDO CLONACIÓN ===');
-                
                 // Mostrar loading
                 swal({
                     title: 'Clonando...',
@@ -231,114 +212,59 @@ $(document).ready(function () {
                     }
                 });
                 
-                console.log('=== INICIANDO AJAX SINCRONIZACIÓN ===');
-                
-                // PASO 1: Sincronizar el Mix a la BD local primero
+                // Llamada AJAX para clonar
                 $.ajax({
                     url: 'ajax/mediaMixRealEstate.ajax.php',
                     method: 'POST',
                     data: {
-                        action: 'syncMix',
-                        mix_id: mixId
+                        action: 'cloneMix',
+                        mix_id: mixId,
+                        period_id: periodId,
+                        only_aon: onlyAon,
+                        new_name: newName
                     },
-                    dataType: 'text', // Cambiado a text para ver la respuesta cruda
-                    success: function(rawResponse) {
-                        console.log('=== RESPUESTA CRUDA DEL SERVIDOR ===');
-                        console.log('Raw Response:', rawResponse);
-                        console.log('===================================');
-                        
-                        // Intentar parsear el JSON
-                        var syncResponse;
-                        try {
-                            syncResponse = JSON.parse(rawResponse);
-                        } catch(e) {
-                            console.error('Error al parsear JSON:', e);
-                            console.error('Respuesta recibida:', rawResponse);
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            // Cerrar modal de clonación
+                            $('#cloneMediaMixModal').modal('hide');
+                            
+                            // Mostrar éxito con botón para ver el mix generado
                             swal({
-                                type: 'error',
-                                title: 'Error de servidor',
-                                text: 'El servidor devolvió una respuesta inválida. Revisa la consola.'
-                            });
-                            return;
-                        }
-                        
-                        console.log('=== RESPUESTA PARSEADA ===');
-                        console.log('Sync Response:', syncResponse);
-                        console.log('Mix ID solicitado:', mixId);
-                        console.log('===================================');
-                        
-                        if (!syncResponse.success) {
-                            swal({
-                                type: 'error',
-                                title: 'Error al sincronizar',
-                                text: syncResponse.message
-                            });
-                            return;
-                        }
-                        
-                        // PASO 2: Ahora sí clonar desde la BD local
-                        $.ajax({
-                            url: 'ajax/mediaMixRealEstate.ajax.php',
-                            method: 'POST',
-                            data: {
-                                action: 'cloneMix',
-                                mix_id: mixId,
-                                period_id: periodId,
-                                only_aon: onlyAon,
-                                new_name: newName
-                            },
-                            dataType: 'json',
-                            success: function(response) {
-                                if (response.success) {
-                                    // Cerrar modal de clonación
-                                    $('#cloneMediaMixModal').modal('hide');
-                                    
-                                    // Mostrar éxito con botón para ver el mix generado
-                                    swal({
-                                        type: 'success',
-                                        title: '¡Clonación exitosa!',
-                                        html: '<p>' + response.message + '</p>' +
-                                              '<p><strong>Nuevo Mix:</strong> ' + response.new_mix_name + '</p>',
-                                        showCancelButton: true,
-                                        confirmButtonText: '<i class="fa fa-eye"></i> Ver Mix Generado',
-                                        cancelButtonText: 'Cerrar',
-                                        confirmButtonColor: '#17a2b8',
-                                        cancelButtonColor: '#6c757d'
-                                    }).then((result) => {
-                                        if (result.value) {
-                                            // Redirigir a los detalles del nuevo mix
-                                            window.location = 'mediaMixRealEstateDetails?mediaMixId=' + response.new_mix_id;
-                                        } else {
-                                            // Recargar la tabla
-                                            mediaMixTable.ajax.reload();
-                                        }
-                                    });
+                                type: 'success',
+                                title: '¡Clonación exitosa!',
+                                html: '<p>' + response.message + '</p>' +
+                                      '<p><strong>Nuevo Mix:</strong> ' + response.new_mix_name + '</p>',
+                                showCancelButton: true,
+                                confirmButtonText: '<i class="fa fa-eye"></i> Ver Mix Generado',
+                                cancelButtonText: 'Cerrar',
+                                confirmButtonColor: '#17a2b8',
+                                cancelButtonColor: '#6c757d'
+                            }).then((result) => {
+                                if (result.value) {
+                                    // Redirigir a los detalles del nuevo mix
+                                    window.location = 'mediaMixRealEstateDetails?mediaMixId=' + response.new_mix_id;
                                 } else {
-                                    swal({
-                                        type: 'error',
-                                        title: 'Error al clonar',
-                                        text: response.message
-                                    });
+                                    // Recargar la tabla
+                                    mediaMixTable.ajax.reload();
                                 }
-                            },
-                            error: function(xhr, status, error) {
-                                swal({
-                                    type: 'error',
-                                    title: 'Error de conexión',
-                                    text: 'No se pudo completar la clonación. Error: ' + error
-                                });
-                            }
-                        }); // Fin del AJAX de clonación
+                            });
+                        } else {
+                            swal({
+                                type: 'error',
+                                title: 'Error al clonar',
+                                text: response.message
+                            });
+                        }
                     },
                     error: function(xhr, status, error) {
                         swal({
                             type: 'error',
-                            title: 'Error al sincronizar',
-                            text: 'No se pudo sincronizar el Mix. Error: ' + error
+                            title: 'Error de conexión',
+                            text: 'No se pudo completar la clonación. Error: ' + error
                         });
                     }
-                }); // Fin del AJAX de sincronización
+                });
             }
         });
     });
-});

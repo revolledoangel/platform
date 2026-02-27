@@ -1,3 +1,6 @@
+/* ========================================
+   ESTILOS GENERALES
+======================================== */
 body {
     font-family: 'Source Sans Pro', Arial, sans-serif;
     background-color: #f4f6f9;
@@ -13,76 +16,194 @@ body {
     padding: 30px;
 }
 
-.viewer-header {
-    text-align: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #00013b;
-    /*page-break-after: avoid;*/
+#download-section {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 9999;
 }
 
-.viewer-header h1 {
+#downloadPdfBtn {
+    border-radius: 999px;
+    padding: 10px 16px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+/* ========================================
+   CABECERA DEL REPORTE
+======================================== */
+.pdf-header {
+    margin-bottom: 24px;
+    padding-bottom: 30px;
+    padding-right: 20px;
+    padding-left: 20px;
+    padding-top: 10px;
+    border-bottom: 3px solid #00013b;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+.header-main-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.header-left {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.header-right {
+    flex: 0 0 auto;
+}
+
+.logo-container {
+    margin: 2px 0 0 0;
+    padding-top: 10px;
+}
+
+.report-logo {
+    max-height: 34px;
+    display: block;
+    filter: brightness(0) saturate(100%) invert(20%) sepia(56%) saturate(2482%) hue-rotate(235deg) brightness(88%) contrast(96%);
+}
+
+.client-name {
     color: #00013b;
-    font-size: 28px;
-    margin-bottom: 5px;
+    font-size: 35px;
+    font-weight: 700;
+    margin: 0 0 6px 0;
 }
 
-.viewer-header p {
-    color: #666;
-    font-size: 16px;
+.period-name {
+    color: #555;
+    font-size: 17px;
+    margin: 0 0 4px 0;
+    font-weight: 500;
 }
 
-.comment-card {
-    margin-bottom: 30px;
-    padding: 20px;
+.generation-date {
+    color: #999;
+    font-size: 14px;
+    margin: 0;
+    font-style: italic;
+}
+
+.generation-date i {
+    margin-right: 5px;
+}
+
+/* ========================================
+   CUERPO DEL REPORTE
+======================================== */
+.pdf-body {
+    margin-top: 30px;
+}
+
+/* ========================================
+   SECCIÓN DE PLATAFORMA
+======================================== */
+.platform-section {
+    margin-bottom: 40px;
+    padding: 25px;
     border: 1px solid #e0e0e0;
-    border-radius: 5px;
+    border-radius: 8px;
     background-color: #fafafa;
+}
+
+.platform-section.platform-page-break {
+    page-break-before: always;
+    break-before: page;
+}
+
+.platform-header {
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #ddd;
+}
+
+.platform-counter {
+    display: block;
+    color: #888;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.platform-title {
+    color: #00013b;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.platform-title i {
+    margin-right: 10px;
+    color: #00013b;
+}
+
+/* ========================================
+   CONTENIDO DE PLATAFORMA
+======================================== */
+.platform-content {
+    padding: 4px 0;
+}
+
+.content-block {
+    margin-bottom: 25px;
     page-break-inside: avoid;
     break-inside: avoid;
 }
 
-.comment-platform {
-    font-weight: bold;
-    color: #00013b;
+.content-block:last-child {
+    margin-bottom: 0;
+}
+
+.block-title {
+    color: #333;
     font-size: 18px;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.comment-section {
-    margin-bottom: 20px;
-}
-
-.comment-section h4 {
-    color: #444;
-    font-size: 16px;
     font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.comment-content {
-    color: #555;
-    line-height: 1.6;
-    padding: 10px;
-    background-color: white;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background-color: #f0f0f0;
+    border-left: 4px solid #00013b;
     border-radius: 4px;
 }
 
-.comment-content ul {
-    padding-left: 20px;
+.block-title i {
+    margin-right: 8px;
 }
 
-.comment-content li {
-    margin-bottom: 8px;
-    font-size: 14px;
+.block-content {
+    color: #555;
+    line-height: 1.8;
+    padding: 15px 20px;
+    background-color: white;
+    border-radius: 4px;
+    font-size: 15px;
 }
 
-.comment-content ul li::marker {
-    font-size: 14px;
+.block-content ul {
+    padding-left: 25px;
+    margin: 10px 0;
 }
 
+.block-content li {
+    margin-bottom: 10px;
+}
+
+.block-content p {
+    margin-bottom: 12px;
+}
+
+/* ========================================
+   ESTADOS Y MENSAJES
+======================================== */
 .no-comments {
     text-align: center;
     padding: 40px;

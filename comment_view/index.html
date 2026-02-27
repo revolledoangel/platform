@@ -9,12 +9,12 @@
     <link rel="stylesheet" href="../views/bower_components/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="../views/img/template/algoritmo-icon.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body>
     <div class="viewer-container">
-        <div id="download-section" style="text-align: right; margin-bottom: 20px;">
+        <div id="download-section">
             <button id="downloadPdfBtn" class="btn btn-primary" style="display: none;">
                 <i class="fa fa-file-pdf-o"></i> Descargar PDF
             </button>
@@ -78,28 +78,63 @@
                     const firstComment = filteredComments[0];
                     const clientName = firstComment.client_name;
                     const periodName = firstComment.period_name;
+                    const totalPlatforms = filteredComments.length;
+                    
+                    // Obtener fecha actual
+                    const today = new Date();
+                    const formattedDate = today.toLocaleDateString('es-ES', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
 
-                    // Construir el HTML
+                    // Construir el HTML con estructura clara: HEADER + BODY
                     let html = `
-                        <div class="viewer-header">
-                            <h1>${escapeHtml(clientName)}</h1>
-                            <p>Periodo: ${escapeHtml(periodName)}</p>
+                        <!-- CABECERA DEL REPORTE -->
+                        <div class="pdf-header">
+                            <div class="header-main-row">
+                                <div class="header-left">
+                                    <h1 class="client-name">${escapeHtml(clientName)}</h1>
+                                    <p class="period-name">Periodo: ${escapeHtml(periodName)}</p>
+                                    <p class="generation-date">
+                                        <i class="fa fa-calendar"></i> ${formattedDate}
+                                    </p>
+                                </div>
+                                <div class="header-right">
+                                    <div class="logo-container">
+                                        <img src="../views/img/template/algoritmo-logo-largo.png" alt="Algoritmo Digital" class="report-logo">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- CUERPO DEL REPORTE -->
+                        <div class="pdf-body">
                     `;
 
-                    filteredComments.forEach(comment => {
+                    // Generar contenido por plataforma
+                    filteredComments.forEach((comment, index) => {
+                        const platformNumber = index + 1;
+                        const pageBreakClass = index > 0 ? 'platform-page-break' : '';
+                        
                         html += `
-                            <div class="comment-card">
-                                <div class="comment-platform">
-                                    <i class="fa fa-tv"></i> ${escapeHtml(comment.platform_name)}
+                            <div class="platform-section ${pageBreakClass}">
+                                <div class="platform-header">
+                                    <span class="platform-counter">Plataforma ${platformNumber} de ${totalPlatforms}</span>
+                                    <h2 class="platform-title">
+                                        <i class="fa fa-tv"></i> ${escapeHtml(comment.platform_name)}
+                                    </h2>
                                 </div>
+                                <div class="platform-content">
                         `;
 
                         if (comment.recommendation) {
                             html += `
-                                <div class="comment-section">
-                                    <h4><i class="fa fa-lightbulb-o"></i> Hallazgos - Recomendaciones</h4>
-                                    <div class="comment-content">
+                                <div class="content-block">
+                                    <h3 class="block-title">
+                                        <i class="fa fa-lightbulb-o"></i> Hallazgos - Recomendaciones
+                                    </h3>
+                                    <div class="block-content">
                                         ${comment.recommendation}
                                     </div>
                                 </div>
@@ -108,17 +143,26 @@
 
                         if (comment.conclusion) {
                             html += `
-                                <div class="comment-section">
-                                    <h4><i class="fa fa-check-circle"></i> Comentario - Conclusiones</h4>
-                                    <div class="comment-content">
+                                <div class="content-block">
+                                    <h3 class="block-title">
+                                        <i class="fa fa-check-circle"></i> Comentario - Conclusiones
+                                    </h3>
+                                    <div class="block-content">
                                         ${comment.conclusion}
                                     </div>
                                 </div>
                             `;
                         }
 
-                        html += `</div>`;
+                        html += `
+                                </div>
+                            </div>
+                        `;
                     });
+
+                    html += `
+                        </div>
+                    `;
 
                     document.getElementById('content').innerHTML = html;
 
@@ -147,62 +191,560 @@
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Función para descargar PDF
-        document.getElementById('downloadPdfBtn').addEventListener('click', function () {
-            const button = this;
-            const originalText = button.innerHTML;
+        // Función helper para extraer texto de HTML eliminando tags
+        function stripHtml(html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || '';
+        }
 
-            // Cambiar el botón a estado de carga
-            button.disabled = true;
-            button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando PDF...';
+        // Función para normalizar caracteres especiales que causan problemas en PDF
+        function normalizeText(text) {
+            return text
+                // Operadores matemáticos
+                .replace(/\u2264/g, '<=')   // ≤ → <=
+                .replace(/\u2265/g, '>=')   // ≥ → >=
+                .replace(/\u2248/g, '~')    // ≈ → ~
+                .replace(/\u2260/g, '!=')   // ≠ → !=
+                .replace(/\u00B1/g, '+/-')  // ± → +/-
+                .replace(/\u00D7/g, 'x')    // × → x
+                .replace(/\u00F7/g, '/')    // ÷ → /
+                .replace(/\u2212/g, '-')    // − → -
+                .replace(/\u221E/g, 'inf')  // ∞ → inf
+                
+                // Comillas y apóstrofes
+                .replace(/[\u201C\u201D]/g, '"')   // " " → "
+                .replace(/[\u2018\u2019]/g, "'")   // ' ' → '
+                .replace(/\u201E/g, '"')   // „ → "
+                .replace(/\u201A/g, "'")   // ‚ → '
+                .replace(/\u00AB/g, '<<')  // « → <<
+                .replace(/\u00BB/g, '>>')  // » → >>
+                
+                // Guiones y rayas
+                .replace(/\u2013/g, '-')   // – (en dash) → -
+                .replace(/\u2014/g, '--')  // — (em dash) → --
+                .replace(/\u2015/g, '--')  // ― (horizontal bar) → --
+                
+                // Puntuación especial
+                .replace(/\u2026/g, '...') // … → ...
+                .replace(/\u2022/g, '*')   // • → *
+                .replace(/\u2023/g, '>')   // ‣ → >
+                
+                // Espacios especiales
+                .replace(/\u00A0/g, ' ')   // Non-breaking space
+                .replace(/\u2009/g, ' ')   // Thin space
+                .replace(/\u200B/g, '')    // Zero-width space
+                .replace(/\u200C/g, '')    // Zero-width non-joiner
+                .replace(/\u200D/g, '')    // Zero-width joiner
+                .replace(/\uFEFF/g, '')    // Zero-width no-break space
+                
+                // Símbolos
+                .replace(/\u00B0/g, 'deg') // ° → deg
+                .replace(/\u00A9/g, '(c)') // © → (c)
+                .replace(/\u00AE/g, '(R)') // ® → (R)
+                .replace(/\u2122/g, '(TM)')// ™ → (TM)
+                .replace(/\u00A2/g, 'c')   // ¢ → c
+                .replace(/\u00A3/g, 'GBP') // £ → GBP
+                .replace(/\u20AC/g, 'EUR') // € → EUR
+                .replace(/\u00A5/g, 'YEN') // ¥ → YEN
+                
+                // Flechas
+                .replace(/\u2190/g, '<-')  // ← → <-
+                .replace(/\u2192/g, '->')  // → → ->
+                .replace(/\u2194/g, '<->') // ↔ → <->
+                .replace(/\u21D0/g, '<=')  // ⇐ → <=
+                .replace(/\u21D2/g, '=>')  // ⇒ → =>
+                .replace(/\u21D4/g, '<=>') // ⇔ → <=>
+                
+                // Fracciones comunes
+                .replace(/\u00BC/g, '1/4') // ¼ → 1/4
+                .replace(/\u00BD/g, '1/2') // ½ → 1/2
+                .replace(/\u00BE/g, '3/4') // ¾ → 3/4
+                .replace(/\u2153/g, '1/3') // ⅓ → 1/3
+                .replace(/\u2154/g, '2/3') // ⅔ → 2/3
+                
+                // Superíndices y subíndices comunes
+                .replace(/\u00B2/g, '^2')  // ² → ^2
+                .replace(/\u00B3/g, '^3')  // ³ → ^3
+                .replace(/\u00B9/g, '^1'); // ¹ → ^1
+        }
 
-            const element = document.getElementById('content');
-            const clientName = document.querySelector('.viewer-header h1')?.textContent || 'comentarios';
-            const periodName = document.querySelector('.viewer-header p')?.textContent.replace('Periodo: ', '') || '';
-            const filename = `${clientName}_${periodName}.pdf`.replace(/\s+/g, '_');
+        // Función helper para procesar contenido HTML y agregarlo al PDF
+        function addHtmlContent(pdf, htmlContent, startY, maxWidth, lineHeight = 6) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = htmlContent;
+            
+            let currentY = startY;
+            const paragraphSpacing = 4;
+            const lineBreakSpacing = 4;
+            
+            // Función para extraer color de un elemento
+            const getTextColor = (element) => {
+                const style = element.style.color;
+                if (style) {
+                    // Convertir rgb a valores numéricos
+                    const rgb = style.match(/\d+/g);
+                    if (rgb && rgb.length >= 3) {
+                        return [parseInt(rgb[0]), parseInt(rgb[1]), parseInt(rgb[2])];
+                    }
+                }
+                // Verificar clases o atributos de color comunes
+                const classList = element.className || '';
+                if (classList.includes('text-primary') || classList.includes('blue')) {
+                    return [0, 123, 255]; // Azul Bootstrap
+                }
+                return null;
+            };
 
-            const opt = {
-                margin: [10, 5, 15, 5],
-                filename: filename,
-                image: {
-                    type: 'jpeg',
-                    quality: 0.98
-                },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    width: element.offsetWidth,
-                    height: element.offsetHeight,
-                    windowWidth: element.offsetWidth,
-                    x: 0,
-                    y: 0
-                },
-                jsPDF: {
-                    unit: 'mm',
-                    format: 'letter',
-                    orientation: 'portrait'
-                },
-                pagebreak: {
-                    mode: ['avoid-all', 'css', 'legacy'],
-                    avoid: ['.comment-card', '.comment-section']
+            const applyTextStyle = (style) => {
+                let fontStyle = 'normal';
+                if (style.bold && style.italic) {
+                    fontStyle = 'bolditalic';
+                } else if (style.bold) {
+                    fontStyle = 'bold';
+                } else if (style.italic) {
+                    fontStyle = 'italic';
+                }
+
+                pdf.setFont('helvetica', fontStyle);
+                pdf.setFontSize(11);
+
+                if (style.color) {
+                    pdf.setTextColor(style.color[0], style.color[1], style.color[2]);
+                } else {
+                    pdf.setTextColor(85, 85, 85);
                 }
             };
 
-            html2pdf()
-                .set(opt)
-                .from(element)
-                .save()
-                .then(() => {
-                    button.disabled = false;
-                    button.innerHTML = originalText;
-                })
-                .catch(err => {
-                    console.error('Error al generar PDF:', err);
-                    alert('Error al generar el PDF. Por favor, inténtalo nuevamente.');
-                    button.disabled = false;
-                    button.innerHTML = originalText;
+            const collectInlineSegments = (node, baseStyle = { bold: false, italic: false, color: null }) => {
+                const segments = [];
+
+                const walk = (currentNode, style) => {
+                    if (currentNode.nodeType === Node.TEXT_NODE) {
+                        const raw = normalizeText(currentNode.textContent || '');
+                        if (raw) {
+                            segments.push({ text: raw, style: { ...style } });
+                        }
+                        return;
+                    }
+
+                    if (currentNode.nodeType !== Node.ELEMENT_NODE) {
+                        return;
+                    }
+
+                    if (currentNode.tagName === 'BR') {
+                        segments.push({ text: '\n', style: { ...style } });
+                        return;
+                    }
+
+                    const nextStyle = { ...style };
+                    if (currentNode.tagName === 'STRONG' || currentNode.tagName === 'B') {
+                        nextStyle.bold = true;
+                    }
+                    if (currentNode.tagName === 'EM' || currentNode.tagName === 'I') {
+                        nextStyle.italic = true;
+                    }
+
+                    const nodeColor = getTextColor(currentNode);
+                    if (nodeColor) {
+                        nextStyle.color = nodeColor;
+                    }
+
+                    Array.from(currentNode.childNodes).forEach(child => walk(child, nextStyle));
+                };
+
+                walk(node, baseStyle);
+                return segments;
+            };
+
+            const renderInlineSegments = (segments, x, width) => {
+                let currentX = x;
+                let needSpace = false;
+
+                const newLine = (extra = 0) => {
+                    currentY += lineHeight + extra;
+                    currentX = x;
+                    needSpace = false;
+                    if (currentY > 260) {
+                        pdf.addPage();
+                        currentY = 20;
+                    }
+                };
+
+                segments.forEach(segment => {
+                    if (!segment.text) {
+                        return;
+                    }
+
+                    if (segment.text === '\n') {
+                        newLine(lineBreakSpacing - lineHeight);
+                        return;
+                    }
+
+                    applyTextStyle(segment.style);
+
+                    const parts = segment.text.split(/(\s+)/).filter(part => part.length > 0);
+                    parts.forEach(part => {
+                        if (/^\s+$/.test(part)) {
+                            needSpace = true;
+                            return;
+                        }
+
+                        let chunk = needSpace && currentX > x ? ` ${part}` : part;
+                        let chunkWidth = pdf.getTextWidth(chunk);
+
+                        if (currentX + chunkWidth > x + width && currentX > x) {
+                            newLine();
+                            chunk = part;
+                            chunkWidth = pdf.getTextWidth(chunk);
+                        }
+
+                        pdf.text(chunk, currentX, currentY);
+                        if (segment.style.bold) {
+                            pdf.text(chunk, currentX + 0.08, currentY);
+                        }
+                        currentX += chunkWidth;
+                        needSpace = false;
+                    });
                 });
+
+                pdf.setTextColor(85, 85, 85);
+                pdf.setFont('helvetica', 'normal');
+                currentY += lineHeight;
+            };
+            
+            // Procesar cada elemento hijo
+            const processNode = (node, inheritBold = false, inheritColor = null) => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = normalizeText(node.textContent.trim());
+                    if (text) {
+                        if (inheritColor) {
+                            pdf.setTextColor(inheritColor[0], inheritColor[1], inheritColor[2]);
+                        }
+                        const lines = pdf.splitTextToSize(text, maxWidth);
+                        lines.forEach(line => {
+                            if (currentY > 260) {
+                                pdf.addPage();
+                                currentY = 20;
+                            }
+                            pdf.text(line, 20, currentY);
+                            currentY += lineHeight;
+                        });
+                        if (inheritColor) {
+                            pdf.setTextColor(85, 85, 85); // Restaurar color por defecto
+                        }
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    // Detectar color del elemento
+                    const elementColor = getTextColor(node) || inheritColor;
+                    
+                    // Procesar según el tipo de elemento
+                    if (node.tagName === 'H1' || node.tagName === 'H2' || node.tagName === 'H3' || 
+                        node.tagName === 'H4' || node.tagName === 'H5' || node.tagName === 'H6') {
+                        // Encabezados con diferentes tamaños
+                        const sizes = { H1: 16, H2: 14, H3: 13, H4: 12, H5: 11, H6: 11 };
+                        const size = sizes[node.tagName] || 11;
+                        
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(size);
+                        
+                        const text = normalizeText(node.textContent.trim());
+                        if (text) {
+                            if (currentY > 250) {
+                                pdf.addPage();
+                                currentY = 20;
+                            }
+                            const lines = pdf.splitTextToSize(text, maxWidth);
+                            lines.forEach(line => {
+                                pdf.text(line, 20, currentY);
+                                currentY += (size * 0.5);
+                            });
+                            currentY += 3;
+                        }
+                        
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.setFontSize(11);
+                        
+                    } else if (node.tagName === 'P') {
+                        const paragraphSegments = collectInlineSegments(node, {
+                            bold: inheritBold,
+                            italic: false,
+                            color: elementColor
+                        });
+
+                        if (paragraphSegments.length > 0) {
+                            renderInlineSegments(paragraphSegments, 20, maxWidth);
+                        }
+
+                        currentY += paragraphSpacing;
+
+                    } else if (node.tagName === 'BR') {
+                        currentY += lineBreakSpacing;
+                        
+                    } else if (node.tagName === 'UL') {
+                        const items = node.querySelectorAll('li');
+                        items.forEach(li => {
+                            if (currentY > 260) {
+                                pdf.addPage();
+                                currentY = 20;
+                            }
+
+                            const liColor = getTextColor(li) || elementColor;
+                            const liSegments = collectInlineSegments(li, {
+                                bold: inheritBold,
+                                italic: false,
+                                color: liColor
+                            });
+
+                            if (liSegments.length === 0) {
+                                return;
+                            }
+
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setTextColor(85, 85, 85);
+                            pdf.text('•', 20, currentY);
+
+                            renderInlineSegments(liSegments, 25, maxWidth - 5);
+                            currentY += 1;
+                        });
+                        currentY += 2;
+                        
+                    } else if (node.tagName === 'STRONG' || node.tagName === 'B') {
+                        pdf.setFont('helvetica', 'bold');
+                        Array.from(node.childNodes).forEach(child => processNode(child, true, elementColor));
+                        pdf.setFont('helvetica', 'normal');
+                        
+                    } else if (node.tagName === 'EM' || node.tagName === 'I') {
+                        pdf.setFont('helvetica', 'italic');
+                        Array.from(node.childNodes).forEach(child => processNode(child, false, elementColor));
+                        pdf.setFont('helvetica', 'normal');
+                        
+                    } else if (node.tagName === 'SPAN') {
+                        // Procesar spans que pueden tener colores
+                        const spanColor = getTextColor(node);
+                        if (spanColor) {
+                            pdf.setTextColor(spanColor[0], spanColor[1], spanColor[2]);
+                        }
+                        Array.from(node.childNodes).forEach(child => processNode(child, inheritBold, spanColor || elementColor));
+                        if (spanColor) {
+                            pdf.setTextColor(85, 85, 85);
+                        }
+                        
+                    } else {
+                        // Otros elementos: procesar sus hijos
+                        Array.from(node.childNodes).forEach(child => processNode(child, inheritBold, elementColor));
+                    }
+                }
+            };
+            
+            Array.from(tmp.childNodes).forEach(node => processNode(node));
+            return currentY;
+        }
+
+        // Función para descargar PDF con jsPDF puro
+        document.getElementById('downloadPdfBtn').addEventListener('click', async function () {
+            const button = this;
+            const originalText = button.innerHTML;
+
+            try {
+                // Cambiar el botón a estado de carga
+                button.disabled = true;
+                button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generando PDF...';
+
+                // Obtener datos del HTML
+                const clientName = document.querySelector('.client-name')?.textContent || 'Cliente';
+                const periodName = document.querySelector('.period-name')?.textContent.replace('Periodo: ', '') || '';
+                const generationDate = document.querySelector('.generation-date')?.textContent.trim() || '';
+                const filename = `${clientName}_${periodName}.pdf`.replace(/\s+/g, '_');
+
+                // Obtener todas las plataformas
+                const platformSections = document.querySelectorAll('.platform-section');
+
+                // Crear PDF con jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'letter'
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 20;
+                const maxWidth = pageWidth - (margin * 2);
+
+                // ===== PÁGINA 1: HEADER =====
+                const headerTopY = 20;
+                const leftX = margin;
+                const rightAreaWidth = 45;
+                const textMaxWidth = maxWidth - rightAreaWidth - 6;
+
+                // Texto del lado izquierdo
+                let leftY = headerTopY + 5;
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(22);
+                pdf.setTextColor(0, 1, 59);
+                const clientLines = pdf.splitTextToSize(clientName, textMaxWidth);
+                clientLines.forEach(line => {
+                    pdf.text(line, leftX, leftY);
+                    leftY += 9;
+                });
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(13);
+                pdf.setTextColor(85, 85, 85);
+                leftY += 2;
+                const periodLines = pdf.splitTextToSize(periodName, textMaxWidth);
+                periodLines.forEach(line => {
+                    pdf.text(line, leftX, leftY);
+                    leftY += 7;
+                });
+
+                pdf.setFontSize(10);
+                pdf.setTextColor(153, 153, 153);
+                const dateLines = pdf.splitTextToSize(generationDate, textMaxWidth);
+                dateLines.forEach(line => {
+                    pdf.text(line, leftX, leftY);
+                    leftY += 6;
+                });
+
+                // Logo pequeño y alineado a la derecha (misma altura visual que el nombre)
+                let logoBottomY = headerTopY;
+                const logoImg = document.querySelector('.report-logo');
+                if (logoImg) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = logoImg.naturalWidth;
+                        canvas.height = logoImg.naturalHeight;
+                        ctx.drawImage(logoImg, 0, 0);
+
+                        // Teñir logo a morado azulado
+                        ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillStyle = 'rgba(74, 50, 183, 0.95)';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.globalCompositeOperation = 'source-over';
+
+                        const logoData = canvas.toDataURL('image/png');
+                        const logoWidth = 38;
+                        const logoHeight = (logoImg.naturalHeight / logoImg.naturalWidth) * logoWidth;
+                        const logoX = pageWidth - margin - logoWidth;
+                        const logoY = headerTopY + 2;
+
+                        pdf.addImage(logoData, 'PNG', logoX, logoY, logoWidth, logoHeight);
+                        logoBottomY = logoY + logoHeight;
+                    } catch (e) {
+                        console.warn('No se pudo cargar el logo:', e);
+                    }
+                }
+
+                // Línea separadora y comienzo del contenido
+                const headerBottomY = Math.max(leftY + 2, logoBottomY + 4);
+                pdf.setDrawColor(0, 1, 59);
+                pdf.setLineWidth(0.5);
+                pdf.line(margin, headerBottomY, pageWidth - margin, headerBottomY);
+
+                let yPos = headerBottomY + 10;
+
+                // ===== CONTENIDO POR PLATAFORMA =====
+                platformSections.forEach((section, index) => {
+                    // Si no es la primera plataforma, nueva página
+                    if (index > 0) {
+                        pdf.addPage();
+                        yPos = 20;
+                    }
+
+                    // Contador de plataforma
+                    const platformCounter = section.querySelector('.platform-counter')?.textContent || '';
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(136, 136, 136);
+                    pdf.text(platformCounter.toUpperCase(), margin, yPos);
+                    yPos += 10;
+
+                    // Título de plataforma
+                    const platformTitle = normalizeText(section.querySelector('.platform-title')?.textContent.trim() || '');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(18);
+                    pdf.setTextColor(0, 1, 59);
+                    const titleLines = pdf.splitTextToSize(platformTitle, maxWidth);
+                    titleLines.forEach(line => {
+                        pdf.text(line, margin, yPos);
+                        yPos += 8;
+                    });
+                    yPos += 2;
+
+                    // Línea debajo del título
+                    pdf.setDrawColor(221, 221, 221);
+                    pdf.setLineWidth(0.3);
+                    pdf.line(margin, yPos, pageWidth - margin, yPos);
+                    yPos += 10;
+
+                    // Bloques de contenido
+                    const contentBlocks = section.querySelectorAll('.content-block');
+                    contentBlocks.forEach(block => {
+                        // Título del bloque
+                        const blockTitle = normalizeText(block.querySelector('.block-title')?.textContent.trim() || '');
+                        
+                        if (yPos > 250) {
+                            pdf.addPage();
+                            yPos = 20;
+                        }
+
+                        // Dibujar fondo del encabezado
+                        const headerHeight = 10;
+                        pdf.setFillColor(240, 240, 240);
+                        pdf.rect(margin, yPos - 5, maxWidth, headerHeight, 'F');
+                        
+                        // Línea vertical de acento
+                        pdf.setDrawColor(0, 1, 59);
+                        pdf.setLineWidth(1);
+                        pdf.line(margin, yPos - 5, margin, yPos + 5);
+
+                        // Texto centrado verticalmente (ajustado +1.5mm para centrarlo en el rectángulo)
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(13);
+                        pdf.setTextColor(51, 51, 51);
+                        pdf.text(blockTitle, margin + 3, yPos + 1.5);
+                        yPos += 16;
+
+                        // Contenido del bloque
+                        const blockContent = block.querySelector('.block-content');
+                        if (blockContent) {
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setFontSize(11);
+                            pdf.setTextColor(85, 85, 85);
+                            yPos = addHtmlContent(pdf, blockContent.innerHTML, yPos, maxWidth);
+                        }
+
+                        yPos += 10;
+                    });
+                });
+
+                // ===== AGREGAR NÚMEROS DE PÁGINA =====
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(150, 150, 150);
+                    const pageText = `Página ${i} de ${totalPages}`;
+                    pdf.text(pageText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+                }
+
+                // Guardar PDF
+                pdf.save(filename);
+
+                // Restaurar botón
+                button.disabled = false;
+                button.innerHTML = originalText;
+
+            } catch (err) {
+                console.error('Error al generar PDF:', err);
+                alert('Error al generar el PDF. Por favor, inténtalo nuevamente.');
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
         });
     </script>
 </body>
