@@ -37,6 +37,10 @@ $moduleDependencies = [
     'channels' => [
         ['controller' => 'channels.controller.php', 'model' => 'channels.model.php']
     ],
+    'metrics' => [
+        ['controller' => 'metrics.controller.php', 'model' => 'metrics.model.php'],
+        ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php']
+    ],
     'campaigns' => [
         ['controller' => 'campaigns.controller.php', 'model' => null],
         ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],

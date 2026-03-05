@@ -47,7 +47,7 @@ $perfil = $_SESSION["perfil"] ?? "";
             <!-- Configuración: Para Super y Administrador -->
             <?php if (in_array($perfil, ["Super", "Administrador"])): ?>
                 <li
-                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'objectives', 'campaignTypes', 'channels']) ? 'active' : '' ?>">
+                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'objectives', 'campaignTypes', 'channels', 'metrics']) ? 'active' : '' ?>">
                     <a href="#">
                         <i class="fa fa-cogs"></i> <span>Configuración</span> <span class="pull-right-container">
                             <i class="fa fa-angle-left pull-right"></i>
@@ -71,6 +71,8 @@ $perfil = $_SESSION["perfil"] ?? "";
                                     class="fa fa-tags"></i> Tipo de Campaña</a></li>
                         <li class="<?= ($currentRoute == 'channels') ? 'active' : '' ?>"><a href="channels"><i
                                     class="fa fa-sitemap"></i> Canales</a></li>
+                        <li class="<?= ($currentRoute == 'metrics') ? 'active' : '' ?>"><a href="metrics"><i
+                                    class="fa fa-line-chart"></i> Métricas</a></li>
                     </ul>
                 </li>
             <?php endif; ?>

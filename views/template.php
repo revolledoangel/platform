@@ -94,7 +94,8 @@ session_start();
                     "formats",
                     "objectives",
                     "campaignTypes",
-                    "channels"
+                    "channels",
+                    "metrics"
                 ]);
             } elseif ($perfil === "Administrador") {
                 $allowedRoutes = array_merge($allowedRoutes, [
@@ -105,7 +106,8 @@ session_start();
                     "formats",
                     "objectives",
                     "campaignTypes",
-                    "channels"
+                    "channels",
+                    "metrics"
                 ]);
             }
 
@@ -190,6 +192,8 @@ session_start();
 <script src="views/js/campaignTypes.js"></script>
 
 <script src="views/js/channels.js"></script>
+
+<script src="views/js/metrics.js"></script>
 
 <script src="views/js/mediaMixRealEstate.js"></script>
 
