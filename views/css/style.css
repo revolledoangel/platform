@@ -4,3 +4,119 @@
     overflow-x: auto;
     max-width: 100%;
 }
+
+.main-header .logo {
+    height: 66px;
+    line-height: 66px;
+    background-color: #222D32 !important;
+}
+
+.main-header .navbar {
+    min-height: 66px;
+}
+
+.main-header .navbar .sidebar-toggle {
+    padding-top: 23px;
+    padding-bottom: 23px;
+}
+
+.main-sidebar,
+.left-side {
+    padding-top: 66px;
+}
+
+.fixed .main-header,
+.fixed .main-sidebar,
+.fixed .left-side {
+    top: 0;
+}
+
+.main-header .logo .logo-lg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 66px;
+    padding: 8px 0;
+    box-sizing: border-box;
+}
+
+.main-header .logo .logo-lg img {
+    display: block;
+    height: 48px !important;
+    width: auto;
+    margin: 0 auto;
+}
+
+.main-header .logo .logo-mini img {
+    margin-top: 3px;
+}
+
+.main-header .navbar-nav > .user-menu > .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    min-height: 66px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.main-header .navbar-nav > .user-menu > .dropdown-toggle .user-image {
+    margin-top: 0;
+}
+
+/* Header logo transition while sidebar adapts */
+.main-header .logo {
+    will-change: opacity, transform;
+    transform-origin: left center;
+}
+
+.main-header .logo.logo-hide-anim {
+    animation: headerLogoHide 0.35s ease forwards;
+    pointer-events: none;
+}
+
+.main-header .logo.logo-hidden {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.94);
+    pointer-events: none;
+}
+
+.main-header .logo.logo-show-anim {
+    animation: headerLogoShow 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.main-header .logo.logo-force-lg .logo-mini {
+    display: none !important;
+}
+
+.main-header .logo.logo-force-lg .logo-lg {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+
+
+@keyframes headerLogoHide {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        background-color: #222D32;
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.90);
+        background-color: transparent;
+    }
+}
+
+@keyframes headerLogoShow {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.96);
+        background-color: transparent;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        background-color: #222D32;
+    }
+}

@@ -11,7 +11,7 @@
 
         <!-- logo for regular state and mobile devices -->
         <span class="logo-lg">
-            <img src="views/img/template/algoritmo-logo-largo.png" class="img-responsive" style="padding: 10px;" alt="logo algoritmo">
+            <img src="views/img/template/logoPlanix_blanco.png" class="img-responsive" style="height: 48px; width: auto;" alt="logo planix">
         </span>
 
     </a>
