@@ -1,6 +1,12 @@
 $(document).ready(function () {
     const API_BASE = 'https://algoritmo.digital/backend/public/api';
 
+    if ($.fn.select2) {
+        $('#newMetricPlatforms, #editMetricPlatforms').select2({
+            width: '100%'
+        });
+    }
+
     const metricsTable = $('#metricsTable').DataTable({
         ajax: 'ajax/metrics.ajax.php?action=list',
         deferRender: true,
@@ -11,15 +17,137 @@ $(document).ready(function () {
         }
     });
 
-    function assignPlatforms(metricId, platformIds) {
-        return fetch(`${API_BASE}/metrics/${metricId}/assign-platforms`, {
+    function normalizePlatformIds(platformIds) {
+        return (platformIds || [])
+            .map(id => parseInt(id, 10))
+            .filter(id => Number.isInteger(id) && id > 0);
+    }
+
+    async function parseJsonSafe(res) {
+        try {
+            return await res.json();
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async function postJson(url, payload) {
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        };
+
+        if (typeof payload !== 'undefined') {
+            options.body = JSON.stringify(payload);
+        }
+
+        const res = await fetch(url, options);
+        const data = await parseJsonSafe(res);
+        return { ok: res.ok, status: res.status, data };
+    }
+
+    function extractMetricId(response) {
+        return parseInt(
+            response?.id
+            ?? response?.data?.id
+            ?? response?.metric?.id
+            ?? response?.data?.metric?.id,
+            10
+        ) || null;
+    }
+
+    async function syncMetricPlatforms(metricId, platformIds) {
+        const normalizedPlatforms = normalizePlatformIds(platformIds);
+        const normalizedMetricId = parseInt(metricId, 10);
+
+        if (!Number.isInteger(normalizedMetricId) || normalizedMetricId <= 0) {
+            throw new Error('No se pudo identificar la métrica para vincular plataformas.');
+        }
+
+        const assignUrl = `${API_BASE}/metrics/${normalizedMetricId}/assign-platforms`;
+        const syncPayloads = [
+            { platforms_ids: normalizedPlatforms },
+            { platform_ids: normalizedPlatforms },
+            { platforms: normalizedPlatforms },
+            { ids: normalizedPlatforms }
+        ];
+
+        for (const payload of syncPayloads) {
+            const result = await postJson(assignUrl, payload);
+            console.log('[Metrics] assign-platforms attempt', {
+                url: assignUrl,
+                payload,
+                status: result.status,
+                response: result.data
+            });
+
+            if (result.ok) {
+                return;
+            }
+        }
+
+        if (normalizedPlatforms.length === 0) {
+            throw new Error('No se pudo limpiar la relación de plataformas para esta métrica.');
+        }
+
+        for (const platformId of normalizedPlatforms) {
+            const relateUrl = `${API_BASE}/platforms/${platformId}/metrics`;
+            const relationPayloads = [
+                { metric_id: normalizedMetricId },
+                { metrics_ids: [normalizedMetricId] },
+                { metrics: [normalizedMetricId] },
+                { id: normalizedMetricId }
+            ];
+
+            let linked = false;
+
+            for (const payload of relationPayloads) {
+                const result = await postJson(relateUrl, payload);
+                console.log('[Metrics] platform-metric link attempt', {
+                    url: relateUrl,
+                    payload,
+                    status: result.status,
+                    response: result.data
+                });
+
+                if (result.ok) {
+                    linked = true;
+                    break;
+                }
+            }
+
+            if (!linked) {
+                throw new Error(`No se pudo vincular la plataforma ${platformId} a la métrica.`);
+            }
+        }
+    }
+
+    async function fetchMetricPlatforms(metricId) {
+        const res = await fetch(`${API_BASE}/metrics/${metricId}/platforms`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ platform_ids: platformIds || [] })
+            body: JSON.stringify({ metric_id: parseInt(metricId, 10) })
         });
+
+        let data = [];
+        try {
+            const decoded = await res.json();
+            data = Array.isArray(decoded?.data) ? decoded.data : (Array.isArray(decoded) ? decoded : []);
+        } catch (error) {
+            data = [];
+        }
+
+        if (!res.ok) {
+            return [];
+        }
+
+        return data;
     }
 
     $('#addMetricModal').on('shown.bs.modal', function () {
@@ -35,7 +163,13 @@ $(document).ready(function () {
             active: $('#newMetricActive').is(':checked') ? 1 : 0
         };
 
-        const selectedPlatforms = $('#newMetricPlatforms').val() || [];
+        const selectedPlatforms = normalizePlatformIds($('#newMetricPlatforms').val() || []);
+
+        console.log('[Metrics] create metric REQUEST', {
+            url: `${API_BASE}/metrics`,
+            payload,
+            selectedPlatforms
+        });
 
         fetch(`${API_BASE}/metrics`, {
             method: 'POST',
@@ -47,11 +181,15 @@ $(document).ready(function () {
         })
         .then(res => res.json())
         .then(async response => {
-            if (!response || !response.id) {
+            console.log('[Metrics] create metric RESPONSE', response);
+
+            const metricId = extractMetricId(response);
+
+            if (!metricId) {
                 throw new Error(response?.message || 'No se pudo crear la métrica.');
             }
 
-            await assignPlatforms(response.id, selectedPlatforms);
+            await syncMetricPlatforms(metricId, selectedPlatforms);
 
             swal({
                 icon: 'success',
@@ -65,6 +203,7 @@ $(document).ready(function () {
             });
         })
         .catch(err => {
+            console.error('[Metrics] create ERROR', err);
             swal({
                 icon: 'error',
                 title: 'Error',
@@ -92,8 +231,21 @@ $(document).ready(function () {
                 $('#editMetricCode').val(data.code || '');
                 $('#editMetricActive').prop('checked', !!data.active);
 
-                const platformIds = (data.platforms || []).map(platform => String(platform.id));
-                $('#editMetricPlatforms').val(platformIds).trigger('change');
+                const currentPlatforms = Array.isArray(data.platforms) ? data.platforms : [];
+                const currentPlatformIds = currentPlatforms.map(platform => String(platform.id));
+
+                if (currentPlatformIds.length === 0) {
+                    fetchMetricPlatforms(data.id)
+                        .then(platforms => {
+                            const platformIds = (platforms || []).map(platform => String(platform.id));
+                            $('#editMetricPlatforms').val(platformIds).trigger('change');
+                        })
+                        .catch(() => {
+                            $('#editMetricPlatforms').val([]).trigger('change');
+                        });
+                } else {
+                    $('#editMetricPlatforms').val(currentPlatformIds).trigger('change');
+                }
             }
         });
     });
@@ -108,7 +260,13 @@ $(document).ready(function () {
             active: $('#editMetricActive').is(':checked') ? 1 : 0
         };
 
-        const selectedPlatforms = $('#editMetricPlatforms').val() || [];
+        const selectedPlatforms = normalizePlatformIds($('#editMetricPlatforms').val() || []);
+
+        console.log('[Metrics] update metric REQUEST', {
+            url: `${API_BASE}/metrics/${metricId}`,
+            payload,
+            selectedPlatforms
+        });
 
         fetch(`${API_BASE}/metrics/${metricId}`, {
             method: 'PUT',
@@ -120,11 +278,9 @@ $(document).ready(function () {
         })
         .then(res => res.json())
         .then(async response => {
-            if (!response || !response.id) {
-                throw new Error(response?.message || 'No se pudo actualizar la métrica.');
-            }
+            console.log('[Metrics] update metric RESPONSE', response);
 
-            await assignPlatforms(metricId, selectedPlatforms);
+            await syncMetricPlatforms(metricId, selectedPlatforms);
 
             swal({
                 icon: 'success',
@@ -136,6 +292,7 @@ $(document).ready(function () {
             });
         })
         .catch(err => {
+            console.error('[Metrics] update ERROR', err);
             swal({
                 icon: 'error',
                 title: 'Error',
