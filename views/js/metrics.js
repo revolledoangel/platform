@@ -152,6 +152,7 @@ $(document).ready(function () {
 
     $('#addMetricModal').on('shown.bs.modal', function () {
         $('#newMetricPlatforms').val(null).trigger('change');
+        $('#newMetricRequiresEvent').prop('checked', false);
     });
 
     $('#addMetricForm').on('submit', function (e) {
@@ -190,6 +191,10 @@ $(document).ready(function () {
             }
 
             await syncMetricPlatforms(metricId, selectedPlatforms);
+
+            // Save requires_event locally
+            const requiresEvent = $('#newMetricRequiresEvent').is(':checked') ? 1 : 0;
+            await $.post('ajax/metrics.ajax.php', { save_requires_event: metricId, requires_event: requiresEvent });
 
             swal({
                 icon: 'success',
@@ -230,6 +235,11 @@ $(document).ready(function () {
                 $('#editMetricName').val(data.name || '');
                 $('#editMetricCode').val(data.code || '');
                 $('#editMetricActive').prop('checked', !!data.active);
+
+                // Load requires_event from local DB
+                $.get('ajax/metrics.ajax.php', { get_requires_event: data.id }, function(localData) {
+                    $('#editMetricRequiresEvent').prop('checked', !!localData.requires_event);
+                }, 'json');
 
                 const currentPlatforms = Array.isArray(data.platforms) ? data.platforms : [];
                 const currentPlatformIds = currentPlatforms.map(platform => String(platform.id));
@@ -281,6 +291,10 @@ $(document).ready(function () {
             console.log('[Metrics] update metric RESPONSE', response);
 
             await syncMetricPlatforms(metricId, selectedPlatforms);
+
+            // Save requires_event locally
+            const requiresEvent = $('#editMetricRequiresEvent').is(':checked') ? 1 : 0;
+            await $.post('ajax/metrics.ajax.php', { save_requires_event: metricId, requires_event: requiresEvent });
 
             swal({
                 icon: 'success',

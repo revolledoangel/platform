@@ -14,6 +14,16 @@ $(document).ready(function () {
                     // Cargar datos
                     $("input[name='editChannelId']").val(data.id);
                     $("input[name='editChannelName']").val(data.name);
+
+                    // Cargar plataformas asociadas
+                    $.ajax({
+                        url: 'ajax/channels.ajax.php?action=get_channel_platforms&channelId=' + idChannel,
+                        method: 'GET',
+                        dataType: 'json',
+                        success: function(platformIds) {
+                            $('#editChannelPlatforms').val(platformIds).trigger('change');
+                        }
+                    });
                 } else {
                     alert("No se pudo obtener la información del canal.");
                 }
@@ -57,15 +67,23 @@ $(document).ready(function () {
                     const updated = response;
                     const nombre = updated.name || "—";
 
-                    swal({
-                        icon: "success",
-                        title: "Canal actualizado correctamente",
-                        html: `
-                            <b>Nombre:</b> ${nombre}<br>
-                        `
-                    }).then(() => {
-                        $("#editChannelModal").modal("hide");
-                        location.reload();
+                    // Guardar plataformas asociadas
+                    var platformIds = $('#editChannelPlatforms').val() || [];
+                    $.ajax({
+                        url: 'ajax/channels.ajax.php',
+                        method: 'POST',
+                        data: { action: 'save_channel_platforms', channel_id: channelId, 'platform_ids[]': platformIds },
+                        dataType: 'json',
+                        complete: function() {
+                            swal({
+                                icon: "success",
+                                title: "Canal actualizado correctamente",
+                                html: `<b>Nombre:</b> ${nombre}<br>`
+                            }).then(() => {
+                                $("#editChannelModal").modal("hide");
+                                location.reload();
+                            });
+                        }
                     });
 
                 } else {
@@ -114,6 +132,24 @@ $(document).ready(function () {
         processing: true,
         language: {
             url: "https://cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+        }
+    });
+
+    // Cargar plataformas en los selectores de ambos modales
+    $.ajax({
+        url: 'ajax/channels.ajax.php?action=get_platforms',
+        method: 'GET',
+        dataType: 'json',
+        success: function(platforms) {
+            var opts = '';
+            platforms.forEach(function(p) {
+                opts += '<option value="' + p.id + '">' + p.name + '</option>';
+            });
+            $('#newChannelPlatforms, #editChannelPlatforms').html(opts);
+            if ($.fn.select2) {
+                $('#newChannelPlatforms').select2({ placeholder: 'Selecciona plataformas...', allowClear: true });
+                $('#editChannelPlatforms').select2({ placeholder: 'Selecciona plataformas...', allowClear: true, dropdownParent: $('#editChannelModal') });
+            }
         }
     });
 

@@ -87,56 +87,44 @@ if (isset($_POST['configMediaMixId']) &&
                                                 name="newPlatformId" required style="width:100%;"></select>
                                         </div>
                                         <div class="form-group">
+                                            <label>Objetivo medible (Métrica) <span class="text-danger">*</span></label>
+                                            <select class="form-control select2" id="newDetailMetric"
+                                                name="newMetricId" required style="width:100%;" disabled>
+                                                <option value="">Selecciona una plataforma primero</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="newEventNameGroup" style="display:none;">
+                                            <label>Nombre del evento o conversión <span class="text-danger">*</span></label>
+                                            <p class="text-danger" style="font-size:12px;margin-bottom:4px;"><i class="fa fa-exclamation-triangle"></i> Esta métrica requiere especificar el evento o conversión a medir.</p>
+                                            <input type="text" class="form-control" id="newDetailEventName" name="newEventName" placeholder="Ej: Compra, Registro, Lead...">
+                                        </div>
+                                        <div class="form-group">
                                             <label>Canal <span class="text-danger">*</span></label>
                                             <select class="form-control select2" id="newDetailChannel"
-                                                name="newChannelId" required style="width:100%;"></select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Tipo de Campaña <span class="text-danger">*</span></label>
-                                            <select class="form-control select2" id="newDetailCampaignType"
-                                                name="newCampaignTypeId" required style="width:100%;"></select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Segmentación <span class="text-danger">*</span></label>
-                                            <select class="form-control select2" id="newDetailSegmentation"
-                                                name="newSegmentation[]" multiple="multiple" required style="width:100%;">
-                                                <option value="Prospecting (Intereses / Comportamientos)">Prospecting
-                                                    (Intereses / Comportamientos)</option>
-                                                <option value="Prospecting (Palabras Clave Genéricas)">Prospecting
-                                                    (Palabras Clave Genéricas)</option>
-                                                <option value="Públicos Similares (Lookalikes - LAL)">Públicos Similares
-                                                    (Lookalikes - LAL)</option>
-                                                <option value="Prospecting Amplio / Automatizado">Prospecting Amplio /
-                                                    Automatizado</option>
-                                                <option value="Remarketing de Interacción">Remarketing de Interacción
-                                                </option>
-                                                <option value="Remarketing de Tráfico Web">Remarketing de Tráfico Web
-                                                </option>
-                                                <option value="Remarketing (Palabras Clave de Marca)">Remarketing
-                                                    (Palabras Clave de Marca)</option>
-                                                <option value="Remarketing de Alta Intención">Remarketing de Alta
-                                                    Intención</option>
-                                                <option value="Clientes Actuales (Compradores)">Clientes Actuales
-                                                    (Compradores)</option>
-                                                <option value="Clientes Potenciales (Leads)">Clientes Potenciales
-                                                    (Leads)</option>
+                                                name="newChannelId" required style="width:100%;" disabled>
+                                                <option value="">Selecciona una plataforma primero</option>
                                             </select>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label>Objetivo <span class="text-danger">*</span></label>
-                                            <select class="form-control select2" id="newDetailObjective"
-                                                name="newObjectiveId" required style="width:100%;"></select>
+                                            <label>Segmentación <span class="text-danger">*</span></label>
+                                            <select class="form-control select2" id="newDetailSegmentation"
+                                                name="newSegmentation[]" multiple="multiple" required style="width:100%;">
+                                                <option value="Prospecting (Intereses / Comportamientos)">Prospecting (Intereses / Comportamientos)</option>
+                                                <option value="Prospecting (Palabras Clave Genéricas)">Prospecting (Palabras Clave Genéricas)</option>
+                                                <option value="Públicos Similares (Lookalikes - LAL)">Públicos Similares (Lookalikes - LAL)</option>
+                                                <option value="Prospecting Amplio / Automatizado">Prospecting Amplio / Automatizado</option>
+                                                <option value="Remarketing de Interacción">Remarketing de Interacción</option>
+                                                <option value="Remarketing de Tráfico Web">Remarketing de Tráfico Web</option>
+                                                <option value="Remarketing (Palabras Clave de Marca)">Remarketing (Palabras Clave de Marca)</option>
+                                                <option value="Remarketing de Alta Intención">Remarketing de Alta Intención</option>
+                                                <option value="Clientes Actuales (Compradores)">Clientes Actuales (Compradores)</option>
+                                                <option value="Clientes Potenciales (Leads)">Clientes Potenciales (Leads)</option>
+                                            </select>
                                         </div>
                                         <div class="form-group">
-                                            <label>Tipo Resultado</label>
-                                            <input type="text" class="form-control" id="newDetailResultType"
-                                                name="newResultType" placeholder="Tipo de resultado" readonly>
-                                        </div>
-                                        <div class="form-group">
-                                            <label id="projectionLabel">Proyección <span
-                                                    class="text-danger">*</span></label>
+                                            <label id="projectionLabel">Proyección <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="newProjection"
                                                 id="newDetailProjection" min="0" step="1" required
                                                 placeholder="Ej: 1000">
@@ -219,35 +207,33 @@ if (isset($_POST['configMediaMixId']) &&
                                                 name="editPlatformId" required style="width:100%;"></select>
                                         </div>
                                         <div class="form-group">
-                                            <label>Canal <span class="text-danger">*</span></label>
-                                            <select class="form-control select2" id="editDetailChannel"
-                                                name="editChannelId" required style="width:100%;"></select>
+                                            <label>Objetivo medible (Métrica) <span class="text-danger">*</span></label>
+                                            <select class="form-control select2" id="editDetailMetric"
+                                                name="editMetricId" required style="width:100%;" disabled>
+                                                <option value="">Selecciona una plataforma primero</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="editEventNameGroup" style="display:none;">
+                                            <label>Nombre del evento o conversión <span class="text-danger">*</span></label>
+                                            <p class="text-danger" style="font-size:12px;margin-bottom:4px;"><i class="fa fa-exclamation-triangle"></i> Esta métrica requiere especificar el evento o conversión a medir.</p>
+                                            <input type="text" class="form-control" id="editDetailEventName" name="editEventName" placeholder="Ej: Compra, Registro, Lead...">
                                         </div>
                                         <div class="form-group">
-                                            <label>Tipo de Campaña <span class="text-danger">*</span></label>
-                                            <select class="form-control select2" id="editDetailCampaignType"
-                                                name="editCampaignTypeId" required style="width:100%;"></select>
+                                            <label>Canal <span class="text-danger">*</span></label>
+                                            <select class="form-control select2" id="editDetailChannel"
+                                                name="editChannelId" required style="width:100%;" disabled>
+                                                <option value="">Selecciona una plataforma primero</option>
+                                            </select>
                                         </div>
+                                    </div>
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Segmentación <span class="text-danger">*</span></label>
                                             <select class="form-control select2" id="editDetailSegmentation"
                                                 name="editSegmentation[]" multiple="multiple" required style="width:100%;"></select>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
                                         <div class="form-group">
-                                            <label>Objetivo <span class="text-danger">*</span></label>
-                                            <select class="form-control select2" id="editDetailObjective"
-                                                name="editObjectiveId" required style="width:100%;"></select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Tipo Resultado</label>
-                                            <input type="text" class="form-control" id="editDetailResultType"
-                                                name="editResultType" placeholder="Tipo de resultado" readonly>
-                                        </div>
-                                        <div class="form-group">
-                                            <label id="editProjectionLabel">Proyección <span
-                                                    class="text-danger">*</span></label>
+                                            <label id="editProjectionLabel">Proyección <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control" name="editProjection"
                                                 id="editDetailProjection" min="0" step="1" required
                                                 placeholder="Ej: 1000">
@@ -425,9 +411,7 @@ if (isset($_POST['configMediaMixId']) &&
                         <tr>
                             <th>Proyecto</th>
                             <th>Plataforma</th>
-                            <th>Objetivo</th>
                             <th>AON</th>
-                            <th>Tipo Campaña</th>
                             <th>Canal</th>
                             <th>Segmentación</th>
                             <th>Formatos</th>
@@ -435,6 +419,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <th>Distribución</th>
                             <th>Estado</th>
                             <th>Proyección</th>
+                            <th>Métrica</th>
                             <th>CPR</th>
                             <th style="width: 150px;">Acciones</th> <!-- Aumentado de 120px a 150px -->
                         </tr>
@@ -464,7 +449,7 @@ if (isset($_POST['configMediaMixId']) &&
                                 $firstPlatformRow = true;
                                 foreach ($rows as $d):
                                     $distribution = $projectTotal > 0 ? round(floatval($d['investment']) * 100 / $projectTotal, 2) : 0;
-                                    $projectionResult = htmlspecialchars($d['projection']) . ' ' . htmlspecialchars($d['result_type']);
+                                    $projectionResult = htmlspecialchars($d['projection']);
                         ?>
                         <tr>
                             <?php if ($firstProjectRow): ?>
@@ -473,9 +458,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <?php if ($firstPlatformRow): ?>
                             <td rowspan="<?php echo $platformRowspan; ?>" style="vertical-align: middle; text-align: center;"><?php echo htmlspecialchars($platform); ?></td>
                             <?php $firstPlatformRow = false; endif; ?>
-                            <td><?php echo isset($d['objectives_names'][0]) ? htmlspecialchars($d['objectives_names'][0]) : ''; ?></td>
                             <td><?php echo $d['aon'] ? 'Sí' : 'No'; ?></td>
-                            <td><?php echo htmlspecialchars($d['campaign_type_name']); ?></td>
                             <td><?php echo htmlspecialchars($d['channel_name']); ?></td>
                             <td><?php echo htmlspecialchars($d['segmentation']); ?></td>
                             <td><?php echo is_array($d['formats_names']) ? implode(', ', $d['formats_names']) : ''; ?></td>
@@ -483,17 +466,13 @@ if (isset($_POST['configMediaMixId']) &&
                             <td><?php echo $distribution . '%'; ?></td>
                             <td><?php echo htmlspecialchars($d['state']); ?></td>
                             <td><?php echo $projectionResult; ?></td>
+                            <td><?php echo htmlspecialchars($d['result_type'] ?? ''); ?></td>
                             <td><?php 
                                 $investment = floatval($d['investment']);
                                 $projection = floatval($d['projection']);
                                 if ($projection > 0) {
                                     $cpr = $investment / $projection;
-                                    if (isset($d['objectives_names'][0]) && strtolower($d['objectives_names'][0]) === 'alcance') {
-                                        $cpr *= 1000;
-                                        echo number_format($cpr, 2);
-                                    } else {
-                                        echo number_format($cpr, 2);
-                                    }
+                                    echo $cpr < 0.01 ? number_format($cpr, 4) : number_format($cpr, 2);
                                 } else {
                                     echo 'N/A';
                                 }
@@ -514,7 +493,7 @@ if (isset($_POST['configMediaMixId']) &&
                         
                         <!-- FILA DE SUBTOTAL POR PROYECTO - FUERA DEL ROWSPAN -->
                         <tr style="background:#f5f5f5;font-weight:bold;">
-                            <td colspan="8" style="text-align:right; padding-right: 10px;"></td>
+                            <td colspan="7" style="text-align:right; padding-right: 10px;"></td>
                             <td style="text-align:right;">
                                 <strong><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format($projectTotal, 2); ?></strong>
                             </td>
@@ -669,38 +648,23 @@ if (isset($_POST['configMediaMixId']) &&
     #detailsTable td, #detailsTable th {
         text-align: center !important;
         vertical-align: middle !important;
-    }    /* Mantener alineación a la derecha solo para montos y porcentajes */ #detailsTable td:nth-child(9),  /* Columna de Inversión */s: 50%; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);" 
-    #detailsTable td:nth-child(10)  /* Columna de Distribución */
-    {   <i class="fa fa-calculator" style="font-size: 20px;"></i>
+    }
+    /* Mantener alineación a la derecha solo para montos y porcentajes */
+    #detailsTable td:nth-child(9), /* Columna de Inversión */
+    #detailsTable td:nth-child(10) /* Columna de Distribución */ {
         text-align: right !important;
         vertical-align: middle !important;
     }
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     /* Centrar contenido de filas de subtotales */
-    #detailsTable tr[style*="background:#f5f5f5"] td {la */
-        text-align: center !important; {
+    #detailsTable tr[style*="background:#f5f5f5"] td {
+        text-align: center !important;
         vertical-align: middle !important;
-    }   vertical-align: middle !important;
-    }    /* Mantener alineación a la derecha solo para montos y porcentajes */
+    }
     /* Mantener alineación a la derecha para montos en subtotales */
     #detailsTable tr[style*="background:#f5f5f5"] td:nth-child(9),
     #detailsTable tr[style*="background:#f5f5f5"] td:nth-child(10) {
         text-align: right !important;
         vertical-align: middle !important;
-    }
-</style>
-<script>entrar contenido de filas de subtotales */
-    // Solo variables globales - NO FUNCIONESf5"] td {
-    window.mmreId = <?php echo (int) $mmre['id']; ?>;
-    window.clientName = <?php echo json_encode($mmre['client_name']); ?>;
-    window.currency = <?php echo json_encode($mmre['currency']); ?>;
-    window.periodName = <?php echo json_encode($mmre['period_name']); ?>;
-    window.mmreFee = <?php echo floatval($mmre['fee']); ?>;otales */
-    window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
-    window.mmreIgv = <?php echo floatval($mmre['igv']); ?>;ild(10) {
-    window.mmreNationalizationFee = <?php echo floatval($mmre['nationalization_fee'] ?? 30); ?>;ext-align: right !important;
-
-</script>        vertical-align: middle !important;
     }
 </style>
 <script>
@@ -712,4 +676,5 @@ if (isset($_POST['configMediaMixId']) &&
     window.mmreFee = <?php echo floatval($mmre['fee']); ?>;
     window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
     window.mmreIgv = <?php echo floatval($mmre['igv']); ?>;
+    window.mmreNationalizationFee = <?php echo floatval($mmre['nationalization_fee'] ?? 30); ?>;
 </script>

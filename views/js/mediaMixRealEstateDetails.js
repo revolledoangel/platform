@@ -1,8 +1,9 @@
 // Archivo limpio para comenzar desde cero
 var cachedProjects = null;
 var lastSelectedProject = null;
-var cachedObjectives = null;
-var lastSelectedObjective = null;
+var cachedMetricsByPlatform = {};
+var lastSelectedMetric = null;
+var defaultObjectiveId = null;
 var cachedPlatforms = null;
 var lastSelectedPlatform = null;
 var cachedChannels = null;
@@ -12,8 +13,6 @@ var lastSelectedFormats = [];
 var lastPlatformForFormats = null;
 var cachedCampaignTypes = null;
 var lastSelectedCampaignType = null;
-var lastResultTypeValue = '';
-var lastResultTypeAuto = true;
 
 // Opciones de segmentación centralizadas
 var segmentaciones = [
@@ -53,6 +52,19 @@ function renderSegmentaciones(selectId, selectedValues) {
 }
 
 $(document).ready(function () {
+    // Cargar un objetivo por defecto (requerido por la API aunque no se muestre al usuario)
+    $.ajax({
+        url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+        method: 'POST',
+        data: { get_objectives: 1 },
+        dataType: 'json',
+        success: function(data) {
+            if (Array.isArray(data) && data.length > 0) {
+                defaultObjectiveId = data[0].id;
+            }
+        }
+    });
+
     // Inicializar DataTable para la tabla de detalles
     // $('#detailsTable').DataTable({
     //     language: {
@@ -64,12 +76,11 @@ $(document).ready(function () {
     $('#addDetailModal').on('show.bs.modal', function () {
         var clientId = $(this).data('client-id');
         var $projectSelect = $('#newDetailProject');
-        var $objectiveSelect = $('#newDetailObjective');
+        var $metricSelect = $('#newDetailMetric');
         var $platformSelect = $('#newDetailPlatform');
         var $channelSelect = $('#newDetailChannel');
         var $formatSelect = $('#newDetailFormat');
         var $campaignTypeSelect = $('#newDetailCampaignType');
-        var $resultTypeInput = $('#newDetailResultType');
         // Proyectos (persistencia)
         if (cachedProjects && Array.isArray(cachedProjects) && cachedProjects.length > 0) {
             var options = '<option value="">-- Selecciona un proyecto --</option>';
@@ -105,40 +116,16 @@ $(document).ready(function () {
                 }
             });
         }
-        // Objetivos (persistencia)
-        if (cachedObjectives && Array.isArray(cachedObjectives) && cachedObjectives.length > 0) {
-            var options = '<option value="">-- Selecciona un objetivo --</option>';
-            cachedObjectives.forEach(function(obj) {
-                var selected = (lastSelectedObjective == obj.id) ? ' selected' : '';
-                options += '<option value="' + obj.id + '"' + selected + '>' + obj.name + '</option>';
+        // Objetivo medible (Métricas filtradas por plataforma) - inicia deshabilitado
+        $metricSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+        if (lastSelectedPlatform && cachedMetricsByPlatform[lastSelectedPlatform]) {
+            var mOpts = '<option value="">-- Selecciona una métrica --</option>';
+            cachedMetricsByPlatform[lastSelectedPlatform].forEach(function(m) {
+                var sel = (lastSelectedMetric == m.id) ? ' selected' : '';
+                mOpts += '<option value="' + m.id + '"' + sel + '>' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
             });
-            $objectiveSelect.html(options).prop('disabled', false);
-            if (lastSelectedObjective) $objectiveSelect.val(lastSelectedObjective).trigger('change');
-        } else {
-            $objectiveSelect.html('<option value="">Cargando objetivos...</option>').prop('disabled', true);
-            $.ajax({
-                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-                method: 'POST',
-                data: { get_objectives: 1 },
-                dataType: 'json',
-                success: function(objectives) {
-                    cachedObjectives = objectives;
-                    var options = '<option value="">-- Selecciona un objetivo --</option>';
-                    if (Array.isArray(objectives) && objectives.length > 0) {
-                        objectives.forEach(function(obj) {
-                            var selected = (lastSelectedObjective == obj.id) ? ' selected' : '';
-                            options += '<option value="' + obj.id + '"' + selected + '>' + obj.name + '</option>';
-                        });
-                        $objectiveSelect.html(options).prop('disabled', false);
-                        if (lastSelectedObjective) $objectiveSelect.val(lastSelectedObjective).trigger('change');
-                    } else {
-                        $objectiveSelect.html('<option value="">No hay objetivos</option>').prop('disabled', true);
-                    }
-                },
-                error: function() {
-                    $objectiveSelect.html('<option value="">Error al cargar objetivos</option>').prop('disabled', true);
-                }
-            });
+            $metricSelect.html(mOpts).prop('disabled', false);
+            if (lastSelectedMetric) $metricSelect.val(lastSelectedMetric).trigger('change');
         }
         // Plataformas (persistencia)
         if (cachedPlatforms && Array.isArray(cachedPlatforms) && cachedPlatforms.length > 0) {
@@ -222,61 +209,24 @@ $(document).ready(function () {
             $formatSelect.html(options).prop('disabled', false);
             if (lastSelectedFormats && lastSelectedFormats.length > 0) $formatSelect.val(lastSelectedFormats).trigger('change');
         }
-        // Tipos de campaña (persistencia)
-        if (cachedCampaignTypes && Array.isArray(cachedCampaignTypes) && cachedCampaignTypes.length > 0) {
-            var options = '<option value="">-- Selecciona un tipo de campaña --</option>';
-            cachedCampaignTypes.forEach(function(type) {
-                var selected = (lastSelectedCampaignType == type.id) ? ' selected' : '';
-                options += '<option value="' + type.id + '"' + selected + '>' + type.name + '</option>';
-            });
-            $campaignTypeSelect.html(options).prop('disabled', false);
-            if (lastSelectedCampaignType) $campaignTypeSelect.val(lastSelectedCampaignType).trigger('change');
-        } else {
-            $campaignTypeSelect.html('<option value="">Cargando tipos de campaña...</option>').prop('disabled', true);
-            $.ajax({
-                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-                method: 'POST',
-                data: { get_campaign_types: 1 },
-                dataType: 'json',
-                success: function(types) {
-                    cachedCampaignTypes = types;
-                    var options = '<option value="">-- Selecciona un tipo de campaña --</option>';
-                    if (Array.isArray(types) && types.length > 0) {
-                        types.forEach(function(type) {
-                            var selected = (lastSelectedCampaignType == type.id) ? ' selected' : '';
-                            options += '<option value="' + type.id + '"' + selected + '>' + type.name + '</option>';
-                        });
-                        $campaignTypeSelect.html(options).prop('disabled', false);
-                        if (lastSelectedCampaignType) $campaignTypeSelect.val(lastSelectedCampaignType).trigger('change');
-                    } else {
-                        $campaignTypeSelect.html('<option value="">No hay tipos de campaña</option>').prop('disabled', true);
-                    }
-                },
-                error: function() {
-                    $campaignTypeSelect.html('<option value="">Error al cargar tipos de campaña</option>').prop('disabled', true);
-                }
-            });
-        }
-        // Tipo Resultado (persistencia y lógica)
-        if (lastResultTypeValue) {
-            $resultTypeInput.val(lastResultTypeValue);
-            $resultTypeInput.prop('readonly', !lastResultTypeAuto);
-        } else {
-            $resultTypeInput.val('');
-            $resultTypeInput.prop('readonly', true);
-        }
         // Segmentaciones
         renderSegmentaciones('#newDetailSegmentation', []);
     });
-    // Cuando cambia la plataforma, carga los formatos correspondientes
+    // Cuando cambia la plataforma, carga formatos, métricas y canales correspondientes
     $('#newDetailPlatform').on('change', function () {
         var platformId = $(this).val();
         var $formatSelect = $('#newDetailFormat');
+        var $metricSelect = $('#newDetailMetric');
+        var $channelSelectP = $('#newDetailChannel');
         lastPlatformForFormats = platformId;
+        lastSelectedPlatform = platformId;
         if (!platformId) {
             $formatSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+            $metricSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+            $channelSelectP.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
             return;
         }
+        // Cargar formatos
         if (cachedFormatsByPlatform[platformId]) {
             var options = '';
             cachedFormatsByPlatform[platformId].forEach(function(fmt) {
@@ -311,43 +261,81 @@ $(document).ready(function () {
                 }
             });
         }
-    });
-    // Cuando cambia el objetivo, llena el campo de tipo resultado con default_result
-    $('#newDetailObjective').on('change', function () {
-        var selectedId = $(this).val();
-        var $resultTypeInput = $('#newDetailResultType');
-        var found = null;
-        if (cachedObjectives && Array.isArray(cachedObjectives)) {
-            found = cachedObjectives.find(function(obj) { return String(obj.id) === String(selectedId); });
-        }
-        if (found && found.default_result) {
-            $resultTypeInput.val(found.default_result);
-            $resultTypeInput.prop('readonly', false);
-            lastResultTypeAuto = true;
-            lastResultTypeValue = found.default_result;
+        // Cargar métricas por plataforma
+        $metricSelect.html('<option value="">Cargando métricas...</option>').prop('disabled', true);
+        if (cachedMetricsByPlatform[platformId]) {
+            var mOpts = '<option value="">-- Selecciona una métrica --</option>';
+            cachedMetricsByPlatform[platformId].forEach(function(m) {
+                mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '">' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
+            });
+            $metricSelect.html(mOpts).prop('disabled', false);
         } else {
-            $resultTypeInput.val('');
-            $resultTypeInput.prop('readonly', true);
-            lastResultTypeAuto = true;
-            lastResultTypeValue = '';
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { get_metrics_by_platform: platformId },
+                dataType: 'json',
+                success: function(metrics) {
+                    cachedMetricsByPlatform[platformId] = metrics;
+                    if (Array.isArray(metrics) && metrics.length > 0) {
+                        var mOpts = '<option value="">-- Selecciona una métrica --</option>';
+                        metrics.forEach(function(m) {
+                            mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '">' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
+                        });
+                        $metricSelect.html(mOpts).prop('disabled', false);
+                    } else {
+                        $metricSelect.html('<option value="">No hay métricas para esta plataforma</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $metricSelect.html('<option value="">Error al cargar métricas</option>').prop('disabled', true);
+                }
+            });
         }
+        // Cargar canales por plataforma
+        $channelSelectP.html('<option value="">Cargando canales...</option>').prop('disabled', true);
+        $.ajax({
+            url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+            method: 'POST',
+            data: { get_channels_by_platform: platformId },
+            dataType: 'json',
+            success: function(channels) {
+                if (Array.isArray(channels) && channels.length > 0) {
+                    var cOpts = '<option value="">-- Selecciona un canal --</option>';
+                    channels.forEach(function(chan) {
+                        var selected = (lastSelectedChannel == chan.id) ? ' selected' : '';
+                        cOpts += '<option value="' + chan.id + '"' + selected + '>' + chan.name + '</option>';
+                    });
+                    $channelSelectP.html(cOpts).prop('disabled', false);
+                    if (lastSelectedChannel) $channelSelectP.val(lastSelectedChannel).trigger('change');
+                } else {
+                    $channelSelectP.html('<option value="">No hay canales para esta plataforma</option>').prop('disabled', true);
+                }
+            },
+            error: function() {
+                $channelSelectP.html('<option value="">Error al cargar canales</option>').prop('disabled', true);
+            }
+        });
     });
-    // Si el usuario edita el campo manualmente, deja de ser automático
-    $('#newDetailResultType').on('input', function () {
-        lastResultTypeValue = $(this).val();
-        lastResultTypeAuto = false;
+    // Cuando cambia la métrica en add modal, muestra campo de evento si requiere
+    $('#newDetailMetric').on('change', function() {
+        var selectedOpt = $(this).find('option:selected');
+        var requiresEvent = parseInt(selectedOpt.data('requires-event')) || 0;
+        if (requiresEvent) {
+            $('#newEventNameGroup').show();
+        } else {
+            $('#newEventNameGroup').hide();
+            $('#newDetailEventName').val('');
+        }
     });
     // Guarda la selección previa al cerrar el modal
     $('#addDetailModal').on('hidden.bs.modal', function () {
         lastSelectedProject = $('#newDetailProject').val();
-        lastSelectedObjective = $('#newDetailObjective').val();
+        lastSelectedMetric = $('#newDetailMetric').val();
         lastSelectedPlatform = $('#newDetailPlatform').val();
         lastSelectedChannel = $('#newDetailChannel').val();
         lastSelectedFormats = $('#newDetailFormat').val() || [];
         lastPlatformForFormats = $('#newDetailPlatform').val();
-        lastSelectedCampaignType = $('#newDetailCampaignType').val();
-        lastResultTypeValue = $('#newDetailResultType').val();
-        lastResultTypeAuto = $('#newDetailResultType').prop('readonly') ? true : false;
     });
     // Guardar detalle
     $('#addDetailModal form').on('submit', function (e) {
@@ -357,11 +345,12 @@ $(document).ready(function () {
         var mediamixrealestate_id = typeof window.mmreId !== 'undefined' ? parseInt(window.mmreId) : null;
         var project_id = parseInt($('#newDetailProject').val());
         var channel_id = parseInt($('#newDetailChannel').val());
-        var campaign_type_id = parseInt($('#newDetailCampaignType').val());
         var segmentationArr = $('#newDetailSegmentation').val() || [];
         var segmentation = segmentationArr.join(', ');
-        var objectives_ids = $('#newDetailObjective').val() ? [parseInt($('#newDetailObjective').val())] : [];
-        var result_type = $('#newDetailResultType').val();
+        var selectedMetricId = $('#newDetailMetric').val();
+        var selectedMetricText = $('#newDetailMetric option:selected').text();
+        var result_type = selectedMetricText && selectedMetricId ? selectedMetricText.split(' (')[0] : '';
+        var event_name = $('#newDetailEventName').val().trim();
         var projection = parseInt($('#newDetailProjection').val());
         var formats_ids = $('#newDetailFormat').val() ? $('#newDetailFormat').val().map(function(x){return parseInt(x);}) : [];
         var investment = parseFloat($('#newDetailInvestment').val());
@@ -374,10 +363,10 @@ $(document).ready(function () {
         if (isNaN(mediamixrealestate_id)) missingFields.push('Mix de Medios');
         if (isNaN(project_id)) missingFields.push('Proyecto');
         if (isNaN(channel_id)) missingFields.push('Canal');
-        if (isNaN(campaign_type_id)) missingFields.push('Tipo de Campaña');
         if (!segmentation) missingFields.push('Segmentación');
-        if (!Array.isArray(objectives_ids) || objectives_ids.length === 0 || isNaN(objectives_ids[0])) missingFields.push('Objetivo');
-        if (result_type === undefined || result_type === null || result_type === '') missingFields.push('Tipo Resultado');
+        if (!selectedMetricId) missingFields.push('Objetivo medible (Métrica)');
+        var selectedMetricRequiresEvent = parseInt($('#newDetailMetric option:selected').data('requires-event')) || 0;
+        if (selectedMetricRequiresEvent && !event_name) missingFields.push('Nombre del evento o conversión');
         if (isNaN(projection)) missingFields.push('Proyección');
         if (!Array.isArray(formats_ids) || formats_ids.length === 0 || formats_ids.some(isNaN)) missingFields.push('Formato(s)');
         if (isNaN(investment)) missingFields.push('Inversión');
@@ -395,10 +384,11 @@ $(document).ready(function () {
             mediamixrealestate_id: mediamixrealestate_id,
             project_id: project_id,
             channel_id: channel_id,
-            campaign_type_id: campaign_type_id,
+            campaign_type_id: 1,
             segmentation: segmentation,
-            objectives_ids: objectives_ids,
-            result_type: result_type,
+            objectives_ids: defaultObjectiveId ? [defaultObjectiveId] : [1],
+            metric_id: parseInt(selectedMetricId),
+            result_type: event_name ? result_type + ' (' + event_name + ')' : result_type,
             projection: projection,
             formats_ids: formats_ids,
             investment: investment,
@@ -452,7 +442,7 @@ $(document).ready(function () {
             dataType: 'json',
             success: function(data) {
                 var ajaxCount = 0;
-                var totalAjax = 6;
+                var totalAjax = 5;
                 function showModalIfReady() {
                     ajaxCount++;
                     if (ajaxCount === totalAjax) {
@@ -491,11 +481,11 @@ $(document).ready(function () {
                         showModalIfReady();
                     }
                 });
-                // Canales
+                // Canales (dependiente de plataforma)
                 $.ajax({
                     url: 'ajax/mediaMixRealEstateDetails.ajax.php',
                     method: 'POST',
-                    data: { get_channels: 1 },
+                    data: { get_channels_by_platform: data.platform_id },
                     dataType: 'json',
                     success: function(channels) {
                         var options = '<option value="">-- Selecciona un canal --</option>';
@@ -507,35 +497,29 @@ $(document).ready(function () {
                         showModalIfReady();
                     }
                 });
-                // Tipos de campaña
+                // Métricas por plataforma (reemplaza objetivos)
                 $.ajax({
                     url: 'ajax/mediaMixRealEstateDetails.ajax.php',
                     method: 'POST',
-                    data: { get_campaign_types: 1 },
+                    data: { get_metrics_by_platform: data.platform_id },
                     dataType: 'json',
-                    success: function(types) {
-                        var options = '<option value="">-- Selecciona un tipo de campaña --</option>';
-                        types.forEach(function(type) {
-                            var selected = (data.campaign_type_id == type.id) ? ' selected' : '';
-                            options += '<option value="' + type.id + '"' + selected + '>' + type.name + '</option>';
+                    success: function(metrics) {
+                        cachedMetricsByPlatform[data.platform_id] = metrics;
+                        var mOpts = '<option value="">-- Selecciona una métrica --</option>';
+                        metrics.forEach(function(m) {
+                            var selected = (data.result_type && m.name === data.result_type) ? ' selected' : '';
+                            mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '"' + selected + '>' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
                         });
-                        $('#editDetailCampaignType').html(options).prop('disabled', false);
+                        $('#editDetailMetric').html(mOpts).prop('disabled', false);
+                        // Show event name field if pre-selected metric requires it
+                        var preSelected = $('#editDetailMetric option:selected');
+                        if (parseInt(preSelected.data('requires-event'))) {
+                            $('#editEventNameGroup').show();
+                        }
                         showModalIfReady();
-                    }
-                });
-                // Objetivos
-                $.ajax({
-                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-                    method: 'POST',
-                    data: { get_objectives: 1 },
-                    dataType: 'json',
-                    success: function(objectives) {
-                        var options = '<option value="">-- Selecciona un objetivo --</option>';
-                        objectives.forEach(function(obj) {
-                            var selected = (data.objectives_ids && data.objectives_ids.includes(obj.id)) ? ' selected' : '';
-                            options += '<option value="' + obj.id + '"' + selected + '>' + obj.name + '</option>';
-                        });
-                        $('#editDetailObjective').html(options).prop('disabled', false);
+                    },
+                    error: function() {
+                        $('#editDetailMetric').html('<option value="">Error al cargar métricas</option>').prop('disabled', true);
                         showModalIfReady();
                     }
                 });
@@ -570,13 +554,85 @@ $(document).ready(function () {
                     }
                 }, 100);
                 
-                $('#editDetailResultType').val(data.result_type).prop('readonly', false);
                 $('#editDetailProjection').val(data.projection);
                 $('#editDetailInvestment').val(data.investment);
                 $('#editDetailAon').prop('checked', data.aon == 1);
                 $('#editDetailComments').val(data.comments);
                 $('#editDetailStatus').val(data.state);
                 $('#editDetailId').val(data.id);
+            }
+        });
+    });
+    // Cuando cambia la métrica en edit modal, muestra campo de evento si requiere
+    $('#editDetailMetric').on('change', function() {
+        var selectedOpt = $(this).find('option:selected');
+        var requiresEvent = parseInt(selectedOpt.data('requires-event')) || 0;
+        if (requiresEvent) {
+            $('#editEventNameGroup').show();
+        } else {
+            $('#editEventNameGroup').hide();
+            $('#editDetailEventName').val('');
+        }
+    });
+    // Cuando cambia la plataforma en el modal editar, recarga las métricas y canales
+    $('#editDetailPlatform').on('change', function () {
+        var platformId = $(this).val();
+        var $metricSelect = $('#editDetailMetric');
+        if (!platformId) {
+            $metricSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+            $('#editDetailChannel').html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+            return;
+        }
+        $metricSelect.html('<option value="">Cargando métricas...</option>').prop('disabled', true);
+        if (cachedMetricsByPlatform[platformId]) {
+            var mOpts = '<option value="">-- Selecciona una métrica --</option>';
+            cachedMetricsByPlatform[platformId].forEach(function(m) {
+                mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '">' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
+            });
+            $metricSelect.html(mOpts).prop('disabled', false);
+        } else {
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { get_metrics_by_platform: platformId },
+                dataType: 'json',
+                success: function(metrics) {
+                    cachedMetricsByPlatform[platformId] = metrics;
+                    if (Array.isArray(metrics) && metrics.length > 0) {
+                        var mOpts = '<option value="">-- Selecciona una métrica --</option>';
+                        metrics.forEach(function(m) {
+                            mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '">' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
+                        });
+                        $metricSelect.html(mOpts).prop('disabled', false);
+                    } else {
+                        $metricSelect.html('<option value="">No hay métricas para esta plataforma</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $metricSelect.html('<option value="">Error al cargar métricas</option>').prop('disabled', true);
+                }
+            });
+        }
+        // Recargar canales por plataforma
+        $('#editDetailChannel').html('<option value="">Cargando canales...</option>').prop('disabled', true);
+        $.ajax({
+            url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+            method: 'POST',
+            data: { get_channels_by_platform: platformId },
+            dataType: 'json',
+            success: function(channels) {
+                if (Array.isArray(channels) && channels.length > 0) {
+                    var cOpts = '<option value="">-- Selecciona un canal --</option>';
+                    channels.forEach(function(chan) {
+                        cOpts += '<option value="' + chan.id + '">' + chan.name + '</option>';
+                    });
+                    $('#editDetailChannel').html(cOpts).prop('disabled', false);
+                } else {
+                    $('#editDetailChannel').html('<option value="">No hay canales para esta plataforma</option>').prop('disabled', true);
+                }
+            },
+            error: function() {
+                $('#editDetailChannel').html('<option value="">Error al cargar canales</option>').prop('disabled', true);
             }
         });
     });
@@ -588,11 +644,12 @@ $(document).ready(function () {
         var mediamixrealestate_id = typeof window.mmreId !== 'undefined' ? parseInt(window.mmreId) : null;
         var project_id = parseInt($('#editDetailProject').val());
         var channel_id = parseInt($('#editDetailChannel').val());
-        var campaign_type_id = parseInt($('#editDetailCampaignType').val());
         var segmentationArr = $('#editDetailSegmentation').val() || [];
         var segmentation = segmentationArr.join(', ');
-        var objectives_ids = $('#editDetailObjective').val() ? [parseInt($('#editDetailObjective').val())] : [];
-        var result_type = $('#editDetailResultType').val();
+        var selectedEditMetricId = $('#editDetailMetric').val();
+        var selectedEditMetricText = $('#editDetailMetric option:selected').text();
+        var result_type = selectedEditMetricText && selectedEditMetricId ? selectedEditMetricText.split(' (')[0] : '';
+        var event_name = $('#editDetailEventName').val().trim();
         var projection = parseInt($('#editDetailProjection').val());
         var formats_ids = $('#editDetailFormat').val() ? $('#editDetailFormat').val().map(function(x){return parseInt(x);}) : [];
         var investment = parseFloat($('#editDetailInvestment').val());
@@ -606,10 +663,10 @@ $(document).ready(function () {
         if (isNaN(mediamixrealestate_id)) missingFields.push('Mix de Medios');
         if (isNaN(project_id)) missingFields.push('Proyecto');
         if (isNaN(channel_id)) missingFields.push('Canal');
-        if (isNaN(campaign_type_id)) missingFields.push('Tipo de Campaña');
         if (!segmentation) missingFields.push('Segmentación');
-        if (!Array.isArray(objectives_ids) || objectives_ids.length === 0 || isNaN(objectives_ids[0])) missingFields.push('Objetivo');
-        if (result_type === undefined || result_type === null || result_type === '') missingFields.push('Tipo Resultado');
+        if (!selectedEditMetricId) missingFields.push('Objetivo medible (Métrica)');
+        var editMetricRequiresEvent = parseInt($('#editDetailMetric option:selected').data('requires-event')) || 0;
+        if (editMetricRequiresEvent && !event_name) missingFields.push('Nombre del evento o conversión');
         if (isNaN(projection)) missingFields.push('Proyección');
         if (!Array.isArray(formats_ids) || formats_ids.length === 0 || formats_ids.some(isNaN)) missingFields.push('Formato(s)');
         if (isNaN(investment)) missingFields.push('Inversión');
@@ -628,10 +685,11 @@ $(document).ready(function () {
             mediamixrealestate_id: mediamixrealestate_id,
             project_id: project_id,
             channel_id: channel_id,
-            campaign_type_id: campaign_type_id,
+            campaign_type_id: 1,
             segmentation: segmentation,
-            objectives_ids: objectives_ids,
-            result_type: result_type,
+            objectives_ids: defaultObjectiveId ? [defaultObjectiveId] : [1],
+            metric_id: parseInt(selectedEditMetricId),
+            result_type: event_name ? result_type + ' (' + event_name + ')' : result_type,
             projection: projection,
             formats_ids: formats_ids,
             investment: investment,
@@ -806,15 +864,16 @@ $(document).ready(function () {
             workbook.modified = new Date();
             
             // Establecer anchos de columna PRIMERO
-            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L,M
-            var columnWidths = [15, 15, 14, 6, 15, 15, 20, 15, 18, 14, 10, 12, 13, 15]; // Añadido 15 para la columna de acciones
+            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L
+            // Proyecto, Plataforma, AON, Canal, Segmentación, Formatos, Inversión, Distribución, Estado, Proyección, Métrica, CPR
+            var columnWidths = [15, 15, 6, 18, 22, 18, 16, 12, 14, 10, 22, 12];
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });
             
             // SECCIÓN 1: TÍTULO PRINCIPAL
             worksheet.addRow(['INFORMACIÓN DEL MIX DE MEDIOS']);
-            worksheet.mergeCells('A1:M1'); // Cambiado de L1 a M1
+            worksheet.mergeCells('A1:L1');
             var titleRow = worksheet.getRow(1);
             titleRow.getCell(1).font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
             titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF366092' } };
@@ -824,13 +883,12 @@ $(document).ready(function () {
             worksheet.addRow([]);
             
             // SECCIÓN 2: INFORMACIÓN DETALLADA OCUPANDO TODO EL ANCHO
-            // Crear filas que ocupen las 13 columnas (antes 12)
             var infoRows = [
-                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', '', ''],
-                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', '', ''], 
-                ['Período:', '', periodName, '', '', '', '', '', '', '', '', '', ''],
-                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', '', ''],
-                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '', '']
+                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', ''],
+                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', ''], 
+                ['Período:', '', periodName, '', '', '', '', '', '', '', '', ''],
+                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', ''],
+                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '']
             ];
             
             infoRows.forEach(function(rowData, index) {
@@ -850,8 +908,8 @@ $(document).ready(function () {
                     right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                 };
                 
-                // Merge del valor (columnas C-M)
-                worksheet.mergeCells(rowNumber, 3, rowNumber, 13); // Cambiado de 12 a 13
+                // Merge del valor (columnas C-L)
+                worksheet.mergeCells(rowNumber, 3, rowNumber, 12);
                 var valueCell = row.getCell(3);
                 valueCell.font = { name: 'Arial', size: 11, color: { argb: 'FF2F5F8F' } };
                 valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
@@ -903,9 +961,9 @@ $(document).ready(function () {
             
             // Headers de la tabla
             var headers = [
-                'Proyecto', 'Plataforma', 'Objetivo', 'AON', 'Tipo Campaña',
-                'Canal', 'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
-                'Distribución (%)', 'Estado', 'Proyección', 'CPR'
+                'Proyecto', 'Plataforma', 'AON', 'Canal',
+                'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
+                'Distribución (%)', 'Estado', 'Proyección', 'Métrica', 'CPR'
             ];
             var headerRow = worksheet.addRow(headers);
             
@@ -935,7 +993,7 @@ $(document).ready(function () {
                 var $row = $(this);
                 
                 // Crear fila para cada detalle
-                var excelRowData = new Array(13).fill('');
+                var excelRowData = new Array(12).fill('');
                 var colIndex = 0;
                 
                 $row.find('td').each(function() {
@@ -952,7 +1010,7 @@ $(document).ready(function () {
                     }
                     
                     // Si ya llegamos al límite de columnas, salir
-                    if (colIndex >= 13) {
+                    if (colIndex >= 12) {
                         return;
                     }
                     
@@ -966,7 +1024,7 @@ $(document).ready(function () {
                     // Marcar todas las celdas ocupadas por este elemento
                     for (var r = 0; r < rowspan; r++) {
                         for (var c = 0; c < colspan; c++) {
-                            if (colIndex + c < 13) {
+                            if (colIndex + c < 12) {
                                 occupiedCells[(rowIndex + r) + '_' + (colIndex + c)] = true;
                             }
                         }
@@ -997,31 +1055,31 @@ $(document).ready(function () {
                 // DETECTAR SUBTOTALES DE FORMA MÁS ESPECÍFICA Y CORRECTA
                 var isSubtotalRow = false;
                 
-                // Verificar si es fila de subtotal por el patrón exacto:
-                // - Las primeras 8 columnas vacías (debido a colspan="8")
-                // - Columna 9 con formato de moneda USD/PEN
-                // - Columna 10 con "100%"
+                // Verificar si es fila de subtotal:
+                // - Las primeras 7 columnas vacías (debido a colspan="7")
+                // - Columna 8 (index 7) con formato de moneda
+                // - Columna 9 (index 8) con "100%"
                 var emptyColumns = 0;
-                for (var i = 0; i < 8; i++) {
+                for (var i = 0; i < 7; i++) {
                     if (!rowData[i] || rowData[i] === '' || rowData[i] === null) {
                         emptyColumns++;
                     }
                 }
                 
-                if (emptyColumns === 8 && 
-                    rowData[8] && 
-                    rowData[8].match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
-                    rowData[9] === '100%') {
+                if (emptyColumns === 7 && 
+                    rowData[7] && 
+                    rowData[7].match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
+                    rowData[8] === '100%') {
                     
                     isSubtotalRow = true;
-                    console.log('✅ SUBTOTAL CORRECTO detectado en fila ' + index + ': ' + rowData[8]);
+                    console.log('✅ SUBTOTAL detectado en fila ' + index + ': ' + rowData[7]);
                 }
                 
                 if (isSubtotalRow) {
                     // Estilo especial para filas de subtotal
                     excelRow.eachCell(function(cell, colNumber) {
-                        if (colNumber <= 13) { // Asegurar que procese hasta la columna M
-                            if (colNumber === 9) { // Columna I - Solo el monto del subtotal
+                        if (colNumber <= 12) {
+                            if (colNumber === 8) { // Columna H - Inversión subtotal
                                 cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
                                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                                 cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
@@ -1033,12 +1091,12 @@ $(document).ready(function () {
                                 };
                                 
                                 // Formato numérico para subtotal
-                                var subtotalValue = parseFloat(rowData[8].replace(/,/g, ''));
+                                var subtotalValue = parseFloat(rowData[7].replace(/,/g, ''));
                                 if (!isNaN(subtotalValue)) {
                                     cell.value = subtotalValue;
                                     cell.numFmt = '"' + currency + '" #,##0.00';
                                 }
-                            } else if (colNumber === 10) { // Columna J - Distribución 100%
+                            } else if (colNumber === 9) { // Columna I - Distribución 100%
                                 cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
                                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                                 cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
@@ -1078,7 +1136,7 @@ $(document).ready(function () {
                         };
                         
                         // Alineación especial para columnas numéricas
-                        if (colNumber === 9 || colNumber === 10 || colNumber === 13) {
+                        if (colNumber === 7 || colNumber === 8 || colNumber === 12) {
                             cell.alignment.horizontal = 'right';
                         } else {
                             cell.alignment.horizontal = 'center';
@@ -1097,21 +1155,21 @@ $(document).ready(function () {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
                         }
 
-                        // Agregar CPR en columna 13 
-                        if (colNumber === 13) {
-                            var investment = parseFloat(String(rowData[8]).replace(/[^0-9.-]/g, ''));
-                            var projection = parseFloat(String(rowData[11]).replace(/[^0-9.-]/g, ''));
-                            var objective = rowData[2];
+                        // CPR en columna 12 (L)
+                        if (colNumber === 12) {
+                            var investment = parseFloat(String(rowData[6]).replace(/[^0-9.-]/g, ''));
+                            var projection = parseFloat(String(rowData[9]).replace(/[^0-9.-]/g, ''));
+                            var metricName = rowData[10];
                             
                             if (!isNaN(investment) && !isNaN(projection) && projection > 0) {
                                 var cpr = investment / projection;
-                                if (objective && objective.toLowerCase() === 'alcance') {
+                                if (metricName && metricName.toLowerCase().indexOf('alcance') !== -1) {
                                     cpr *= 1000;
                                     cell.value = parseFloat(cpr.toFixed(2));
                                     cell.numFmt = '#,##0.00" CPM"';
                                 } else {
-                                    cell.value = parseFloat(cpr.toFixed(2));
-                                    cell.numFmt = '#,##0.00" CPR"';
+                                    cell.value = parseFloat(cpr.toFixed(4));
+                                    cell.numFmt = '#,##0.0###" CPR"';
                                 }
                             } else {
                                 cell.value = 'N/A';
@@ -1154,10 +1212,9 @@ $(document).ready(function () {
             
             // INTEGRAR SOLO TOTALES GENERALES (SIN SUBTOTALES POR PROYECTO)
             // Agregar fila vacía para separar
-            var separatorRow = worksheet.addRow(['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', '', '']);
-            separatorRow.height = 15;
+            worksheet.addRow([]);
             
-            // Obtener totales del HTML - USAR EL VALOR QUE YA CALCULÓ PHP EN LA PÁGINA
+            // Obtener totales del HTML
             var inversionNeta = '0';
             var nacionalizacionLinkedin = '0';
             var hasNacionalizacion = false;
@@ -1217,35 +1274,34 @@ $(document).ready(function () {
             
             // Estructura de totales generales (incluir nacionalización si aplica)
             var totalsData = [
-                ['', '', '', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', '', '']
+                ['', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', '', '', '']
             ];
             
             // Agregar fila de nacionalización solo si existe
             if (hasNacionalizacion) {
-                totalsData.push(['', '', '', '', '', 'Nacionalización LinkedIn (' + nationalizationFeePercent + '%):', '', '', nacionalizacionLinkedin, '', '', '', '']);
+                totalsData.push(['', '', '', 'Nacionalización LinkedIn (' + nationalizationFeePercent + '%):', '', '', nacionalizacionLinkedin, '', '', '', '', '']);
             }
             
             // Continuar con resto de totales
-            totalsData.push(['', '', '', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', '', '']);
+            totalsData.push(['', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', '', '', '']);
             
-            // Subtotal con texto dinámico según si hay nacionalización
             var subtotalLabel = hasNacionalizacion ? 'Subtotal (Pauta + Nacionalización + Comisión):' : 'Subtotal (Pauta + Comisión):';
-            totalsData.push(['', '', '', '', '', subtotalLabel, '', '', pautaComision, '', '', '', '']);
+            totalsData.push(['', '', '', subtotalLabel, '', '', pautaComision, '', '', '', '', '']);
             
-            totalsData.push(['', '', '', '', '', 'IGV (' + igvPercent + '%):', '', '', igvValue, '', '', '', '']);
-            totalsData.push(['', '', '', '', '', '', '', '', '', '', '', '', '']); // Fila vacía
-            totalsData.push(['', '', '', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '', '']);
+            totalsData.push(['', '', '', 'IGV (' + igvPercent + '%):', '', '', igvValue, '', '', '', '', '']);
+            totalsData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Fila vacía
+            totalsData.push(['', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '', '', '']);
             
             totalsData.forEach(function(rowData, index) {
                 var row = worksheet.addRow(rowData);
-                var isFinalTotal = rowData[5] && rowData[5].includes('TOTAL INVERSIÓN + IGV');
-                var isGeneralTotal = rowData[5] && (rowData[5].includes('Inversión Neta') || rowData[5].includes('Nacionalización') || rowData[5].includes('Comisión') || rowData[5].includes('Subtotal (Pauta') || rowData[5].includes('IGV'));
-                var isNacionalizacion = rowData[5] && rowData[5].includes('Nacionalización LinkedIn');
+                var isFinalTotal = rowData[3] && rowData[3].includes('TOTAL INVERSIÓN + IGV');
+                var isGeneralTotal = rowData[3] && (rowData[3].includes('Inversión Neta') || rowData[3].includes('Nacionalización') || rowData[3].includes('Comisión') || rowData[3].includes('Subtotal (Pauta') || rowData[3].includes('IGV'));
+                var isNacionalizacion = rowData[3] && rowData[3].includes('Nacionalización LinkedIn');
                 
                 if (isFinalTotal) { // Total final
-                    // Merge etiqueta (columnas F-H)
-                    worksheet.mergeCells(row.number, 6, row.number, 8);
-                    var labelCell = row.getCell(6);
+                    // Merge etiqueta (columnas D-F)
+                    worksheet.mergeCells(row.number, 4, row.number, 6);
+                    var labelCell = row.getCell(4);
                     labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
                     labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
                     labelCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -1256,14 +1312,14 @@ $(document).ready(function () {
                         right: { style: 'medium', color: { argb: 'FF28A745' } }
                     };
                     
-                    // Valor en columna I (numérico con formato)
+                    // Valor en columna G (inversión)
                     var numericTotal = parseFloat(totalFinal) || 0;
-                    row.getCell(9).value = numericTotal;
-                    row.getCell(9).numFmt = '"' + currency + '" #,##0.00';
-                    row.getCell(9).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(9).border = {
+                    row.getCell(7).value = numericTotal;
+                    row.getCell(7).numFmt = '"' + currency + '" #,##0.00';
+                    row.getCell(7).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                    row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                    row.getCell(7).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(7).border = {
                         top: { style: 'medium', color: { argb: 'FF28A745' } },
                         left: { style: 'medium', color: { argb: 'FF28A745' } },
                         bottom: { style: 'medium', color: { argb: 'FF28A745' } },
@@ -1273,11 +1329,11 @@ $(document).ready(function () {
                     row.height = 35;
                     
                 } else if (isGeneralTotal) { // Totales generales
-                    var isSubtotal = rowData[5].includes('Subtotal (Pauta');
+                    var isSubtotal = rowData[3].includes('Subtotal (Pauta');
                     
-                    // Merge etiqueta (columnas F-H)
-                    worksheet.mergeCells(row.number, 6, row.number, 8);
-                    var labelCell = row.getCell(6);
+                    // Merge etiqueta (columnas D-F)
+                    worksheet.mergeCells(row.number, 4, row.number, 6);
+                    var labelCell = row.getCell(4);
                     
                     // Estilo para nacionalización (mismo estilo que otros totales, sin color destacado)
                     if (isNacionalizacion) {
@@ -1298,23 +1354,23 @@ $(document).ready(function () {
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
                     
-                    // Valor en columna I (numérico)
-                    var numericVal = parseFloat(rowData[8]) || 0;
-                    row.getCell(9).value = numericVal;
-                    row.getCell(9).numFmt = '"' + currency + '" #,##0.00';
+                    // Valor en columna G (inversión)
+                    var numericVal = parseFloat(rowData[6]) || 0;
+                    row.getCell(7).value = numericVal;
+                    row.getCell(7).numFmt = '"' + currency + '" #,##0.00';
                     
                     if (isNacionalizacion) {
-                        row.getCell(9).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        row.getCell(7).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     } else if (isSubtotal) {
-                        row.getCell(9).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
+                        row.getCell(7).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
                     } else {
-                        row.getCell(9).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(9).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        row.getCell(7).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     }
-                    row.getCell(9).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(9).border = {
+                    row.getCell(7).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(7).border = {
                         top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },

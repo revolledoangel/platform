@@ -33,6 +33,7 @@ if (!is_array($platforms)) {
                             <th>Código</th>
                             <th>Estado</th>
                             <th>Plataforma(s)</th>
+                            <th>Req. Evento/Conv.</th>
                             <th style="width:100px">Acciones</th>
                         </tr>
                     </thead>
@@ -62,13 +63,14 @@ if (!is_array($platforms)) {
                         </div>
 
                         <div class="form-group">
-                            <label for="newMetricCode">Código</label>
-                            <input type="text" class="form-control" id="newMetricCode" placeholder="Ej: CPC">
+                            <label>
+                                <input type="checkbox" id="newMetricActive" checked> Activo
+                            </label>
                         </div>
 
                         <div class="form-group">
                             <label>
-                                <input type="checkbox" id="newMetricActive" checked> Activo
+                                <input type="checkbox" id="newMetricRequiresEvent"> Requiere especificar evento o conversión
                             </label>
                         </div>
 
@@ -116,12 +118,18 @@ if (!is_array($platforms)) {
 
                         <div class="form-group">
                             <label for="editMetricCode">Código</label>
-                            <input type="text" class="form-control" id="editMetricCode">
+                               <input type="text" class="form-control" id="editMetricCode" readonly>
                         </div>
 
                         <div class="form-group">
                             <label>
                                 <input type="checkbox" id="editMetricActive"> Activo
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="editMetricRequiresEvent"> Requiere especificar evento o conversión
                             </label>
                         </div>
 

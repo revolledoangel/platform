@@ -52,6 +52,21 @@ class Channels_Controller
 
                 if ($httpCode === 201) {
                     $channel = $responseData;
+
+                    // Guardar plataformas asociadas en BD local
+                    if (!empty($_POST['newChannelPlatforms'])) {
+                        $channelId = intval($channel['id']);
+                        $platformIds = array_map('intval', (array)$_POST['newChannelPlatforms']);
+                        $dbConn = new mysqli('srv1013.hstgr.io', 'u961992735_plataforma', 'Peru+*963.', 'u961992735_plataforma', 3306);
+                        if (!$dbConn->connect_error) {
+                            $dbConn->query("DELETE FROM channel_platform WHERE channel_id = $channelId");
+                            foreach ($platformIds as $pid) {
+                                if ($pid > 0) $dbConn->query("INSERT INTO channel_platform (channel_id, platform_id) VALUES ($channelId, $pid)");
+                            }
+                            $dbConn->close();
+                        }
+                    }
+
                     $name = htmlspecialchars($channel["name"]);
                     
                     $mensaje = "Nombre: $name\n";

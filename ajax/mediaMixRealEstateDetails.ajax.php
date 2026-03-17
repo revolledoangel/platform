@@ -49,6 +49,37 @@ if (isset($_POST['get_channels'])) {
     exit;
 }
 
+if (isset($_POST['get_channels_by_platform'])) {
+    $platform_id = intval($_POST['get_channels_by_platform']);
+    $host = 'srv1013.hstgr.io';
+    $port = 3306;
+    $db   = 'u961992735_plataforma';
+    $user = 'u961992735_plataforma';
+    $pass = 'Peru+*963.';
+    $conn = new mysqli($host, $user, $pass, $db, $port);
+    if ($conn->connect_error) { echo json_encode([]); exit; }
+    // Check if there are channel mappings for this platform
+    $checkSql = "SELECT COUNT(*) AS cnt FROM channel_platform WHERE platform_id = $platform_id";
+    $checkRes = $conn->query($checkSql);
+    $checkRow = $checkRes ? $checkRes->fetch_assoc() : ['cnt' => 0];
+    if (intval($checkRow['cnt']) > 0) {
+        $sql = "SELECT ch.id, ch.name FROM channels ch INNER JOIN channel_platform cp ON cp.channel_id = ch.id WHERE cp.platform_id = $platform_id ORDER BY ch.name ASC";
+    } else {
+        // No specific mapping — return all channels
+        $sql = "SELECT id, name FROM channels ORDER BY name ASC";
+    }
+    $res = $conn->query($sql);
+    $channels = [];
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $channels[] = $row;
+        }
+    }
+    $conn->close();
+    echo json_encode($channels);
+    exit;
+}
+
 if (isset($_POST['platform_id'])) {
     $host = 'srv1013.hstgr.io';
     $port = 3306;
@@ -78,6 +109,32 @@ if (isset($_POST['get_campaign_types'])) {
     $types = MediaMixRealEstateDetails_Controller::ctrGetCampaignTypes();
     header('Content-Type: application/json');
     echo json_encode($types);
+    exit;
+}
+
+if (isset($_POST['get_metrics_by_platform'])) {
+    $platform_id = intval($_POST['get_metrics_by_platform']);
+    $host = 'srv1013.hstgr.io';
+    $port = 3306;
+    $db   = 'u961992735_plataforma';
+    $user = 'u961992735_plataforma';
+    $pass = 'Peru+*963.';
+    $conn = new mysqli($host, $user, $pass, $db, $port);
+    if ($conn->connect_error) { echo json_encode([]); exit; }
+    $sql = "SELECT m.id, m.name, m.code, m.requires_event
+            FROM metrics m
+            INNER JOIN metric_platform mp ON mp.metric_id = m.id
+            WHERE mp.platform_id = $platform_id AND m.active = 1
+            ORDER BY m.name ASC";
+    $res = $conn->query($sql);
+    $filtered = [];
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $filtered[] = $row;
+        }
+    }
+    $conn->close();
+    echo json_encode($filtered);
     exit;
 }
 

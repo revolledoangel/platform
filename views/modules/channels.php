@@ -25,6 +25,7 @@
                             <tr>
                                 <th style="width:10px">#</th>
                                 <th>Nombre</th>
+                                <th>Plataformas</th>
                                 <th style="max-width:150px">Acciones</th>
                             </tr>
                         </thead>
@@ -53,6 +54,10 @@
                                 <span class="input-group-addon"><i style="width: 25px;" class="fa fa-sitemap"></i></span>
                                 <input type="text" class="form-control" placeholder="Nombre del Canal" name="newChannelName" required autocomplete="off">
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Plataformas asociadas</label>
+                            <select class="form-control select2" name="newChannelPlatforms[]" id="newChannelPlatforms" multiple style="width:100%;"></select>
                         </div>
                     </div>
                 </div>
@@ -88,6 +93,10 @@
                                 </span>
                                 <input type="text" class="form-control" name="editChannelName" placeholder="Nombre del canal" required autocomplete="off">
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Plataformas asociadas</label>
+                            <select class="form-control select2" name="editChannelPlatforms[]" id="editChannelPlatforms" multiple style="width:100%;"></select>
                         </div>
                     </div>
                 </div>
