@@ -1,3 +1,19 @@
+/* Login page */
+.login-page {
+    background-color: #4614ff !important;
+}
+
+.login-page .btn-warning {
+    background-color: #f79140 !important;
+    border-color: #f79140 !important;
+}
+
+.login-page .btn-warning:hover,
+.login-page .btn-warning:focus {
+    background-color: #e07e2e !important;
+    border-color: #e07e2e !important;
+}
+
 .generated-url code {
     display: block;
     white-space: nowrap;

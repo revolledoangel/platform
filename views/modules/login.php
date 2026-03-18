@@ -5,7 +5,7 @@ require_once "controllers/users.controller.php";
 <div class="login-box">
 
     <div class="login-logo">
-        <img src="views/img/template/algoritmo-logo-largo.png" class="img-responsive" style="padding:30px 100px 0 100px"
+        <img src="views/img/template/LogoPlanix_blanco.png" class="img-responsive" style="padding:30px 100px 0 100px"
             alt="Logo de Algoritmo">
     </div>
     <!-- /.login-logo -->

@@ -160,7 +160,6 @@ $(document).ready(function () {
 
         const payload = {
             name: $('#newMetricName').val().trim(),
-            code: $('#newMetricCode').val().trim(),
             active: $('#newMetricActive').is(':checked') ? 1 : 0
         };
 
