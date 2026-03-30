@@ -480,10 +480,11 @@ if (isset($_POST['configMediaMixId']) &&
                             <td style="white-space: nowrap;">
                                 <button class="btn btn-xs btn-warning btn-editDetail" title="Editar" data-detail-id="<?php echo $d['id']; ?>"><i class="fa fa-pencil"></i></button>
                                 <button class="btn btn-xs btn-info btn-copyCode" 
-                                        title="Código: <?php echo htmlspecialchars($d['platform_code'] . $mmre['client_code'] . $d['project_code']); ?>, Plataforma: <?php echo htmlspecialchars($d['platform_name']); ?> (<?php echo htmlspecialchars($d['platform_code']); ?>) + Cliente: <?php echo htmlspecialchars($mmre['client_name']); ?> (<?php echo htmlspecialchars($mmre['client_code']); ?>) + Proyecto: <?php echo htmlspecialchars($d['project_name']); ?> (<?php echo htmlspecialchars($d['project_code']); ?>)"
+                                        title="Código: <?php echo htmlspecialchars($d['platform_code'] . $mmre['client_code'] . $d['project_code'] . ($d['metric_code'] ?? '')); ?>, Plataforma: <?php echo htmlspecialchars($d['platform_name']); ?> (<?php echo htmlspecialchars($d['platform_code']); ?>) + Cliente: <?php echo htmlspecialchars($mmre['client_name']); ?> (<?php echo htmlspecialchars($mmre['client_code']); ?>) + Proyecto: <?php echo htmlspecialchars($d['project_name']); ?> (<?php echo htmlspecialchars($d['project_code']); ?>) + Métrica: <?php echo htmlspecialchars($d['metric_code'] ?? ''); ?>"
                                         data-platform-code="<?php echo htmlspecialchars($d['platform_code']); ?>"
                                         data-client-code="<?php echo htmlspecialchars($mmre['client_code']); ?>"
-                                        data-project-code="<?php echo htmlspecialchars($d['project_code']); ?>">
+                                        data-project-code="<?php echo htmlspecialchars($d['project_code']); ?>"
+                                        data-metric-code="<?php echo htmlspecialchars($d['metric_code'] ?? ''); ?>">
                                     <i class="fa fa-copy"></i>
                                 </button>
                                 <button class="btn btn-xs btn-danger" title="Eliminar"><i class="fa fa-trash"></i></button>

@@ -29,11 +29,13 @@ class MediaMixRealEstateDetails_Controller {
         // Detalles con códigos de proyecto
         $details = [];
         $sql = "SELECT d.*, p.name AS project_name, p.code AS project_code, p.group AS project_group, p.active AS project_active,
-                       ch.name AS channel_name, ct.name AS campaign_type_name
+                       ch.name AS channel_name, ct.name AS campaign_type_name,
+                       mt.code AS metric_code
                 FROM mediamixrealestate_details d
                 LEFT JOIN projects p ON d.project_id = p.id
                 LEFT JOIN channels ch ON d.channel_id = ch.id
                 LEFT JOIN campaign_types ct ON d.campaign_type_id = ct.id
+                LEFT JOIN metrics mt ON d.metric_id = mt.id
                 WHERE d.mediamixrealestate_id = $mmreId";
         $res = $conn->query($sql);
         if ($res) {

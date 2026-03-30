@@ -765,8 +765,8 @@ $(document).ready(function () {
         });
     });
     // Nueva función para generar y copiar código
-    function generateAndCopyCode(platformCode, clientCode, projectCode) {
-        var fullCode = (platformCode || '') + (clientCode || '') + (projectCode || '');
+    function generateAndCopyCode(platformCode, clientCode, projectCode, metricCode) {
+        var fullCode = (platformCode || '') + (clientCode || '') + (projectCode || '') + (metricCode || '');
         
         // Copiar al portapapeles
         if (navigator.clipboard && window.isSecureContext) {
@@ -829,8 +829,9 @@ $(document).ready(function () {
         var platformCode = $(this).data('platform-code') || '';
         var clientCode = $(this).data('client-code') || '';
         var projectCode = $(this).data('project-code') || '';
+        var metricCode = $(this).data('metric-code') || '';
         
-        generateAndCopyCode(platformCode, clientCode, projectCode);
+        generateAndCopyCode(platformCode, clientCode, projectCode, metricCode);
     });
     // Función para exportar tabla a Excel con estilos modernos - ÚNICA VERSIÓN
     function exportTableToExcel() {
