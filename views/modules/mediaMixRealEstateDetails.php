@@ -450,8 +450,9 @@ if (isset($_POST['configMediaMixId']) &&
                                 foreach ($rows as $d):
                                     $distribution = $projectTotal > 0 ? round(floatval($d['investment']) * 100 / $projectTotal, 2) : 0;
                                     $projectionResult = htmlspecialchars($d['projection']);
+                                    $hasMetric = !empty($d['metric_code']) && !empty($d['metric_is_valid']);
                         ?>
-                        <tr>
+                        <tr<?php if (!$hasMetric): ?> style="background:#fff3cd;" title="Este detalle no tiene una métrica asignada"<?php endif; ?>>
                             <?php if ($firstProjectRow): ?>
                             <td rowspan="<?php echo $projectRowspan; ?>" style="vertical-align: middle; text-align: center;"><strong><?php echo htmlspecialchars($project); ?></strong></td>
                             <?php $firstProjectRow = false; endif; ?>
@@ -466,7 +467,11 @@ if (isset($_POST['configMediaMixId']) &&
                             <td><?php echo $distribution . '%'; ?></td>
                             <td><?php echo htmlspecialchars($d['state']); ?></td>
                             <td><?php echo $projectionResult; ?></td>
-                            <td><?php echo htmlspecialchars($d['result_type'] ?? ''); ?></td>
+                            <td><?php if ($hasMetric): ?>
+                                <?php echo htmlspecialchars($d['result_type'] ?? ''); ?>
+                            <?php else: ?>
+                                <span class="label label-warning" title="Edita este detalle y asigna una métrica"><i class="fa fa-exclamation-triangle"></i> Sin métrica</span>
+                            <?php endif; ?></td>
                             <td><?php 
                                 $investment = floatval($d['investment']);
                                 $projection = floatval($d['projection']);
@@ -480,11 +485,11 @@ if (isset($_POST['configMediaMixId']) &&
                             <td style="white-space: nowrap;">
                                 <button class="btn btn-xs btn-warning btn-editDetail" title="Editar" data-detail-id="<?php echo $d['id']; ?>"><i class="fa fa-pencil"></i></button>
                                 <button class="btn btn-xs btn-info btn-copyCode" 
-                                        title="Código: <?php echo htmlspecialchars($d['platform_code'] . $mmre['client_code'] . $d['project_code'] . ($d['metric_code'] ?? '')); ?>, Plataforma: <?php echo htmlspecialchars($d['platform_name']); ?> (<?php echo htmlspecialchars($d['platform_code']); ?>) + Cliente: <?php echo htmlspecialchars($mmre['client_name']); ?> (<?php echo htmlspecialchars($mmre['client_code']); ?>) + Proyecto: <?php echo htmlspecialchars($d['project_name']); ?> (<?php echo htmlspecialchars($d['project_code']); ?>) + Métrica: <?php echo htmlspecialchars($d['metric_code'] ?? ''); ?>"
+                                        title="Código: <?php $metricCodeDisplay = $hasMetric ? ($d['metric_code'] ?? '') : ''; echo htmlspecialchars($d['platform_code'] . $mmre['client_code'] . $d['project_code'] . $metricCodeDisplay); ?>, Plataforma: <?php echo htmlspecialchars($d['platform_name']); ?> (<?php echo htmlspecialchars($d['platform_code']); ?>) + Cliente: <?php echo htmlspecialchars($mmre['client_name']); ?> (<?php echo htmlspecialchars($mmre['client_code']); ?>) + Proyecto: <?php echo htmlspecialchars($d['project_name']); ?> (<?php echo htmlspecialchars($d['project_code']); ?>)<?php if ($hasMetric): ?> + Métrica: <?php echo htmlspecialchars($d['metric_code'] ?? ''); ?><?php endif; ?>"
                                         data-platform-code="<?php echo htmlspecialchars($d['platform_code']); ?>"
                                         data-client-code="<?php echo htmlspecialchars($mmre['client_code']); ?>"
                                         data-project-code="<?php echo htmlspecialchars($d['project_code']); ?>"
-                                        data-metric-code="<?php echo htmlspecialchars($d['metric_code'] ?? ''); ?>">
+                                        data-metric-code="<?php echo $hasMetric ? htmlspecialchars($d['metric_code']) : ''; ?>">
                                     <i class="fa fa-copy"></i>
                                 </button>
                                 <button class="btn btn-xs btn-danger" title="Eliminar"><i class="fa fa-trash"></i></button>

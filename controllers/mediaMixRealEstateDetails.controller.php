@@ -30,12 +30,31 @@ class MediaMixRealEstateDetails_Controller {
         $details = [];
         $sql = "SELECT d.*, p.name AS project_name, p.code AS project_code, p.group AS project_group, p.active AS project_active,
                        ch.name AS channel_name, ct.name AS campaign_type_name,
-                       mt.code AS metric_code
+                       mt.code AS metric_code,
+                       (SELECT COUNT(*) FROM metrics m3
+                            WHERE m3.name = d.result_type
+                               OR d.result_type LIKE CONCAT(m3.name, ' (%')
+                        ) AS metric_is_valid
                 FROM mediamixrealestate_details d
                 LEFT JOIN projects p ON d.project_id = p.id
                 LEFT JOIN channels ch ON d.channel_id = ch.id
                 LEFT JOIN campaign_types ct ON d.campaign_type_id = ct.id
-                LEFT JOIN metrics mt ON d.metric_id = mt.id
+                LEFT JOIN metrics mt ON mt.id = (
+                    SELECT m2.id FROM metrics m2
+                    WHERE m2.name = d.result_type
+                       OR d.result_type LIKE CONCAT(m2.name, ' (%')
+                       OR m2.name LIKE CONCAT(d.result_type, ' (%')
+                       OR m2.name LIKE CONCAT(d.result_type, ' %')
+                    ORDER BY
+                        CASE
+                            WHEN m2.name = d.result_type THEN 0
+                            WHEN d.result_type LIKE CONCAT(m2.name, ' (%') THEN 1
+                            WHEN m2.name LIKE CONCAT(d.result_type, ' (%') THEN 2
+                            ELSE 3
+                        END,
+                        LENGTH(m2.name) ASC
+                    LIMIT 1
+                )
                 WHERE d.mediamixrealestate_id = $mmreId";
         $res = $conn->query($sql);
         if ($res) {
