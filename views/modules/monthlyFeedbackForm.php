@@ -108,18 +108,7 @@ if ($feedback) {
     margin-bottom: 48px;
   }
 
-  .hero-period {
-    display: inline-block;
-    background: var(--magenta);
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 8px 20px;
-    border-radius: 30px;
-    margin-bottom: 20px;
-  }
+
 
   .hero h1 {
     font-family: 'Bebas Neue', sans-serif;
@@ -620,7 +609,7 @@ if ($feedback) {
 
 <header class="header">
   <div class="logo"><img src="views/img/template/algoritmo-logo-largo.png" alt="Algoritmo Digital" style="height:32px;"></div>
-  <div class="header-badge">Feedback Mensual</div>
+  <div class="header-badge"><?php echo htmlspecialchars($clientName); ?></div>
 </header>
 
 <div class="container">
@@ -637,7 +626,7 @@ if ($feedback) {
 
   <!-- HERO -->
   <div class="hero">
-    <span class="hero-period" id="heroPeriod"><?php echo $clientName; ?></span>
+    <span id="heroPeriod"><?php echo $clientName; ?></span>
     <h1>Feedback<br><span>Mensual</span></h1>
     <p>Completar este formulario toma menos de 5 minutos y nos ayuda a mejorar tus resultados.</p>
   </div>
