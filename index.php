@@ -79,6 +79,15 @@ $moduleDependencies = [
         ['controller' => 'channels.controller.php', 'model' => 'channels.model.php'],
         ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
         ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
+    ],
+    'monthlyFeedback' => [
+        ['controller' => 'monthlyFeedback.controller.php', 'model' => 'monthlyFeedback.model.php'],
+        ['controller' => 'clients.controller.php', 'model' => 'clients.model.php'],
+        ['controller' => 'periods.controller.php', 'model' => null]
+    ],
+    'monthlyFeedbackForm' => [
+        ['controller' => 'monthlyFeedback.controller.php', 'model' => 'monthlyFeedback.model.php'],
+        ['controller' => 'periods.controller.php', 'model' => null]
     ]
 ];
 

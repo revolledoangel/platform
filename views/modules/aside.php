@@ -121,6 +121,13 @@ $perfil = $_SESSION["perfil"] ?? "";
                 </a>
             </li>
 
+            <!-- Feedback Mensual: Visible para todos -->
+            <li class="<?= ($currentRoute == 'monthlyFeedback') ? 'active' : '' ?>">
+                <a href="monthlyFeedback">
+                    <i class="fa fa-star-half-o"></i> <span>Feedback Mensual</span>
+                </a>
+            </li>
+
         </ul>
     </section>
 </aside>

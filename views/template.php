@@ -60,6 +60,11 @@ session_start();
         exit;
     }
 
+    // Ruta pública para formulario de feedback mensual (sin autenticación)
+    if (isset($_GET["route"]) && $_GET["route"] === "monthlyFeedbackForm") {
+        include "modules/monthlyFeedbackForm.php"; // El include ya hace exit()
+    }
+
     if (isset($_SESSION["startSession"]) && $_SESSION["startSession"] == true) {
 
         echo '<div class="wrapper">';
@@ -79,7 +84,9 @@ session_start();
                 "mediaMixRealEstateDetails",
                 "mediaMixEcommerce",
                 "mediaMixEcommerceDetails",
-                "mediaMixOthers"
+                "mediaMixOthers",
+                // ✅ Feedback Mensual
+                "monthlyFeedback"
             ];
 
             $perfil = $_SESSION["perfil"] ?? "";
@@ -208,6 +215,8 @@ session_start();
 <script src="views/js/urls.js"></script>
 
 <script src="views/js/comments.js"></script>
+
+<script src="views/js/monthlyFeedback.js"></script>
 
 
 </html>
