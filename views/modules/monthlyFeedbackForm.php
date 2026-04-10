@@ -19,6 +19,13 @@ if (empty($token)) {
 
 $clientName = $feedback ? htmlspecialchars($feedback['client_name'] ?? 'Cliente') : '';
 
+// Load configured projects (if any)
+$feedbackProjects = [];
+if ($feedback && !empty($feedback['project_ids'])) {
+    $decoded = json_decode($feedback['project_ids'], true);
+    if (is_array($decoded)) $feedbackProjects = $decoded;
+}
+
 // Fetch periods from API
 $allPeriods = [];
 $currentPeriodName = '';
@@ -234,6 +241,57 @@ if ($feedback) {
 
   @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
 
+  /* ── Responsive: mobile fixes ─────────────────────────────── */
+  @media (max-width: 600px) {
+    .header { padding: 16px 16px; }
+    .logo   { font-size: 22px; letter-spacing: 2px; }
+    .header-badge { font-size: 10px; padding: 5px 10px; }
+
+    .container { padding: 24px 10px 60px; }
+    .card { padding: 18px 14px; border-radius: 14px; }
+
+    .card-title { font-size: 18px; }
+    .card-subtitle { font-size: 12px; margin-bottom: 16px; }
+    .section-label { font-size: 10px; }
+
+    /* Wrap source table in scrollable area */
+    .source-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -14px;
+      padding: 0 14px;
+    }
+
+    .source-table { min-width: 420px; }
+
+    .source-table th { padding: 8px 8px; font-size: 10px; }
+    .source-table td { padding: 8px 8px; font-size: 13px; }
+    .source-table input[type="number"] {
+      max-width: 64px !important;
+      padding: 6px 6px;
+      font-size: 13px;
+    }
+
+    .project-block { padding: 16px 12px; border-radius: 12px; }
+    .project-block-header { flex-wrap: wrap; }
+    .project-block-header select { font-size: 13px; padding: 8px 10px; }
+
+    .add-row-btn { font-size: 12px; padding: 8px 12px; }
+
+    input[type="text"], input[type="number"], input[type="email"], textarea, select {
+      font-size: 14px;
+      padding: 10px 12px;
+    }
+
+    .nav-buttons { gap: 8px; flex-wrap: wrap; }
+    .nav-buttons .btn-primary,
+    .nav-buttons button { font-size: 14px; padding: 12px 20px; }
+
+    /* Rating chips */
+    .rating-scale { gap: 5px; }
+    .rating-chip { width: 34px; height: 34px; font-size: 13px; }
+  }
+
   .source-table { width: 100%; border-collapse: collapse; }
 
   .source-table th {
@@ -336,7 +394,7 @@ if ($feedback) {
   }
 
   .add-row-btn {
-    background: none;
+    background: #fff;
     border: 2px dashed var(--magenta);
     color: var(--magenta);
     font-family: 'DM Sans', sans-serif;
@@ -350,7 +408,60 @@ if ($feedback) {
     transition: all 0.2s;
   }
 
-  .add-row-btn:hover { background: rgba(255,0,200,0.06); }
+  .add-row-btn:hover { background: #f3eaff; }
+
+  /* ── Project block (per-project mode) ── */
+  .project-block {
+    background: #FFF;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    position: relative;
+  }
+  .project-block-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .project-block-header select {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #E0E0E0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    background: #FAFAFA;
+    color: #333;
+    appearance: auto;
+  }
+  .project-block-header select:focus { border-color: var(--magenta); outline: none; }
+  .project-block .remove-project-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #CCC;
+    font-size: 20px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .project-block .remove-project-btn:hover { color: #e74c3c; }
+  .project-block .section-label {
+    background: var(--magenta);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
 
   .remove-btn {
     background: none;
@@ -683,11 +794,15 @@ if ($feedback) {
 
   <!-- STEP 2: LEADS BY SOURCE -->
   <div class="step" id="step2">
+
+  <?php if (empty($feedbackProjects)): ?>
+    <!-- ── SIN proyectos: tabla unica (comportamiento actual) ── -->
     <div class="card">
       <span class="section-label">Contactos recibidos</span>
       <div class="card-title">Leads por Plataforma</div>
       <div class="card-subtitle">Todo es opcional. Completa solo las plataformas que apliquen.</div>
 
+      <div class="source-table-wrap">
       <table class="source-table" id="sourcesTable">
         <thead>
           <tr>
@@ -713,22 +828,10 @@ if ($feedback) {
             <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
             <td></td>
           </tr>
-          <tr data-platform="LinkedIn">
-            <td><span class="source-tag"><span class="dot" style="background:#0A66C2"></span> LinkedIn</span></td>
-            <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
-            <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
-            <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
-            <td></td>
-          </tr>
-          <tr data-platform="TikTok">
-            <td><span class="source-tag"><span class="dot" style="background:#010101"></span> TikTok</span></td>
-            <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
-            <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
-            <td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>
-            <td></td>
-          </tr>
+
         </tbody>
       </table>
+      </div>
       <button type="button" class="add-row-btn" onclick="addSourceRow()">+ Agregar plataforma</button>
 
       <div class="field-group" style="margin-top:20px">
@@ -736,6 +839,15 @@ if ($feedback) {
         <textarea id="source_comments" placeholder="Comentarios sobre la calidad de los leads recibidos"></textarea>
       </div>
     </div>
+
+  <?php else: ?>
+    <!-- ── CON proyectos: bloques por proyecto ── -->
+    <div id="projectBlocksContainer">
+      <!-- El primer bloque se genera automaticamente por JS -->
+    </div>
+    <button type="button" class="add-row-btn" id="addProjectBlockBtn" style="margin-top:12px;" onclick="addProjectBlock()">+ Agregar otro proyecto</button>
+
+  <?php endif; ?>
 
     <div class="nav-buttons">
       <button type="button" class="btn-primary" onclick="nextStep(2)">Siguiente &rarr;</button>
@@ -775,6 +887,12 @@ if ($feedback) {
         <label>Comentarios adicionales</label>
         <textarea id="free_comment" placeholder="Algo más que quieras compartir, para que podamos plantear mejores optimizaciones…"></textarea>
       </div>
+
+      <div class="field-group">
+        <label>Adjuntar archivo (opcional)</label>
+        <small style="display:block;color:#999;margin-bottom:6px;">PDF, Excel o Word. Máximo 10 MB.</small>
+        <input type="file" id="attachmentFile" accept=".pdf,.xls,.xlsx,.doc,.docx" style="font-size:14px;">
+      </div>
     </div>
 
     <div class="nav-buttons">
@@ -808,6 +926,8 @@ if ($feedback) {
   var selectedMonth = document.getElementById('periodSelect') ? document.getElementById('periodSelect').value : '';
   var selectedPeriod = '';
   var ratings = { quality: 0 };
+  var hasProjects = <?php echo !empty($feedbackProjects) ? 'true' : 'false'; ?>;
+  var availableProjects = <?php echo json_encode($feedbackProjects ?: []); ?>;
 
   function updateProgress() {
     var pct = Math.round(((currentStep - 1) / totalSteps) * 100);
@@ -923,6 +1043,147 @@ if ($feedback) {
     return sources;
   }
 
+  /* ── Per-project block functions ── */
+  var projectBlockCounter = 0;
+
+  function buildSourceTableHtml(blockId) {
+    return '<div class="source-table-wrap">' +
+      '<table class="source-table" id="sourcesTable_' + blockId + '">' +
+      '<thead><tr><th>Plataforma</th><th>Recibidos</th><th>Contestaron</th><th>Son perfil</th><th></th></tr></thead>' +
+      '<tbody>' +
+      '<tr data-platform="Meta"><td><span class="source-tag"><span class="dot" style="background:#0081FB"></span> Meta</span></td>' +
+      '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+      '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+      '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td><td></td></tr>' +
+      '<tr data-platform="Google"><td><span class="source-tag"><span class="dot" style="background:#4285F4"></span> Google</span></td>' +
+      '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+      '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+      '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td><td></td></tr>' +
+
+      '</tbody></table></div>' +
+      '<button type="button" class="add-row-btn" onclick="addSourceRowToBlock(\'' + blockId + '\')">+ Agregar plataforma</button>' +
+      '<div class="field-group" style="margin-top:16px"><label>Comentarios sobre los leads</label>' +
+      '<textarea class="project-comments" placeholder="Comentarios sobre la calidad de los leads de este proyecto"></textarea></div>' +
+      '<div class="field-group" style="margin-top:12px"><label>Adjuntar archivo del proyecto (opcional)</label>' +
+      '<small style="display:block;color:#999;margin-bottom:6px;">PDF, Excel o Word. M\u00e1ximo 10 MB.</small>' +
+      '<input type="file" class="project-attachment" accept=".pdf,.xls,.xlsx,.doc,.docx" style="font-size:14px;"></div>';
+  }
+
+  function buildProjectSelectHtml(blockId) {
+    var opts = '<option value="">Selecciona un proyecto...</option>';
+    availableProjects.forEach(function(p) {
+      opts += '<option value="' + p.id + '" data-name="' + p.name.replace(/"/g, '&quot;') + '">' + p.name + '</option>';
+    });
+    return opts;
+  }
+
+  function addProjectBlock() {
+    projectBlockCounter++;
+    var blockId = 'projBlock_' + projectBlockCounter;
+    var container = document.getElementById('projectBlocksContainer');
+    var canRemove = container.children.length > 0;
+    var div = document.createElement('div');
+    div.className = 'project-block';
+    div.id = blockId;
+    div.innerHTML =
+      (canRemove ? '<button type="button" class="remove-project-btn" onclick="removeProjectBlock(\'' + blockId + '\')">&times;</button>' : '') +
+      '<span class="section-label">Proyecto ' + (container.children.length + 1) + '</span>' +
+      '<div class="project-block-header">' +
+      '<select class="project-select" onchange="onProjectSelect(this)">' + buildProjectSelectHtml(blockId) + '</select>' +
+      '</div>' +
+      '<div class="card-subtitle" style="margin-bottom:12px;">Todo es opcional. Completa solo las plataformas que apliquen.</div>' +
+      buildSourceTableHtml(blockId);
+    container.appendChild(div);
+    updateProjectNumbers();
+  }
+
+  function removeProjectBlock(blockId) {
+    var el = document.getElementById(blockId);
+    if (el) el.remove();
+    updateProjectNumbers();
+  }
+
+  function updateProjectNumbers() {
+    var blocks = document.querySelectorAll('#projectBlocksContainer .project-block');
+    blocks.forEach(function(block, i) {
+      var label = block.querySelector('.section-label');
+      if (label) label.textContent = 'Proyecto ' + (i + 1);
+      /* Ensure first block cannot be removed */
+      var removeBtn = block.querySelector('.remove-project-btn');
+      if (i === 0 && removeBtn) removeBtn.remove();
+    });
+  }
+
+  function onProjectSelect(sel) {
+    /* Warn if this project is already chosen in another block */
+    var val = sel.value;
+    if (!val) return;
+    var count = 0;
+    document.querySelectorAll('#projectBlocksContainer .project-select').forEach(function(s) {
+      if (s.value === val) count++;
+    });
+    if (count > 1) {
+      Swal.fire({icon:'warning',title:'Proyecto duplicado',text:'Este proyecto ya fue seleccionado en otro bloque.',confirmButtonColor:'#FF00C8'});
+      sel.value = '';
+    }
+  }
+
+  function addSourceRowToBlock(blockId) {
+    Swal.fire({
+      title: 'Nueva plataforma',
+      input: 'text',
+      inputPlaceholder: 'Ej: Spotify, TikTok Ads...',
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#FF00C8',
+      inputValidator: function(val) { if (!val || !val.trim()) return 'Ingresa un nombre'; }
+    }).then(function(result) {
+      if (!result.isConfirmed) return;
+      var name = result.value.trim();
+      var tbody = document.querySelector('#sourcesTable_' + blockId + ' tbody');
+      if (!tbody) return;
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-platform', name);
+      tr.innerHTML =
+        '<td><span class="source-tag"><span class="dot" style="background:#888"></span> ' + name + '</span></td>' +
+        '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+        '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+        '<td><input type="number" min="0" placeholder="0" style="max-width:80px"></td>' +
+        '<td><button type="button" class="remove-btn" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function collectProjectSources() {
+    var result = [];
+    document.querySelectorAll('#projectBlocksContainer .project-block').forEach(function(block) {
+      var sel = block.querySelector('.project-select');
+      if (!sel || !sel.value) return;
+      var projId = sel.value;
+      var projName = sel.options[sel.selectedIndex].getAttribute('data-name') || sel.options[sel.selectedIndex].text;
+      var sources = [];
+      block.querySelectorAll('.source-table tbody tr').forEach(function(tr) {
+        var platform = tr.getAttribute('data-platform');
+        var inputs = tr.querySelectorAll('input[type=number]');
+        var recv = inputs[0].value || '0';
+        var replied = inputs[1].value || '0';
+        var profile = inputs[2].value || '0';
+        if (+recv || +replied || +profile) {
+          sources.push({ platform: platform, received: +recv, replied: +replied, profile: +profile });
+        }
+      });
+      var comments = (block.querySelector('.project-comments') || {}).value || '';
+      result.push({ project_id: projId, project_name: projName, sources: sources, comments: comments.trim() });
+    });
+    return result;
+  }
+
+  /* Auto-add first project block on load if in project mode */
+  if (hasProjects) {
+    addProjectBlock();
+  }
+
   function submitForm() {
     var token = document.getElementById('feedbackToken').value;
     var projectName = '<?php echo addslashes($clientName); ?>';
@@ -932,32 +1193,62 @@ if ($feedback) {
       Swal.fire({icon:'warning',title:'Campos incompletos',text:'Completa todos los campos del paso 1.',confirmButtonColor:'#FF00C8'}); return;
     }
 
+    /* Validate per-project mode */
+    var sourcesData, sourceComments, totalRecv = 0;
+    if (hasProjects) {
+      var projData = collectProjectSources();
+      if (projData.length === 0) {
+        Swal.fire({icon:'warning',title:'Selecciona un proyecto',text:'Debes seleccionar al menos un proyecto en el paso 2.',confirmButtonColor:'#FF00C8'}); return;
+      }
+      sourcesData = JSON.stringify(projData);
+      sourceComments = '';
+      projData.forEach(function(p) { p.sources.forEach(function(s) { totalRecv += s.received; }); });
+    } else {
+      var sources = collectSources();
+      sourcesData = JSON.stringify(sources);
+      sourceComments = document.getElementById('source_comments').value.trim();
+      sources.forEach(function(s) { totalRecv += s.received; });
+    }
+
     var btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = 'Enviando...';
 
-    var sources = collectSources();
-    var totalRecv = 0;
-    sources.forEach(function(s) { totalRecv += s.received; });
+    var fd = new FormData();
+    fd.append('action', 'submitResponse');
+    fd.append('feedbackToken', token);
+    fd.append('projectName', projectName);
+    fd.append('contactName', contactName);
+    fd.append('reportMonth', selectedMonth);
+    fd.append('reportPeriod', selectedPeriod);
+    fd.append('sources_json', sourcesData);
+    fd.append('source_comments', sourceComments);
+    fd.append('quality_rating', ratings.quality);
+    fd.append('free_comment', document.getElementById('free_comment').value.trim());
+    var fileInput = document.getElementById('attachmentFile');
+    if (fileInput && fileInput.files.length) fd.append('attachment', fileInput.files[0]);
 
-    var data = {
-      action:          'submitResponse',
-      feedbackToken:   token,
-      projectName:     projectName,
-      contactName:     contactName,
-      reportMonth:     selectedMonth,
-      reportPeriod:    selectedPeriod,
-      sources_json:    JSON.stringify(sources),
-      source_comments: document.getElementById('source_comments').value.trim(),
-      quality_rating:  ratings.quality,
-      free_comment:    document.getElementById('free_comment').value.trim()
-    };
+    /* Per-project attachments */
+    if (hasProjects) {
+      var projIdx = 0;
+      document.querySelectorAll('#projectBlocksContainer .project-block').forEach(function(block) {
+        var sel = block.querySelector('.project-select');
+        if (!sel || !sel.value) return;
+        var fileIn = block.querySelector('.project-attachment');
+        if (fileIn && fileIn.files.length) {
+          fd.append('proj_attachment_' + projIdx, fileIn.files[0]);
+        }
+        projIdx++;
+      });
+    }
 
     $.ajax({
       url:      'ajax/monthlyFeedback.ajax.php',
       type:     'POST',
-      data:     data,
+      data:     fd,
       dataType: 'json',
+      processData: false,
+      contentType: false,
       success:  function(res) {
         if (res.success) {
           var summary =

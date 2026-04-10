@@ -9,6 +9,7 @@ $createFeedback->ctrCreateFeedback();
 
 $feedbacks = MonthlyFeedback_Controller::ctrGetFeedbacks();
 $clients   = MonthlyFeedback_Controller::ctrGetClients();
+$webhookUrl = MonthlyFeedback_Controller::ctrGetConfig('webhook_url');
 
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
          . '://' . $_SERVER['HTTP_HOST']
@@ -57,7 +58,43 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="alert alert-info" style="margin-bottom:0;">
+                            <div class="form-group" style="margin-top:12px;">
+                                <label>
+                                    <input type="checkbox" id="specifyProjectsCheck" name="specifyProjects" value="1">
+                                    Especificar proyectos
+                                </label>
+                                <small class="text-muted" style="display:block;margin-top:2px;">
+                                    Si marcas esta opci&oacute;n, el cliente deber&aacute; elegir un proyecto al llenar el formulario.
+                                </small>
+                            </div>
+                            <div id="projectListContainer" style="display:none;margin-top:8px;">
+                                <label>Proyectos del cliente</label>
+                                <div id="projectCheckboxes" style="max-height:200px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:8px;">
+                                    <p class="text-muted" style="margin:0;">Selecciona un cliente primero&hellip;</p>
+                                </div>
+                                <small class="text-muted">Marca los proyectos que se incluir&aacute;n en el formulario.</small>
+                            </div>
+                            <input type="hidden" name="projectIds" id="projectIdsHidden" value="">
+
+                            <!-- Ejecutivos -->
+                            <hr style="margin:16px 0 12px;">
+                            <div class="form-group">
+                                <label><i class="fa fa-users"></i> Ejecutivos (notificaciones)</label>
+                                <small class="text-muted" style="display:block;margin-bottom:6px;">Se enviar&aacute;n los datos del feedback al webhook. Agrega los ejecutivos que recibir&aacute;n la notificaci&oacute;n.</small>
+                                <div id="executivesContainer">
+                                    <div class="exec-row" style="display:flex;gap:6px;margin-bottom:6px;">
+                                        <input type="text" class="form-control exec-name" placeholder="Nombre" style="flex:1;">
+                                        <input type="email" class="form-control exec-email" placeholder="Correo" style="flex:1;">
+                                        <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.exec-row').remove()" style="align-self:center;"><i class="fa fa-times"></i></button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-xs btn-default" id="addExecBtn" style="margin-top:4px;">
+                                    <i class="fa fa-plus"></i> Agregar ejecutivo
+                                </button>
+                            </div>
+                            <input type="hidden" name="executives" id="executivesHidden" value="">
+
+                            <div class="alert alert-info" style="margin-bottom:0;margin-top:12px;">
                                 <i class="fa fa-info-circle"></i>
                                 Se generará un link permanente para el cliente. Cada mes el cliente
                                 eleGirá el período al llenar el formulario &mdash; el mismo link sirve siempre.
@@ -103,6 +140,86 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
         </div>
 
         <!-- ============================================================
+             Modal - Editar feedback
+             ============================================================ -->
+        <div class="modal fade" id="editFeedbackModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header" style="background:#f0ad4e; color:#fff;">
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">
+                            <i class="fa fa-pencil"></i> Editar Link de Feedback
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editFeedbackId">
+                        <div class="form-group">
+                            <label>Cliente</label>
+                            <input type="text" class="form-control" id="editClientName" disabled>
+                        </div>
+                        <div class="form-group" style="margin-top:12px;">
+                            <label>
+                                <input type="checkbox" id="editSpecifyProjectsCheck">
+                                Especificar proyectos
+                            </label>
+                        </div>
+                        <div id="editProjectListContainer" style="display:none;margin-top:8px;">
+                            <label>Proyectos del cliente</label>
+                            <div id="editProjectCheckboxes" style="max-height:200px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;padding:8px;">
+                                <p class="text-muted" style="margin:0;">Cargando...</p>
+                            </div>
+                        </div>
+
+                        <!-- Ejecutivos (edit) -->
+                        <hr style="margin:16px 0 12px;">
+                        <div class="form-group">
+                            <label><i class="fa fa-users"></i> Ejecutivos</label>
+                            <div id="editExecutivesContainer"></div>
+                            <button type="button" class="btn btn-xs btn-default" id="addEditExecBtn" style="margin-top:4px;">
+                                <i class="fa fa-plus"></i> Agregar ejecutivo
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default pull-left"
+                                data-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-warning" id="btnSaveEditFeedback">
+                            <i class="fa fa-save"></i> Guardar cambios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             Configuración global de webhook
+             ============================================================ -->
+        <div class="box box-default collapsed-box">
+            <div class="box-header with-border" style="cursor:pointer;" data-widget="collapse">
+                <h3 class="box-title"><i class="fa fa-cog"></i> Configuración</h3>
+                <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button>
+                </div>
+            </div>
+            <div class="box-body" style="display:none;">
+                <div class="form-group" style="max-width:600px;">
+                    <label><i class="fa fa-globe"></i> Webhook URL (Make / Zapier)</label>
+                    <small class="text-muted" style="display:block;margin-bottom:6px;">Endpoint donde se enviar&aacute;n los datos del feedback al ser completado. Se aplica a todos los links.</small>
+                    <div class="input-group">
+                        <input type="url" class="form-control" id="globalWebhookUrl" placeholder="https://hook.us1.make.com/..." value="<?php echo htmlspecialchars($webhookUrl ?? ''); ?>">
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-primary" id="btnSaveWebhookUrl">
+                                <i class="fa fa-save"></i> Guardar
+                            </button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
              Tabla de feedbacks
              ============================================================ -->
         <div class="box box-primary">
@@ -128,7 +245,7 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                                 <th>Respuestas</th>
                                 <th>�sltimo feedback</th>
                                 <th>Generado</th>
-                                <th style="width:190px;">Acciones</th>
+                                <th style="width:240px;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -168,6 +285,16 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                                             <i class="fa fa-eye"></i>
                                         </button>
                                     <?php endif; ?>
+
+                                    <button class="btn btn-xs btn-warning btn-editFeedback"
+                                            title="Editar"
+                                            data-feedback-id="<?php echo (int)$f['id']; ?>"
+                                            data-client-id="<?php echo (int)$f['client_id']; ?>"
+                                            data-client-name="<?php echo htmlspecialchars($f['client_name']); ?>"
+                                            data-project-ids="<?php echo htmlspecialchars($f['project_ids'] ?? ''); ?>"
+                                            data-executives="<?php echo htmlspecialchars($f['executives'] ?? ''); ?>">
+                                        <i class="fa fa-pencil"></i>
+                                    </button>
 
                                     <button class="btn btn-xs btn-danger btn-deleteFeedback"
                                             title="Eliminar"
