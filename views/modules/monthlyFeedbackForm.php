@@ -83,7 +83,7 @@ if ($feedback) {
     z-index: 0;
     background-color: #00013b;
     background-image:
-      linear-gradient(180deg, rgba(0,1,59,0.85) 0%, rgba(44,2,138,0.7) 100%),
+      linear-gradient(180deg, rgba(0,1,59,0.55) 0%, rgba(44,2,138,0.4) 100%),
       url('https://algoritmo.digital/wp-content/uploads/2023/10/BANNER-TRAMA-1.webp');
     background-position: center center;
     background-repeat: no-repeat;
