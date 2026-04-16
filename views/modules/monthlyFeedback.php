@@ -139,6 +139,9 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
             </div>
         </div>
 
+        <!-- Container for PDF capture (always in DOM, visible with white bg) -->
+        <div id="adminPdfContainer" style="background:#fff;padding:24px 28px;border-radius:8px;margin-bottom:20px;display:none;"></div>
+
         <!-- ============================================================
              Modal - Editar feedback
              ============================================================ -->
@@ -214,6 +217,48 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                                 <i class="fa fa-save"></i> Guardar
                             </button>
                         </span>
+                    </div>
+                </div>
+
+                <hr style="margin:20px 0;">
+
+                <!-- ── Zonas y Distritos ── -->
+                <div class="row">
+                    <!-- ZONAS -->
+                    <div class="col-md-5">
+                        <h4 style="margin-top:0;"><i class="fa fa-map-marker"></i> Zonas</h4>
+                        <div class="input-group" style="margin-bottom:10px;">
+                            <input type="text" class="form-control" id="newZoneName" placeholder="Nueva zona...">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-success" id="btnAddZone"><i class="fa fa-plus"></i></button>
+                            </span>
+                        </div>
+                        <table class="table table-condensed table-bordered" id="zonesTable">
+                            <thead><tr><th>Zona</th><th style="width:80px;">Acciones</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <!-- DISTRITOS -->
+                    <div class="col-md-7">
+                        <h4 style="margin-top:0;"><i class="fa fa-building"></i> Distritos</h4>
+                        <div class="row" style="margin-bottom:10px;">
+                            <div class="col-xs-5">
+                                <select class="form-control" id="newDistrictZone">
+                                    <option value="">Zona...</option>
+                                </select>
+                            </div>
+                            <div class="col-xs-5">
+                                <input type="text" class="form-control" id="newDistrictName" placeholder="Nuevo distrito...">
+                            </div>
+                            <div class="col-xs-2">
+                                <button type="button" class="btn btn-success btn-block" id="btnAddDistrict"><i class="fa fa-plus"></i></button>
+                            </div>
+                        </div>
+                        <table class="table table-condensed table-bordered" id="districtsTable">
+                            <thead><tr><th>Zona</th><th>Distrito</th><th style="width:80px;">Acciones</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                 </div>
             </div>

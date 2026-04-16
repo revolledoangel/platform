@@ -216,6 +216,7 @@ session_start();
 
 <script src="views/js/comments.js"></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="views/js/monthlyFeedback.js"></script>
 
 

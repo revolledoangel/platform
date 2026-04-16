@@ -26,6 +26,12 @@ if ($feedback && !empty($feedback['project_ids'])) {
     if (is_array($decoded)) $feedbackProjects = $decoded;
 }
 
+// Load zones with districts for the district table
+$zonesWithDistricts = [];
+if ($feedback) {
+    $zonesWithDistricts = MonthlyFeedback_Controller::ctrGetZonesWithDistricts();
+}
+
 // Fetch periods from API
 $allPeriods = [];
 $currentPeriodName = '';
@@ -49,13 +55,12 @@ if ($feedback) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reporte Mensual de Leads</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --purple: #3B20E8;
-    --magenta: #FF00C8;
+    --purple: #4614FF;
+    --magenta: #A400F6;
     --white: #FFFFFF;
-    --light: #F2F0FF;
+    --light: #F0EDFF;
     --dark: #0A0520;
     --gray: #8B82B0;
     --success: #00E5A0;
@@ -64,7 +69,7 @@ if ($feedback) {
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     background: var(--purple);
     min-height: 100vh;
     color: var(--dark);
@@ -86,7 +91,7 @@ if ($feedback) {
   }
 
   .logo {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 28px;
     color: var(--magenta);
     letter-spacing: 3px;
@@ -118,7 +123,7 @@ if ($feedback) {
 
 
   .hero h1 {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: clamp(48px, 8vw, 72px);
     color: white;
     line-height: 0.95;
@@ -147,7 +152,7 @@ if ($feedback) {
 
   .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--magenta), #FF6BEA);
+    background: linear-gradient(90deg, var(--magenta), #C266FF);
     border-radius: 10px;
     transition: width 0.5s cubic-bezier(.4,0,.2,1);
     width: 0%;
@@ -178,7 +183,7 @@ if ($feedback) {
   }
 
   .card-title {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 22px;
     letter-spacing: 1px;
     color: var(--purple);
@@ -217,7 +222,7 @@ if ($feedback) {
     border: 2px solid #E8E4F5;
     border-radius: 12px;
     padding: 12px 16px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 15px;
     color: var(--dark);
     outline: none;
@@ -292,39 +297,44 @@ if ($feedback) {
     .rating-chip { width: 34px; height: 34px; font-size: 13px; }
   }
 
-  .source-table { width: 100%; border-collapse: collapse; }
-
-  .source-table th {
-    background: var(--purple);
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    padding: 10px 14px;
-    text-align: left;
+  /* ── Unified table base ── */
+  .fb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .fb-table th {
+    color: #fff; font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 10px 12px; text-align: left;
+  }
+  .fb-table th:first-child { border-radius: 10px 0 0 0; }
+  .fb-table th:last-child  { border-radius: 0 10px 0 0; }
+  .fb-table td {
+    padding: 10px 12px; border-bottom: 1px solid #EEE;
+    font-size: 13px; vertical-align: middle;
+  }
+  .fb-table tr:last-child td { border-bottom: none; }
+  .fb-table tr:nth-child(even) td { background: var(--light); }
+  .fb-table input[type="number"] {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px;
+    padding: 6px 10px; border: 1px solid #E0E0E0;
+    border-radius: 8px; background: #FAFAFA; max-width: 90px;
+  }
+  .fb-table input:focus, .fb-table select:focus { border-color: var(--magenta); outline: none; }
+  .fb-table select {
+    font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px;
+    padding: 6px 8px; border: 1px solid #E0E0E0;
+    border-radius: 8px; background: #FAFAFA;
+  }
+  .fb-table tfoot td { font-style: italic; color: #999; }
+  .fb-table tfoot tr:last-child td {
+    font-weight: 700; font-style: normal; color: #333;
+    background: #F9F9F9; border-top: 2px solid #DDD;
   }
 
-  .source-table th:first-child { border-radius: 10px 0 0 0; }
-  .source-table th:last-child { border-radius: 0 10px 0 0; }
+  /* Color variants */
+  .fb-table--purple th { background: var(--purple); }
+  .fb-table--violet th { background: linear-gradient(135deg, #4B0082, #6A0DAD); }
+  .fb-table--magenta th { background: linear-gradient(135deg, #A400F6, #C266FF); }
 
-  .source-table td {
-    padding: 10px 14px;
-    border-bottom: 1px solid #EEE;
-    font-size: 14px;
-    vertical-align: middle;
-  }
-
-  .source-table tr:last-child td { border-bottom: none; }
-  .source-table tr:nth-child(even) td { background: var(--light); }
-
-  .source-table input[type="number"] {
-    padding: 8px 12px;
-    font-size: 14px;
-    border-radius: 8px;
-    max-width: 100px;
-  }
-
+  /* Source-table specifics */
   .source-table th:last-child,
   .source-table td:last-child { width: 32px; text-align: center; }
 
@@ -368,36 +378,90 @@ if ($feedback) {
   .interest-label { flex: 1; font-size: 13px; color: #555; line-height: 1.4; }
   .interest-input { width: 80px !important; text-align: center; }
 
-  .district-row {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 80px 70px 40px;
-    gap: 8px;
-    margin-bottom: 8px;
-    align-items: center;
+  /* ── District table specifics ── */
+  .district-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 20px;
   }
-
-  .district-row input { margin: 0; }
-
-  .district-header {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 80px 70px 40px;
-    gap: 8px;
-    margin-bottom: 6px;
+  .district-table { table-layout: fixed; }
+  .district-table th:nth-child(1) { width: 26%; }
+  .district-table th:nth-child(3) { width: 80px; }
+  .district-table th:nth-child(4) { width: 56px; }
+  .district-table th:nth-child(5) { width: 38px; }
+  .district-table th:nth-child(3),
+  .district-table th:nth-child(4) { text-align: center; }
+  .district-table td:nth-child(3),
+  .district-table td:nth-child(4) { text-align: center; }
+  .district-table td:nth-child(5) { text-align: center; }
+  .district-table td { vertical-align: top; }
+  .district-table .district-zone-select { width: 100%; min-width: 0; }
+  .district-table .district-multi-wrap {
+    display: flex; flex-wrap: wrap; gap: 4px; position: relative;
   }
+  .district-multi-wrap .dm-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--light); color: var(--purple); font-size: 12px;
+    padding: 3px 8px; border-radius: 12px; font-weight: 600;
+  }
+  .district-multi-wrap .dm-tag .dm-remove {
+    cursor: pointer; font-size: 14px; color: var(--magenta); line-height: 1;
+  }
+  .district-multi-wrap .dm-add-input {
+    border: 1px dashed #CCC; border-radius: 8px; padding: 3px 8px;
+    font-size: 12px; width: 100%; min-width: 0; box-sizing: border-box; background: #fff;
+  }
+  .district-multi-wrap .dm-dropdown {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    z-index: 999;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    max-height: 180px;
+    overflow-y: auto;
+    width: 220px;
+    margin-top: 2px;
+  }
+  .district-multi-wrap .dm-add-input:focus { border-color: var(--magenta); outline: none; }
+  .district-pct { font-weight: 600; color: var(--magenta); }
 
-  .district-header span {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--gray);
+  /* ── Sales table specifics ── */
+  .sales-table-wrap { margin-top: 20px; }
+  .sales-table th:nth-child(2),
+  .sales-table th:nth-child(3) { text-align: center; }
+  .sales-table td { text-align: center; }
+
+  /* ── Lead quality per project (3 stars) ── */
+  .lead-quality-wrap {
+    margin-top: 20px;
+  }
+  .lead-quality-wrap .card-subtitle {
+    font-weight: 600; color: #333; margin-bottom: 10px;
+  }
+  .star-rating {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .star-rating .star {
+    font-size: 32px; cursor: pointer; color: #DDD;
+    transition: color 0.15s ease, transform 0.15s ease;
+    line-height: 1; user-select: none;
+  }
+  .star-rating .star:hover { transform: scale(1.15); }
+  .star-rating .star.filled { color: #F5A623; }
+  .star-rating-label {
+    display: inline-block; margin-left: 10px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+    vertical-align: middle;
   }
 
   .add-row-btn {
     background: #fff;
     border: 2px dashed var(--magenta);
     color: var(--magenta);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
     font-weight: 600;
     padding: 10px 16px;
@@ -431,7 +495,7 @@ if ($feedback) {
     border: 1px solid #E0E0E0;
     border-radius: 10px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     background: #FAFAFA;
     color: #333;
     appearance: auto;
@@ -483,7 +547,7 @@ if ($feedback) {
     border: 2px solid #E0E0E0;
     background: #FAFAFA;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 15px; font-weight: 700;
     color: #999;
     cursor: pointer;
@@ -517,7 +581,7 @@ if ($feedback) {
   .rating-value {
     text-align: center;
     margin-top: 10px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     font-weight: 600;
     color: var(--magenta);
@@ -531,7 +595,7 @@ if ($feedback) {
     border: none;
     border-radius: 14px;
     padding: 16px 36px;
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 20px;
     letter-spacing: 2px;
     cursor: pointer;
@@ -556,7 +620,7 @@ if ($feedback) {
     color: rgba(255,255,255,0.65);
     border: none;
     padding: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     cursor: pointer;
     width: 100%;
@@ -585,7 +649,7 @@ if ($feedback) {
   }
 
   .success-screen h2 {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 42px;
     color: white;
     letter-spacing: 2px;
@@ -601,25 +665,26 @@ if ($feedback) {
   }
 
   .summary-card {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
     border-radius: 16px;
     padding: 24px;
     text-align: left;
     margin-bottom: 24px;
+    color: #222;
   }
 
   .summary-item {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid #eee;
     font-size: 14px;
   }
 
   .summary-item:last-child { border-bottom: none; }
-  .summary-item .key { color: rgba(255,255,255,0.55); }
-  .summary-item .val { color: white; font-weight: 600; }
+  .summary-item .key { color: #888; }
+  .summary-item .val { color: #222; font-weight: 600; }
 
   .required-star { color: var(--magenta); }
 
@@ -641,7 +706,7 @@ if ($feedback) {
     background: #FAFAFA;
     border-radius: 10px;
     padding: 10px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: #444;
@@ -663,7 +728,7 @@ if ($feedback) {
     background: #FAFAFA;
     border-radius: 10px;
     padding: 12px 16px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: #444;
@@ -700,7 +765,7 @@ if ($feedback) {
     padding: 60px 0;
   }
   .error-card h2 {
-    font-family: 'Bebas Neue', sans-serif;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     font-size: 36px;
     color: white;
     letter-spacing: 2px;
@@ -737,7 +802,6 @@ if ($feedback) {
 
   <!-- HERO -->
   <div class="hero">
-    <span id="heroPeriod"><?php echo $clientName; ?></span>
     <h1>Feedback<br><span>Mensual</span></h1>
     <p>Completar este formulario toma menos de 5 minutos y nos ayuda a mejorar tus resultados.</p>
   </div>
@@ -803,7 +867,7 @@ if ($feedback) {
       <div class="card-subtitle">Todo es opcional. Completa solo las plataformas que apliquen.</div>
 
       <div class="source-table-wrap">
-      <table class="source-table" id="sourcesTable">
+      <table class="source-table fb-table fb-table--purple" id="sourcesTable">
         <thead>
           <tr>
             <th>Plataforma</th>
@@ -908,9 +972,9 @@ if ($feedback) {
       <h2>Reporte enviado!</h2>
       <p>Gracias por completar tu reporte. Revisaremos los datos y te contactaremos si tenemos preguntas.</p>
 
-      <div class="summary-card" id="summaryContent"></div>
+      <button type="button" class="btn-primary" onclick="downloadPDF()" style="max-width:340px;margin:0 auto 24px;display:block">&#11015; Descargar reporte en PDF</button>
 
-      <button type="button" class="btn-primary" onclick="window.print()" style="max-width:300px;margin:0 auto;display:block">Imprimir resumen</button>
+      <div class="summary-card" id="summaryContent"></div>
     </div>
   </div>
 
@@ -919,6 +983,7 @@ if ($feedback) {
 </div>
 
 <script src="views/bower_components/jquery/dist/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
   var currentStep = 1;
@@ -939,10 +1004,10 @@ if ($feedback) {
   function nextStep(from) {
     if (from === 1) {
       if (!document.getElementById('contactName').value.trim()) {
-        Swal.fire({icon:'warning',title:'Campo requerido',text:'Por favor ingresa tu nombre.',confirmButtonColor:'#FF00C8'}); return;
+        Swal.fire({icon:'warning',title:'Campo requerido',text:'Por favor ingresa tu nombre.',confirmButtonColor:'#A400F6'}); return;
       }
-      if (!selectedMonth) { Swal.fire({icon:'warning',title:'Campo requerido',text:'Selecciona el periodo a reportar.',confirmButtonColor:'#FF00C8'}); return; }
-      if (!selectedPeriod) { Swal.fire({icon:'warning',title:'Campo requerido',text:'Selecciona el periodo.',confirmButtonColor:'#FF00C8'}); return; }
+      if (!selectedMonth) { Swal.fire({icon:'warning',title:'Campo requerido',text:'Selecciona el periodo a reportar.',confirmButtonColor:'#A400F6'}); return; }
+      if (!selectedPeriod) { Swal.fire({icon:'warning',title:'Campo requerido',text:'Selecciona el periodo.',confirmButtonColor:'#A400F6'}); return; }
     }
     document.getElementById('step' + from).classList.remove('active');
     currentStep = from + 1;
@@ -961,7 +1026,6 @@ if ($feedback) {
 
   function selectPeriodFromDB(sel) {
     selectedMonth = sel.value;
-    updateHero();
   }
 
   function selectPeriod(p) {
@@ -970,24 +1034,9 @@ if ($feedback) {
     if (p === '1-15') document.getElementById('p1').classList.add('selected');
     else if (p === '16-fin') document.getElementById('p2').classList.add('selected');
     else document.getElementById('p3').classList.add('selected');
-    updateHero();
   }
 
-  function updateHero() {
-    var txt = '';
-    if (selectedMonth && selectedPeriod) {
-      var map = {'1-15':'1 al 15', '16-fin':'16 al fin', 'completo':'mes completo'};
-      txt = selectedMonth + ' - ' + (map[selectedPeriod] || selectedPeriod);
-    } else if (selectedMonth) {
-      txt = selectedMonth;
-    } else {
-      txt = document.getElementById('heroPeriod').dataset.client || '';
-    }
-    document.getElementById('heroPeriod').textContent = txt;
-  }
 
-  // Initialize hero with pre-selected period
-  if (selectedMonth) { updateHero(); }
 
   var ratingLabels = {
     1:'Muy mala', 2:'Mala', 3:'Baja', 4:'Regular', 5:'Aceptable',
@@ -1010,7 +1059,7 @@ if ($feedback) {
       showCancelButton: true,
       confirmButtonText: 'Agregar',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#FF00C8',
+      confirmButtonColor: '#A400F6',
       inputValidator: function(val) { if (!val || !val.trim()) return 'Ingresa un nombre'; }
     }).then(function(result) {
       if (!result.isConfirmed) return;
@@ -1046,9 +1095,20 @@ if ($feedback) {
   /* ── Per-project block functions ── */
   var projectBlockCounter = 0;
 
+  /* Zones data for districts */
+  var zonesData = <?php echo json_encode($zonesWithDistricts, JSON_UNESCAPED_UNICODE); ?>;
+
+  function buildZoneOptions() {
+    var opts = '<option value="">Selecciona zona...</option>';
+    zonesData.forEach(function(z) {
+      opts += '<option value="' + z.id + '">' + z.name + '</option>';
+    });
+    return opts;
+  }
+
   function buildSourceTableHtml(blockId) {
     return '<div class="source-table-wrap">' +
-      '<table class="source-table" id="sourcesTable_' + blockId + '">' +
+      '<table class="source-table fb-table fb-table--purple" id="sourcesTable_' + blockId + '">' +
       '<thead><tr><th>Plataforma</th><th>Recibidos</th><th>Contestaron</th><th>Son perfil</th><th></th></tr></thead>' +
       '<tbody>' +
       '<tr data-platform="Meta"><td><span class="source-tag"><span class="dot" style="background:#0081FB"></span> Meta</span></td>' +
@@ -1062,6 +1122,42 @@ if ($feedback) {
 
       '</tbody></table></div>' +
       '<button type="button" class="add-row-btn" onclick="addSourceRowToBlock(\'' + blockId + '\')">+ Agregar plataforma</button>' +
+
+      /* ── Districts table ── */
+      '<div class="card-subtitle" style="margin-top:24px;margin-bottom:8px;font-weight:600;color:#333;"><i style="color:var(--magenta);">&#9679;</i> Distritos de los leads</div>' +
+      '<div class="district-table-wrap">' +
+      '<table class="district-table fb-table fb-table--violet" id="districtTable_' + blockId + '">' +
+      '<thead><tr><th>Zona</th><th>Distrito(s)</th><th>Cantidad</th><th>%</th><th></th></tr></thead>' +
+      '<tbody></tbody>' +
+      '<tfoot>' +
+      '<tr class="district-others-row"><td colspan="2" style="text-align:right;padding-right:12px;">OTROS</td><td id="districtOthers_' + blockId + '" style="text-align:center;">0</td><td></td><td></td></tr>' +
+      '<tr class="district-total-row"><td colspan="2" style="text-align:right;padding-right:12px;font-weight:700;">TOTAL</td><td id="districtTotal_' + blockId + '" style="text-align:center;font-weight:700;">0</td><td></td><td></td></tr>' +
+      '</tfoot>' +
+      '</table></div>' +
+      '<button type="button" class="add-row-btn" onclick="addDistrictRow(\'' + blockId + '\')" style="margin-top:8px;">+ Agregar zona / distrito</button>' +
+
+      /* ── Sales table (Ventas / Separaciones) ── */
+      '<div class="sales-table-wrap">' +
+      '<div class="card-subtitle" style="margin-bottom:8px;font-weight:600;color:#333;"><i style="color:var(--magenta);">&#9679;</i> Ventas y Separaciones</div>' +
+      '<table class="sales-table fb-table fb-table--magenta" id="salesTable_' + blockId + '">' +
+      '<thead><tr><th></th><th>Ventas</th><th>Separaciones</th></tr></thead>' +
+      '<tbody><tr><td></td>' +
+      '<td><input type="number" min="0" placeholder="0" class="sales-ventas"></td>' +
+      '<td><input type="number" min="0" placeholder="0" class="sales-separaciones"></td>' +
+      '</tr></tbody>' +
+      '</table></div>' +
+
+      /* ── Lead quality per project (3 stars) ── */
+      '<div class="lead-quality-wrap">' +
+      '<div class="card-subtitle"><i style="color:var(--magenta);">&#9679;</i> Calidad de los leads</div>' +
+      '<div class="star-rating" id="starRating_' + blockId + '" data-value="0">' +
+      '<span class="star" data-star="1" onclick="rateStars(\'' + blockId + '\', 1)">&#9733;</span>' +
+      '<span class="star" data-star="2" onclick="rateStars(\'' + blockId + '\', 2)">&#9733;</span>' +
+      '<span class="star" data-star="3" onclick="rateStars(\'' + blockId + '\', 3)">&#9733;</span>' +
+      '</div>' +
+      '<span class="star-rating-label" id="starLabel_' + blockId + '"></span>' +
+      '</div>' +
+
       '<div class="field-group" style="margin-top:16px"><label>Comentarios sobre los leads</label>' +
       '<textarea class="project-comments" placeholder="Comentarios sobre la calidad de los leads de este proyecto"></textarea></div>' +
       '<div class="field-group" style="margin-top:12px"><label>Adjuntar archivo del proyecto (opcional)</label>' +
@@ -1089,10 +1185,12 @@ if ($feedback) {
       (canRemove ? '<button type="button" class="remove-project-btn" onclick="removeProjectBlock(\'' + blockId + '\')">&times;</button>' : '') +
       '<span class="section-label">Proyecto ' + (container.children.length + 1) + '</span>' +
       '<div class="project-block-header">' +
-      '<select class="project-select" onchange="onProjectSelect(this)">' + buildProjectSelectHtml(blockId) + '</select>' +
+      '<select class="project-select" onchange="onProjectSelect(this, \'' + blockId + '\')">' + buildProjectSelectHtml(blockId) + '</select>' +
       '</div>' +
+      '<div class="project-block-body" id="body_' + blockId + '" style="display:none;">' +
       '<div class="card-subtitle" style="margin-bottom:12px;">Todo es opcional. Completa solo las plataformas que apliquen.</div>' +
-      buildSourceTableHtml(blockId);
+      buildSourceTableHtml(blockId) +
+      '</div>';
     container.appendChild(div);
     updateProjectNumbers();
   }
@@ -1114,17 +1212,21 @@ if ($feedback) {
     });
   }
 
-  function onProjectSelect(sel) {
-    /* Warn if this project is already chosen in another block */
+  function onProjectSelect(sel, blockId) {
     var val = sel.value;
+    /* Show/hide body */
+    var body = document.getElementById('body_' + blockId);
+    if (body) body.style.display = val ? 'block' : 'none';
     if (!val) return;
+    /* Warn if this project is already chosen in another block */
     var count = 0;
     document.querySelectorAll('#projectBlocksContainer .project-select').forEach(function(s) {
       if (s.value === val) count++;
     });
     if (count > 1) {
-      Swal.fire({icon:'warning',title:'Proyecto duplicado',text:'Este proyecto ya fue seleccionado en otro bloque.',confirmButtonColor:'#FF00C8'});
+      Swal.fire({icon:'warning',title:'Proyecto duplicado',text:'Este proyecto ya fue seleccionado en otro bloque.',confirmButtonColor:'#A400F6'});
       sel.value = '';
+      if (body) body.style.display = 'none';
     }
   }
 
@@ -1136,7 +1238,7 @@ if ($feedback) {
       showCancelButton: true,
       confirmButtonText: 'Agregar',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#FF00C8',
+      confirmButtonColor: '#A400F6',
       inputValidator: function(val) { if (!val || !val.trim()) return 'Ingresa un nombre'; }
     }).then(function(result) {
       if (!result.isConfirmed) return;
@@ -1153,6 +1255,165 @@ if ($feedback) {
         '<td><button type="button" class="remove-btn" onclick="this.closest(\'tr\').remove()">&times;</button></td>';
       tbody.appendChild(tr);
     });
+  }
+
+  /* ── District row functions ── */
+  var districtRowCounter = 0;
+
+  function addDistrictRow(blockId) {
+    districtRowCounter++;
+    var rowId = 'drow_' + districtRowCounter;
+    var tbody = document.querySelector('#districtTable_' + blockId + ' tbody');
+    if (!tbody) return;
+    var tr = document.createElement('tr');
+    tr.id = rowId;
+    tr.setAttribute('data-block', blockId);
+    tr.innerHTML =
+      '<td><select class="district-zone-select" onchange="onZoneChange(this, \'' + rowId + '\', \'' + blockId + '\')">' + buildZoneOptions() + '</select></td>' +
+      '<td><div class="district-multi-wrap" id="dmw_' + rowId + '">' +
+      '<input type="text" class="dm-add-input" placeholder="Selecciona zona primero" disabled>' +
+      '</div></td>' +
+      '<td><input type="number" min="0" placeholder="0" class="district-qty" style="width:70px;text-align:center;" onchange="recalcDistrictPct(\'' + blockId + '\')" oninput="recalcDistrictPct(\'' + blockId + '\')" value=""></td>' +
+      '<td class="district-pct">0%</td>' +
+      '<td><button type="button" class="remove-btn" onclick="removeDistrictRow(\'' + rowId + '\', \'' + blockId + '\')">&times;</button></td>';
+    tbody.appendChild(tr);
+  }
+
+  function removeDistrictRow(rowId, blockId) {
+    var el = document.getElementById(rowId);
+    if (el) el.remove();
+    recalcDistrictPct(blockId);
+  }
+
+  function onZoneChange(sel, rowId, blockId) {
+    var zoneId = sel.value;
+    var wrap = document.getElementById('dmw_' + rowId);
+    if (!wrap) return;
+    /* Clear existing tags */
+    wrap.querySelectorAll('.dm-tag').forEach(function(t) { t.remove(); });
+    var input = wrap.querySelector('.dm-add-input');
+    if (!zoneId) {
+      input.placeholder = 'Selecciona zona primero';
+      input.disabled = true;
+      return;
+    }
+    input.disabled = false;
+    input.placeholder = 'Escribir distrito + Enter';
+    /* Build dropdown list for this zone */
+    var zone = zonesData.find(function(z) { return String(z.id) === String(zoneId); });
+    var districts = zone ? zone.districts : [];
+
+    /* Show a dropdown suggestions on focus */
+    input.setAttribute('data-zone-id', zoneId);
+    input.setAttribute('data-row-id', rowId);
+
+    /* Remove old dropdown if any */
+    var oldDrop = wrap.querySelector('.dm-dropdown');
+    if (oldDrop) oldDrop.remove();
+
+    if (districts.length) {
+      var dd = document.createElement('div');
+      dd.className = 'dm-dropdown';
+      dd.style.display = 'none';
+      districts.forEach(function(d) {
+        var opt = document.createElement('div');
+        opt.textContent = d.name;
+        opt.setAttribute('data-district-name', d.name.toLowerCase());
+        opt.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:13px;';
+        opt.onmouseenter = function() { this.style.background = '#F0EDFF'; };
+        opt.onmouseleave = function() { this.style.background = '#fff'; };
+        opt.onclick = function() {
+          addDistrictTag(wrap, d.name, rowId);
+          dd.style.display = 'none';
+          input.value = '';
+        };
+        dd.appendChild(opt);
+      });
+      wrap.appendChild(dd);
+
+      function filterDropdown() {
+        var query = input.value.trim().toLowerCase();
+        var anyVisible = false;
+        var items = dd.querySelectorAll('[data-district-name]');
+        items.forEach(function(item) {
+          var match = !query || item.getAttribute('data-district-name').indexOf(query) !== -1;
+          item.style.display = match ? '' : 'none';
+          if (match) anyVisible = true;
+        });
+        dd.style.display = anyVisible ? 'block' : 'none';
+      }
+
+      input.onfocus = function() { filterDropdown(); };
+      input.oninput = function() { filterDropdown(); };
+      input.onblur = function() { setTimeout(function() { dd.style.display = 'none'; }, 200); };
+    }
+
+    /* Allow typing custom district + Enter */
+    input.onkeydown = function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var val = this.value.trim();
+        if (val) { addDistrictTag(wrap, val, rowId); this.value = ''; }
+        var dd2 = wrap.querySelector('.dm-dropdown');
+        if (dd2) dd2.style.display = 'none';
+      }
+    };
+  }
+
+  function addDistrictTag(wrap, name, rowId) {
+    /* Avoid duplicates in same row */
+    var existing = wrap.querySelectorAll('.dm-tag');
+    for (var i = 0; i < existing.length; i++) {
+      if (existing[i].getAttribute('data-name').toLowerCase() === name.toLowerCase()) return;
+    }
+    var tag = document.createElement('span');
+    tag.className = 'dm-tag';
+    tag.setAttribute('data-name', name);
+    tag.innerHTML = name + ' <span class="dm-remove" onclick="this.parentElement.remove()">&times;</span>';
+    var input = wrap.querySelector('.dm-add-input');
+    wrap.insertBefore(tag, input);
+  }
+
+  function recalcDistrictPct(blockId) {
+    var rows = document.querySelectorAll('#districtTable_' + blockId + ' tbody tr');
+    var total = 0;
+    rows.forEach(function(tr) {
+      var inp = tr.querySelector('.district-qty');
+      total += parseInt(inp.value) || 0;
+    });
+    /* Get total leads received from source table */
+    var sourceTotal = 0;
+    document.querySelectorAll('#sourcesTable_' + blockId + ' tbody tr').forEach(function(tr) {
+      var inputs = tr.querySelectorAll('input[type=number]');
+      sourceTotal += parseInt(inputs[0] ? inputs[0].value : 0) || 0;
+    });
+    /* Others = sourceTotal - districtTotal */
+    var others = Math.max(0, sourceTotal - total);
+    var othersEl = document.getElementById('districtOthers_' + blockId);
+    var totalEl  = document.getElementById('districtTotal_' + blockId);
+    if (othersEl) othersEl.textContent = others;
+    if (totalEl)  totalEl.textContent = total + others;
+    var grandTotal = total + others;
+    /* Update percentages */
+    rows.forEach(function(tr) {
+      var qty = parseInt(tr.querySelector('.district-qty').value) || 0;
+      var pctCell = tr.querySelector('.district-pct');
+      pctCell.textContent = grandTotal > 0 ? Math.round(qty / grandTotal * 100) + '%' : '0%';
+    });
+  }
+
+  function rateStars(blockId, val) {
+    var wrap = document.getElementById('starRating_' + blockId);
+    var label = document.getElementById('starLabel_' + blockId);
+    if (!wrap) return;
+    wrap.setAttribute('data-value', val);
+    wrap.querySelectorAll('.star').forEach(function(s) {
+      var n = parseInt(s.getAttribute('data-star'));
+      if (n <= val) s.classList.add('filled'); else s.classList.remove('filled');
+    });
+    var labels = {1: 'Bajo', 2: 'Medio', 3: 'Alto'};
+    var colors = {1: '#E74C3C', 2: '#F39C12', 3: '#27AE60'};
+    if (label) { label.textContent = labels[val] || ''; label.style.color = colors[val] || '#999'; }
   }
 
   function collectProjectSources() {
@@ -1173,8 +1434,31 @@ if ($feedback) {
           sources.push({ platform: platform, received: +recv, replied: +replied, profile: +profile });
         }
       });
+      /* Collect districts */
+      var districts = [];
+      block.querySelectorAll('.district-table tbody tr').forEach(function(tr) {
+        var zoneSel = tr.querySelector('.district-zone-select');
+        var zoneName = zoneSel && zoneSel.value ? zoneSel.options[zoneSel.selectedIndex].text : '';
+        var tags = tr.querySelectorAll('.dm-tag');
+        var districtNames = [];
+        tags.forEach(function(t) { districtNames.push(t.getAttribute('data-name')); });
+        var qty = parseInt(tr.querySelector('.district-qty').value) || 0;
+        var pct = tr.querySelector('.district-pct').textContent;
+        if (zoneName && qty > 0) {
+          districts.push({ zone: zoneName, districts: districtNames, quantity: qty, pct: pct });
+        }
+      });
+      /* Collect sales */
+      var ventasInput = block.querySelector('.sales-ventas');
+      var separacionesInput = block.querySelector('.sales-separaciones');
+      var ventas = ventasInput ? (parseInt(ventasInput.value) || 0) : 0;
+      var separaciones = separacionesInput ? (parseInt(separacionesInput.value) || 0) : 0;
+      /* Collect lead quality */
+      var starWrap = block.querySelector('.star-rating');
+      var starVal = starWrap ? parseInt(starWrap.getAttribute('data-value')) || 0 : 0;
+      var leadQuality = starVal === 3 ? 'alto' : (starVal === 2 ? 'medio' : (starVal === 1 ? 'bajo' : ''));
       var comments = (block.querySelector('.project-comments') || {}).value || '';
-      result.push({ project_id: projId, project_name: projName, sources: sources, comments: comments.trim() });
+      result.push({ project_id: projId, project_name: projName, sources: sources, districts: districts, ventas: ventas, separaciones: separaciones, lead_quality: leadQuality, comments: comments.trim() });
     });
     return result;
   }
@@ -1190,7 +1474,7 @@ if ($feedback) {
     var contactName = document.getElementById('contactName').value.trim();
 
     if (!contactName || !selectedMonth || !selectedPeriod) {
-      Swal.fire({icon:'warning',title:'Campos incompletos',text:'Completa todos los campos del paso 1.',confirmButtonColor:'#FF00C8'}); return;
+      Swal.fire({icon:'warning',title:'Campos incompletos',text:'Completa todos los campos del paso 1.',confirmButtonColor:'#A400F6'}); return;
     }
 
     /* Validate per-project mode */
@@ -1198,7 +1482,7 @@ if ($feedback) {
     if (hasProjects) {
       var projData = collectProjectSources();
       if (projData.length === 0) {
-        Swal.fire({icon:'warning',title:'Selecciona un proyecto',text:'Debes seleccionar al menos un proyecto en el paso 2.',confirmButtonColor:'#FF00C8'}); return;
+        Swal.fire({icon:'warning',title:'Selecciona un proyecto',text:'Debes seleccionar al menos un proyecto en el paso 2.',confirmButtonColor:'#A400F6'}); return;
       }
       sourcesData = JSON.stringify(projData);
       sourceComments = '';
@@ -1251,13 +1535,98 @@ if ($feedback) {
       contentType: false,
       success:  function(res) {
         if (res.success) {
-          var summary =
-            '<div class="summary-item"><span class="key">Responsable</span><span class="val">' + contactName + '</span></div>' +
-            '<div class="summary-item"><span class="key">Periodo</span><span class="val">' + selectedMonth + ' - ' + selectedPeriod + '</span></div>' +
-            '<div class="summary-item"><span class="key">Leads recibidos</span><span class="val">' + totalRecv + '</span></div>' +
-            '<div class="summary-item"><span class="key">Calidad</span><span class="val">' + (ratings.quality ? ratings.quality + '/10' : '-') + '</span></div>';
+          /* ── Build full report ── */
+          var h = '';
+          h += '<div style="font-family:Helvetica Neue,Arial,sans-serif;color:#222;">';
+          h += '<div style="text-align:center;margin-bottom:20px;">';
+          h += '<h2 style="color:#4614FF;margin:0 0 4px;">Reporte Mensual de Leads</h2>';
+          h += '<p style="color:#666;font-size:13px;margin:0;">'+projectName+'</p>';
+          h += '</div>';
 
-          document.getElementById('summaryContent').innerHTML = summary;
+          /* Header info */
+          h += '<table style="width:100%;font-size:13px;margin-bottom:16px;border-collapse:collapse;">';
+          h += '<tr><td style="padding:6px 0;color:#888;width:140px;">Responsable</td><td style="padding:6px 0;font-weight:600;">'+contactName+'</td></tr>';
+          h += '<tr><td style="padding:6px 0;color:#888;">Periodo</td><td style="padding:6px 0;font-weight:600;">'+selectedMonth+' - '+selectedPeriod+'</td></tr>';
+          h += '<tr><td style="padding:6px 0;color:#888;">Total leads recibidos</td><td style="padding:6px 0;font-weight:600;">'+totalRecv+'</td></tr>';
+          h += '</table>';
+
+          if (hasProjects) {
+            projData.forEach(function(proj) {
+              h += '<div style="border:1px solid #E0E0E0;border-radius:10px;padding:16px;margin-bottom:14px;">';
+              h += '<h3 style="color:#4614FF;font-size:15px;margin:0 0 10px;border-bottom:2px solid #4614FF;padding-bottom:6px;">'+proj.project_name+'</h3>';
+
+              /* Sources table */
+              if (proj.sources && proj.sources.length) {
+                h += '<p style="font-weight:700;font-size:12px;color:#555;margin:0 0 4px;">Plataformas</p>';
+                h += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">';
+                h += '<tr style="background:#4614FF;color:#fff;"><th style="padding:6px 8px;text-align:left;">Plataforma</th><th style="padding:6px 8px;text-align:center;">Recibidos</th><th style="padding:6px 8px;text-align:center;">Contestaron</th><th style="padding:6px 8px;text-align:center;">Son perfil</th></tr>';
+                var tR=0,tC=0,tP=0;
+                proj.sources.forEach(function(s){
+                  var r=s.received||0, c=s.replied||0, p=s.profile||0; tR+=r;tC+=c;tP+=p;
+                  h+='<tr style="border-bottom:1px solid #eee;"><td style="padding:5px 8px;">'+s.platform+'</td><td style="padding:5px 8px;text-align:center;">'+r+'</td><td style="padding:5px 8px;text-align:center;">'+c+'</td><td style="padding:5px 8px;text-align:center;">'+p+'</td></tr>';
+                });
+                h += '<tr style="font-weight:700;background:#f4f4f4;"><td style="padding:5px 8px;">Total</td><td style="padding:5px 8px;text-align:center;">'+tR+'</td><td style="padding:5px 8px;text-align:center;">'+tC+'</td><td style="padding:5px 8px;text-align:center;">'+tP+'</td></tr>';
+                h += '</table>';
+              }
+
+              /* Districts */
+              if (proj.districts && proj.districts.length) {
+                h += '<p style="font-weight:700;font-size:12px;color:#555;margin:8px 0 4px;">Distritos</p>';
+                h += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">';
+                h += '<tr style="background:#6A0DAD;color:#fff;"><th style="padding:6px 8px;text-align:left;">Zona</th><th style="padding:6px 8px;text-align:left;">Distrito(s)</th><th style="padding:6px 8px;text-align:center;">Cantidad</th><th style="padding:6px 8px;text-align:center;">%</th></tr>';
+                proj.districts.forEach(function(dd){
+                  h+='<tr style="border-bottom:1px solid #eee;"><td style="padding:4px 8px;">'+(dd.zone||'')+'</td><td style="padding:4px 8px;">'+(dd.districts||[]).join(', ')+'</td><td style="padding:4px 8px;text-align:center;">'+(dd.quantity||0)+'</td><td style="padding:4px 8px;text-align:center;">'+(dd.pct||'')+'</td></tr>';
+                });
+                h += '</table>';
+              }
+
+              /* Sales */
+              if (proj.ventas || proj.separaciones) {
+                h += '<p style="font-weight:700;font-size:12px;color:#555;margin:8px 0 4px;">Ventas y Separaciones</p>';
+                h += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">';
+                h += '<tr style="background:#A400F6;color:#fff;"><th style="padding:6px 8px;text-align:center;">Ventas</th><th style="padding:6px 8px;text-align:center;">Separaciones</th></tr>';
+                h += '<tr><td style="padding:5px 8px;text-align:center;">'+(proj.ventas||0)+'</td><td style="padding:5px 8px;text-align:center;">'+(proj.separaciones||0)+'</td></tr></table>';
+              }
+
+              /* Lead quality */
+              if (proj.lead_quality) {
+                var qLabels={alto:'Alto',medio:'Medio',bajo:'Bajo'};
+                var qColors={alto:'#27AE60',medio:'#F39C12',bajo:'#E74C3C'};
+                var qStars={alto:'\u2605\u2605\u2605',medio:'\u2605\u2605\u2606',bajo:'\u2605\u2606\u2606'};
+                h += '<p style="font-size:12px;margin:6px 0;"><strong>Calidad de los leads:</strong> <span style="color:'+(qColors[proj.lead_quality]||'#999')+';font-weight:700;">'+(qStars[proj.lead_quality]||'')+' '+(qLabels[proj.lead_quality]||proj.lead_quality)+'</span></p>';
+              }
+
+              /* Comments */
+              if (proj.comments) {
+                h += '<p style="font-size:12px;color:#666;margin:4px 0;"><em>Comentario: '+proj.comments+'</em></p>';
+              }
+              h += '</div>';
+            });
+          } else {
+            /* Non-project mode */
+            var sources = collectSources();
+            if (sources.length) {
+              h += '<p style="font-weight:700;font-size:12px;color:#555;margin:8px 0 4px;">Plataformas</p>';
+              h += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;">';
+              h += '<tr style="background:#4614FF;color:#fff;"><th style="padding:6px 8px;text-align:left;">Plataforma</th><th style="padding:6px 8px;text-align:center;">Recibidos</th><th style="padding:6px 8px;text-align:center;">Contestaron</th><th style="padding:6px 8px;text-align:center;">Son perfil</th></tr>';
+              sources.forEach(function(s){
+                h+='<tr style="border-bottom:1px solid #eee;"><td style="padding:5px 8px;">'+s.platform+'</td><td style="padding:5px 8px;text-align:center;">'+(s.received||0)+'</td><td style="padding:5px 8px;text-align:center;">'+(s.replied||0)+'</td><td style="padding:5px 8px;text-align:center;">'+(s.profile||0)+'</td></tr>';
+              });
+              h += '</table>';
+            }
+            if (sourceComments) h += '<p style="font-size:12px;color:#666;"><em>'+sourceComments+'</em></p>';
+          }
+
+          /* General quality + free comment */
+          if (ratings.quality) h += '<p style="font-size:13px;margin:10px 0 4px;"><strong>Calidad general:</strong> '+ratings.quality+'/10</p>';
+          var freeComment = document.getElementById('free_comment').value.trim();
+          if (freeComment) h += '<p style="font-size:13px;margin:4px 0;"><strong>Comentario adicional:</strong> '+freeComment+'</p>';
+
+          h += '<p style="text-align:center;color:#999;font-size:10px;margin-top:20px;">Generado el '+ new Date().toLocaleDateString('es-PE') +'</p>';
+          h += '</div>';
+
+          document.getElementById('summaryContent').innerHTML = h;
+
           document.getElementById('step3').classList.remove('active');
           document.getElementById('stepSuccess').classList.add('active');
           document.getElementById('progressFill').style.width = '100%';
@@ -1265,17 +1634,36 @@ if ($feedback) {
           document.getElementById('stepLabel').textContent = 'Completado!';
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-          Swal.fire({icon:'error',title:'Error',text:res.message || 'No se pudo enviar el formulario.',confirmButtonColor:'#FF00C8'});
+          Swal.fire({icon:'error',title:'Error',text:res.message || 'No se pudo enviar el formulario.',confirmButtonColor:'#A400F6'});
           btn.disabled = false;
           btn.textContent = 'Enviar reporte';
         }
       },
       error: function() {
-        Swal.fire({icon:'error',title:'Error de red',text:'Intenta nuevamente.',confirmButtonColor:'#FF00C8'});
+        Swal.fire({icon:'error',title:'Error de red',text:'Intenta nuevamente.',confirmButtonColor:'#A400F6'});
         btn.disabled = false;
         btn.textContent = 'Enviar reporte';
       }
     });
+  }
+
+  function downloadPDF() {
+    var el = document.getElementById('summaryContent');
+    var clientLabel = document.getElementById('projectName') ? document.getElementById('projectName').textContent : 'Reporte';
+
+    /* Temporarily force explicit white bg & ensure element is scrolled into view */
+    window.scrollTo({ top: el.offsetTop - 20, behavior: 'instant' });
+
+    var opt = {
+      margin:       [8, 8, 8, 8],
+      filename:     'Reporte_Leads_' + clientLabel.replace(/[^a-zA-Z0-9]/g,'_') + '.pdf',
+      image:        { type: 'png', quality: 1 },
+      html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, scrollY: 0, scrollX: 0 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(el).save();
   }
 
   updateProgress();

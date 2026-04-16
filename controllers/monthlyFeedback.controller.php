@@ -333,7 +333,40 @@ class MonthlyFeedback_Controller
                         $h .= '<tr style="font-weight:700;background:#f4f4f4;"><td style="padding:5px 8px;">Total</td><td style="padding:5px 8px;text-align:center;">'.$tR.'</td><td style="padding:5px 8px;text-align:center;">'.$tC.'</td><td style="padding:5px 8px;text-align:center;">'.$tP.'</td></tr>';
                         $h .= '</table>';
                     }
+                    // Sales
+                    $ventas = (int)($proj['ventas'] ?? 0);
+                    $separaciones = (int)($proj['separaciones'] ?? 0);
+                    if ($ventas || $separaciones) {
+                        $h .= '<p style="font-weight:700;margin:10px 0 4px;font-size:13px;color:#FF00C8;">🛒 Ventas y Separaciones</p>';
+                        $h .= '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px;">';
+                        $h .= '<tr style="background:linear-gradient(135deg,#FF00C8,#FF6BDB);color:#fff;"><th style="padding:6px 8px;text-align:center;">Ventas</th><th style="padding:6px 8px;text-align:center;">Separaciones</th></tr>';
+                        $h .= '<tr style="border-bottom:1px solid #eee;"><td style="padding:5px 8px;text-align:center;">'.$ventas.'</td><td style="padding:5px 8px;text-align:center;">'.$separaciones.'</td></tr>';
+                        $h .= '</table>';
+                    }
+                    // Lead quality
+                    if (!empty($proj['lead_quality'])) {
+                        $qColors = ['alto'=>'#27AE60','medio'=>'#F39C12','bajo'=>'#E74C3C'];
+                        $qStars  = ['alto'=>'★★★','medio'=>'★★☆','bajo'=>'★☆☆'];
+                        $qLabels = ['alto'=>'Alto','medio'=>'Medio','bajo'=>'Bajo'];
+                        $lq = $proj['lead_quality'];
+                        $qc = $qColors[$lq] ?? '#999';
+                        $h .= '<p style="margin:6px 0;font-size:13px;"><strong>Calidad de los leads:</strong> <span style="color:'.$qc.';font-weight:700;">'.($qStars[$lq] ?? '').' '.htmlspecialchars($qLabels[$lq] ?? $lq).'</span></p>';
+                    }
                     if (!empty($proj['comments'])) $h .= '<p style="color:#666;font-size:13px;margin:4px 0;"><em>💬 ' . htmlspecialchars($proj['comments']) . '</em></p>';
+                    // Districts
+                    if (!empty($proj['districts'])) {
+                        $h .= '<p style="font-weight:700;margin:10px 0 4px;font-size:13px;color:#6A0DAD;">📍 Distritos</p>';
+                        $h .= '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;">';
+                        $h .= '<tr style="background:#6A0DAD;color:#fff;"><th style="padding:5px 8px;text-align:left;">Zona</th><th style="padding:5px 8px;text-align:left;">Distrito(s)</th><th style="padding:5px 8px;text-align:center;">Cantidad</th><th style="padding:5px 8px;text-align:center;">%</th></tr>';
+                        $dTotal = 0;
+                        foreach ($proj['districts'] as $dd) {
+                            $q = (int)($dd['quantity'] ?? 0); $dTotal += $q;
+                            $dnames = is_array($dd['districts'] ?? null) ? implode(', ', $dd['districts']) : '';
+                            $h .= '<tr style="border-bottom:1px solid #eee;"><td style="padding:4px 8px;">' . htmlspecialchars($dd['zone'] ?? '') . '</td><td style="padding:4px 8px;">' . htmlspecialchars($dnames) . '</td><td style="padding:4px 8px;text-align:center;">' . $q . '</td><td style="padding:4px 8px;text-align:center;">' . htmlspecialchars($dd['pct'] ?? '') . '</td></tr>';
+                        }
+                        $h .= '<tr style="font-weight:700;background:#f4f4f4;"><td colspan="2" style="padding:4px 8px;text-align:right;">Total</td><td style="padding:4px 8px;text-align:center;">' . $dTotal . '</td><td></td></tr>';
+                        $h .= '</table>';
+                    }
                 }
             } else {
                 $h .= '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
@@ -477,5 +510,136 @@ class MonthlyFeedback_Controller
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         return ($httpCode === 200) ? json_decode($response, true) : [];
+    }
+
+    // =====================================================================
+    //  ZONAS Y DISTRITOS
+    // =====================================================================
+
+    // ── Listar zonas ─────────────────────────────────────────────────────
+    static public function ctrGetZones()
+    {
+        $conn = self::getConnection();
+        if (!$conn) return [];
+        $res = $conn->query("SELECT * FROM feedback_zones ORDER BY sort_order, name");
+        $rows = [];
+        if ($res) { while ($r = $res->fetch_assoc()) $rows[] = $r; }
+        $conn->close();
+        return $rows;
+    }
+
+    // ── Crear zona ───────────────────────────────────────────────────────
+    static public function ctrCreateZone($name)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return false;
+        $stmt = $conn->prepare("INSERT INTO feedback_zones (name) VALUES (?)");
+        $stmt->bind_param('s', $name);
+        $ok = $stmt->execute();
+        $id = $ok ? $stmt->insert_id : 0;
+        $stmt->close(); $conn->close();
+        return $id;
+    }
+
+    // ── Actualizar zona ──────────────────────────────────────────────────
+    static public function ctrUpdateZone($id, $name)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return false;
+        $stmt = $conn->prepare("UPDATE feedback_zones SET name = ? WHERE id = ?");
+        $stmt->bind_param('si', $name, $id);
+        $ok = $stmt->execute();
+        $stmt->close(); $conn->close();
+        return $ok;
+    }
+
+    // ── Eliminar zona ────────────────────────────────────────────────────
+    static public function ctrDeleteZone($id)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return false;
+        $id = (int) $id;
+        $ok = $conn->query("DELETE FROM feedback_zones WHERE id = $id");
+        $conn->close();
+        return $ok;
+    }
+
+    // ── Listar distritos (opcionalmente filtrados por zona) ──────────────
+    static public function ctrGetDistricts($zoneId = null)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return [];
+        $sql = "SELECT d.*, z.name AS zone_name FROM feedback_districts d LEFT JOIN feedback_zones z ON d.zone_id = z.id";
+        if ($zoneId) $sql .= " WHERE d.zone_id = " . (int) $zoneId;
+        $sql .= " ORDER BY z.sort_order, z.name, d.name";
+        $res = $conn->query($sql);
+        $rows = [];
+        if ($res) { while ($r = $res->fetch_assoc()) $rows[] = $r; }
+        $conn->close();
+        return $rows;
+    }
+
+    // ── Crear distrito ───────────────────────────────────────────────────
+    static public function ctrCreateDistrict($zoneId, $name)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return false;
+        $stmt = $conn->prepare("INSERT INTO feedback_districts (zone_id, name) VALUES (?, ?)");
+        $stmt->bind_param('is', $zoneId, $name);
+        $ok = $stmt->execute();
+        $id = $ok ? $stmt->insert_id : 0;
+        $stmt->close(); $conn->close();
+        return $id;
+    }
+
+    // ── Actualizar distrito ──────────────────────────────────────────────
+    static public function ctrUpdateDistrict($id, $zoneId, $name)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return false;
+        $stmt = $conn->prepare("UPDATE feedback_districts SET zone_id = ?, name = ? WHERE id = ?");
+        $stmt->bind_param('isi', $zoneId, $name, $id);
+        $ok = $stmt->execute();
+        $stmt->close(); $conn->close();
+        return $ok;
+    }
+
+    // ── Eliminar distrito ────────────────────────────────────────────────
+    static public function ctrDeleteDistrict($id)
+    {
+        $conn = self::getConnection();
+        if (!$conn) return false;
+        $id = (int) $id;
+        $ok = $conn->query("DELETE FROM feedback_districts WHERE id = $id");
+        $conn->close();
+        return $ok;
+    }
+
+    // ── Zonas + distritos agrupados (para el formulario público) ─────────
+    static public function ctrGetZonesWithDistricts()
+    {
+        $conn = self::getConnection();
+        if (!$conn) return [];
+        $res = $conn->query(
+            "SELECT z.id AS zone_id, z.name AS zone_name,
+                    d.id AS district_id, d.name AS district_name
+             FROM feedback_zones z
+             LEFT JOIN feedback_districts d ON d.zone_id = z.id
+             ORDER BY z.sort_order, z.name, d.name"
+        );
+        $zones = [];
+        if ($res) {
+            while ($r = $res->fetch_assoc()) {
+                $zid = $r['zone_id'];
+                if (!isset($zones[$zid])) {
+                    $zones[$zid] = ['id' => $zid, 'name' => $r['zone_name'], 'districts' => []];
+                }
+                if ($r['district_id']) {
+                    $zones[$zid]['districts'][] = ['id' => $r['district_id'], 'name' => $r['district_name']];
+                }
+            }
+        }
+        $conn->close();
+        return array_values($zones);
     }
 }

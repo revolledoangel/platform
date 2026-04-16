@@ -128,6 +128,69 @@ switch ($action) {
         echo json_encode(['success' => $ok]);
         break;
 
+    // ════════════════════════════════════════════════════════════════════
+    //  ZONAS Y DISTRITOS
+    // ════════════════════════════════════════════════════════════════════
+
+    case 'getZones':
+        echo json_encode(['success' => true, 'data' => MonthlyFeedback_Controller::ctrGetZones()]);
+        break;
+
+    case 'createZone':
+        $name = trim($_POST['name'] ?? '');
+        if (!$name) { echo json_encode(['success' => false, 'message' => 'Nombre requerido.']); break; }
+        $id = MonthlyFeedback_Controller::ctrCreateZone($name);
+        echo json_encode(['success' => (bool)$id, 'id' => $id]);
+        break;
+
+    case 'updateZone':
+        $id   = (int)($_POST['id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        if (!$id || !$name) { echo json_encode(['success' => false, 'message' => 'Datos incompletos.']); break; }
+        $ok = MonthlyFeedback_Controller::ctrUpdateZone($id, $name);
+        echo json_encode(['success' => $ok]);
+        break;
+
+    case 'deleteZone':
+        $id = (int)($_POST['id'] ?? 0);
+        if (!$id) { echo json_encode(['success' => false, 'message' => 'ID requerido.']); break; }
+        $ok = MonthlyFeedback_Controller::ctrDeleteZone($id);
+        echo json_encode(['success' => (bool)$ok]);
+        break;
+
+    case 'getDistricts':
+        $zoneId = isset($_GET['zone_id']) ? (int)$_GET['zone_id'] : null;
+        echo json_encode(['success' => true, 'data' => MonthlyFeedback_Controller::ctrGetDistricts($zoneId)]);
+        break;
+
+    case 'createDistrict':
+        $zoneId = (int)($_POST['zone_id'] ?? 0);
+        $name   = trim($_POST['name'] ?? '');
+        if (!$zoneId || !$name) { echo json_encode(['success' => false, 'message' => 'Datos incompletos.']); break; }
+        $id = MonthlyFeedback_Controller::ctrCreateDistrict($zoneId, $name);
+        echo json_encode(['success' => (bool)$id, 'id' => $id]);
+        break;
+
+    case 'updateDistrict':
+        $id     = (int)($_POST['id'] ?? 0);
+        $zoneId = (int)($_POST['zone_id'] ?? 0);
+        $name   = trim($_POST['name'] ?? '');
+        if (!$id || !$zoneId || !$name) { echo json_encode(['success' => false, 'message' => 'Datos incompletos.']); break; }
+        $ok = MonthlyFeedback_Controller::ctrUpdateDistrict($id, $zoneId, $name);
+        echo json_encode(['success' => $ok]);
+        break;
+
+    case 'deleteDistrict':
+        $id = (int)($_POST['id'] ?? 0);
+        if (!$id) { echo json_encode(['success' => false, 'message' => 'ID requerido.']); break; }
+        $ok = MonthlyFeedback_Controller::ctrDeleteDistrict($id);
+        echo json_encode(['success' => (bool)$ok]);
+        break;
+
+    case 'getZonesWithDistricts':
+        echo json_encode(['success' => true, 'data' => MonthlyFeedback_Controller::ctrGetZonesWithDistricts()]);
+        break;
+
     default:
         echo json_encode(['success' => false, 'message' => 'Acción no reconocida.']);
         break;
