@@ -68,17 +68,26 @@ if ($feedback) {
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
+  html, body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    background: var(--purple);
+    background-color: #00013b;
     min-height: 100vh;
     color: var(--dark);
+    position: relative;
   }
 
-  .noise {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    opacity: 0.5;
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-color: #00013b;
+    background-image:
+      linear-gradient(180deg, rgba(0,1,59,0.85) 0%, rgba(44,2,138,0.7) 100%),
+      url('https://algoritmo.digital/wp-content/uploads/2023/10/BANNER-TRAMA-1.webp');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover, auto 100vh;
   }
 
   .header {
@@ -605,8 +614,9 @@ if ($feedback) {
   }
 
   .btn-primary:hover {
+    background: #8B00D0;
     transform: translateY(-2px);
-    box-shadow: 0 10px 32px rgba(255,0,200,0.45);
+    box-shadow: 0 10px 32px rgba(164,0,246,0.45);
   }
 
   .btn-primary:disabled {
@@ -781,8 +791,6 @@ if ($feedback) {
 </style>
 </head>
 <body>
-<div class="noise"></div>
-
 <header class="header">
   <div class="logo"><img src="views/img/template/algoritmo-logo-largo.png" alt="Algoritmo Digital" style="height:32px;"></div>
   <div class="header-badge"><?php echo htmlspecialchars($clientName); ?></div>
