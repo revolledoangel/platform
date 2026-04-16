@@ -1,5 +1,14 @@
 <?php
 session_start();
+
+// ── Public routes with their own full HTML (skip template entirely) ──
+if (isset($_GET["route"]) && $_GET["route"] === "monthlyFeedbackForm") {
+    include "modules/monthlyFeedbackForm.php"; // Has its own exit()
+}
+if (isset($_GET["route"]) && $_GET["route"] === "commentsViewer") {
+    include "modules/commentsViewer.php";
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -52,18 +61,6 @@ session_start();
 <body class="hold-transition skin-blue sidebar-mini login-page sidebar-collapse">
 
     <?php
-
-    // Ruta pública para viewer de comentarios (sin autenticación)
-    if (isset($_GET["route"]) && $_GET["route"] === "commentsViewer") {
-        include "modules/commentsViewer.php";
-        echo '</body></html>';
-        exit;
-    }
-
-    // Ruta pública para formulario de feedback mensual (sin autenticación)
-    if (isset($_GET["route"]) && $_GET["route"] === "monthlyFeedbackForm") {
-        include "modules/monthlyFeedbackForm.php"; // El include ya hace exit()
-    }
 
     if (isset($_SESSION["startSession"]) && $_SESSION["startSession"] == true) {
 

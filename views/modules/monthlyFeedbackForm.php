@@ -611,12 +611,25 @@ if ($feedback) {
     width: 100%;
     transition: all 0.2s;
     box-shadow: 0 6px 24px rgba(255,0,200,0.35);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
   }
 
   .btn-primary:hover {
     background: #8B00D0;
     transform: translateY(-2px);
     box-shadow: 0 10px 32px rgba(164,0,246,0.45);
+  }
+
+  .btn-primary:focus,
+  .btn-primary:active,
+  .btn-primary:focus-visible,
+  .btn-primary:active:focus {
+    background: #8B00D0 !important;
+    outline: none !important;
+    box-shadow: 0 6px 24px rgba(164,0,246,0.35) !important;
+    border-color: transparent !important;
+    color: white !important;
   }
 
   .btn-primary:disabled {
