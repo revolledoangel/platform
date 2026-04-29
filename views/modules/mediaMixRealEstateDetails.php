@@ -492,6 +492,17 @@ if (isset($_POST['configMediaMixId']) &&
                                         data-metric-code="<?php echo $hasMetric ? htmlspecialchars($d['metric_code']) : ''; ?>">
                                     <i class="fa fa-copy"></i>
                                 </button>
+                                <button class="btn btn-xs btn-primary btn-copyCodeExtended"
+                                        title="Copiar nomenclatura completa"
+                                        data-platform-code="<?php echo htmlspecialchars($d['platform_code']); ?>"
+                                        data-client-code="<?php echo htmlspecialchars($mmre['client_code']); ?>"
+                                        data-project-code="<?php echo htmlspecialchars($d['project_code']); ?>"
+                                        data-metric-code="<?php echo $hasMetric ? htmlspecialchars($d['metric_code']) : ''; ?>"
+                                        data-client-name="<?php echo htmlspecialchars($mmre['client_name']); ?>"
+                                        data-metric-name="<?php echo htmlspecialchars($d['result_type'] ?? ''); ?>"
+                                        data-campaign-name="<?php echo htmlspecialchars(($d['project_name'] ?? '') . ' - ' . ($d['platform_name'] ?? '')); ?>">
+                                    <i class="fa fa-list-alt"></i>
+                                </button>
                                 <button class="btn btn-xs btn-danger" title="Eliminar"><i class="fa fa-trash"></i></button>
                             </td>
                         </tr>

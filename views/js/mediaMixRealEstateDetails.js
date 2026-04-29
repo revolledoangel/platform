@@ -785,6 +785,58 @@ $(document).ready(function () {
         }
     }
 
+    function sanitizeNomenclaturePart(text) {
+        return String(text || '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim();
+    }
+
+    function truncateTo80(text) {
+        var clean = sanitizeNomenclaturePart(text);
+        return clean.length > 80 ? clean.substring(0, 80) : clean;
+    }
+
+    function buildExtendedNomenclature(platformCode, clientCode, projectCode, metricCode, clientName, metricName, campaignName) {
+        var code = (platformCode || '') + (clientCode || '') + (projectCode || '') + (metricCode || '');
+        var metricRaw = sanitizeNomenclaturePart(metricName);
+        var metricPrincipal = metricRaw;
+        var eventDetail = '';
+
+        var match = metricRaw.match(/^(.*)\(([^)]+)\)\s*$/);
+        if (match) {
+            metricPrincipal = sanitizeNomenclaturePart(match[1]);
+            eventDetail = sanitizeNomenclaturePart(match[2]);
+        }
+
+        var metricDisplay = sanitizeNomenclaturePart(metricPrincipal);
+        if (eventDetail) {
+            metricDisplay = metricDisplay + ': ' + truncateTo80(eventDetail);
+        }
+
+        var parts = [
+            sanitizeNomenclaturePart(code),
+            sanitizeNomenclaturePart(clientName),
+            metricDisplay
+        ];
+
+        return parts.filter(Boolean).join(' | ');
+    }
+
+    function copyTextWithFeedback(text, titleText) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(function() {
+                swal({
+                    icon: 'success',
+                    title: titleText || 'Texto copiado',
+                    text: text,
+                    timer: 2500
+                });
+            }).catch(function() {
+                fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            fallbackCopyTextToClipboard(text);
+        }
+    }
+
     // Función de respaldo para copiar texto
     function fallbackCopyTextToClipboard(text) {
         var textArea = document.createElement("textarea");
@@ -832,6 +884,29 @@ $(document).ready(function () {
         var metricCode = $(this).data('metric-code') || '';
         
         generateAndCopyCode(platformCode, clientCode, projectCode, metricCode);
+    });
+
+    $(document).on('click', '.btn-copyCodeExtended', function (e) {
+        e.preventDefault();
+        var platformCode = $(this).data('platform-code') || '';
+        var clientCode = $(this).data('client-code') || '';
+        var projectCode = $(this).data('project-code') || '';
+        var metricCode = $(this).data('metric-code') || '';
+        var clientName = $(this).data('client-name') || '';
+        var metricName = $(this).data('metric-name') || '';
+        var campaignName = $(this).data('campaign-name') || '';
+
+        var nomenclature = buildExtendedNomenclature(
+            platformCode,
+            clientCode,
+            projectCode,
+            metricCode,
+            clientName,
+            metricName,
+            campaignName
+        );
+
+        copyTextWithFeedback(nomenclature, 'Nomenclatura copiada');
     });
     // Función para exportar tabla a Excel con estilos modernos - ÚNICA VERSIÓN
     function exportTableToExcel() {
