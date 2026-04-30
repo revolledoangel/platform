@@ -105,6 +105,10 @@ if (isset($_POST['configMediaMixId']) &&
                                                 <option value="">Selecciona una plataforma primero</option>
                                             </select>
                                         </div>
+                                        <div class="form-group">
+                                            <label>Nombre de la campaña <small class="text-muted">(opcional, máx. 100 caracteres)</small></label>
+                                            <input type="text" class="form-control" id="newDetailCampaignName" name="newCampaignName" maxlength="100" placeholder="Ej: Campaña Verano 2026">
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -224,6 +228,10 @@ if (isset($_POST['configMediaMixId']) &&
                                                 name="editChannelId" required style="width:100%;" disabled>
                                                 <option value="">Selecciona una plataforma primero</option>
                                             </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Nombre de la campaña <small class="text-muted">(opcional, máx. 100 caracteres)</small></label>
+                                            <input type="text" class="form-control" id="editDetailCampaignName" name="editCampaignName" maxlength="100" placeholder="Ej: Campaña Verano 2026">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -500,7 +508,8 @@ if (isset($_POST['configMediaMixId']) &&
                                         data-metric-code="<?php echo $hasMetric ? htmlspecialchars($d['metric_code']) : ''; ?>"
                                         data-client-name="<?php echo htmlspecialchars($mmre['client_name']); ?>"
                                         data-metric-name="<?php echo htmlspecialchars($d['result_type'] ?? ''); ?>"
-                                        data-campaign-name="<?php echo htmlspecialchars(($d['project_name'] ?? '') . ' - ' . ($d['platform_name'] ?? '')); ?>">
+                                        data-projection="<?php echo htmlspecialchars($d['projection'] ?? ''); ?>"
+                                        data-campaign-name="<?php echo htmlspecialchars($d['campaign_name'] ?? ''); ?>">
                                     <i class="fa fa-list-alt"></i>
                                 </button>
                                 <button class="btn btn-xs btn-danger" title="Eliminar"><i class="fa fa-trash"></i></button>

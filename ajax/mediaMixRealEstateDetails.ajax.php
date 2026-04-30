@@ -208,3 +208,20 @@ if (isset($_POST['get_detail_id'])) {
     echo json_encode($detail);
     exit;
 }
+
+if (isset($_POST['save_campaign_name'])) {
+    $host = 'srv1013.hstgr.io';
+    $port = 3306;
+    $db   = 'u961992735_plataforma';
+    $user = 'u961992735_plataforma';
+    $pass = 'Peru+*963.';
+    $conn = new mysqli($host, $user, $pass, $db, $port);
+    if ($conn->connect_error) { echo json_encode(['success' => false]); exit; }
+    $detail_id = intval($_POST['save_campaign_name']);
+    $campaign_name = $conn->real_escape_string(mb_substr(trim($_POST['campaign_name'] ?? ''), 0, 100));
+    $sql = "UPDATE mediamixrealestate_details SET campaign_name = '$campaign_name' WHERE id = $detail_id";
+    $result = $conn->query($sql);
+    $conn->close();
+    echo json_encode(['success' => (bool)$result]);
+    exit;
+}

@@ -357,6 +357,7 @@ $(document).ready(function () {
         var aon = $('#newDetailAon').is(':checked') ? 1 : 0;
         var comments = $('#newDetailComments').val();
         var state = $('#newDetailStatus').val();
+        var campaign_name = $('#newDetailCampaignName').val().trim().substring(0, 100);
 
         // Validación robusta con mensaje de campos faltantes
         var missingFields = [];
@@ -409,11 +410,24 @@ $(document).ready(function () {
             const statusCode = res.status;
             const response = await res.json();
             if ((statusCode === 200 || statusCode === 201) && (response.success || (response.id && !isNaN(response.id)))) {
-                swal({
-                    icon: 'success',
-                    title: 'Detalle guardado',
-                    text: 'El detalle se guardó correctamente.'
-                }).then(() => { location.reload(); });
+                var newDetailId = response.id || (response.data && response.data.id);
+                function doReloadAdd() {
+                    swal({
+                        icon: 'success',
+                        title: 'Detalle guardado',
+                        text: 'El detalle se guardó correctamente.'
+                    }).then(function() { location.reload(); });
+                }
+                if (newDetailId && campaign_name) {
+                    $.ajax({
+                        url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                        method: 'POST',
+                        data: { save_campaign_name: newDetailId, campaign_name: campaign_name },
+                        complete: function() { doReloadAdd(); }
+                    });
+                } else {
+                    doReloadAdd();
+                }
             } else {
                 swal({
                     icon: 'error',
@@ -505,16 +519,26 @@ $(document).ready(function () {
                     dataType: 'json',
                     success: function(metrics) {
                         cachedMetricsByPlatform[data.platform_id] = metrics;
+                        var matchedMetricId = null;
                         var mOpts = '<option value="">-- Selecciona una métrica --</option>';
                         metrics.forEach(function(m) {
-                            var selected = (data.result_type && m.name === data.result_type) ? ' selected' : '';
-                            mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '"' + selected + '>' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
+                            var exactMatch = data.result_type && m.name === data.result_type;
+                            var prefixMatch = data.result_type && data.result_type.indexOf(m.name + ' (') === 0;
+                            if (exactMatch || prefixMatch) { matchedMetricId = m.id; }
+                            mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '">' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
                         });
                         $('#editDetailMetric').html(mOpts).prop('disabled', false);
-                        // Show event name field if pre-selected metric requires it
+                        if (matchedMetricId) {
+                            $('#editDetailMetric').val(matchedMetricId).trigger('change');
+                        }
+                        // Show event name field and pre-fill it if the stored result_type has an event in parentheses
                         var preSelected = $('#editDetailMetric option:selected');
                         if (parseInt(preSelected.data('requires-event'))) {
                             $('#editEventNameGroup').show();
+                            var eventMatch = data.result_type ? data.result_type.match(/\(([^)]+)\)\s*$/) : null;
+                            if (eventMatch) {
+                                $('#editDetailEventName').val(eventMatch[1]);
+                            }
                         }
                         showModalIfReady();
                     },
@@ -559,6 +583,7 @@ $(document).ready(function () {
                 $('#editDetailAon').prop('checked', data.aon == 1);
                 $('#editDetailComments').val(data.comments);
                 $('#editDetailStatus').val(data.state);
+                $('#editDetailCampaignName').val(data.campaign_name || '');
                 $('#editDetailId').val(data.id);
             }
         });
@@ -656,6 +681,7 @@ $(document).ready(function () {
         var aon = $('#editDetailAon').is(':checked') ? 1 : 0;
         var comments = $('#editDetailComments').val();
         var state = $('#editDetailStatus').val();
+        var campaign_name = $('#editDetailCampaignName').val().trim().substring(0, 100);
 
         // Validación robusta con mensaje de campos faltantes
         var missingFields = [];
@@ -710,11 +736,19 @@ $(document).ready(function () {
             const statusCode = res.status;
             const response = await res.json();
             if ((statusCode === 200 || statusCode === 201) && (response.success || (response.id && !isNaN(response.id)))) {
-                swal({
-                    icon: 'success',
-                    title: 'Detalle actualizado',
-                    text: 'Los cambios se guardaron correctamente.'
-                }).then(() => { location.reload(); });
+                function doReloadEdit() {
+                    swal({
+                        icon: 'success',
+                        title: 'Detalle actualizado',
+                        text: 'Los cambios se guardaron correctamente.'
+                    }).then(function() { location.reload(); });
+                }
+                $.ajax({
+                    url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                    method: 'POST',
+                    data: { save_campaign_name: detail_id, campaign_name: campaign_name },
+                    complete: function() { doReloadEdit(); }
+                });
             } else {
                 swal({
                     icon: 'error',
@@ -794,7 +828,7 @@ $(document).ready(function () {
         return clean.length > 80 ? clean.substring(0, 80) : clean;
     }
 
-    function buildExtendedNomenclature(platformCode, clientCode, projectCode, metricCode, clientName, metricName, campaignName) {
+    function buildExtendedNomenclature(platformCode, clientCode, projectCode, metricCode, clientName, metricName, projection, campaignName) {
         var code = (platformCode || '') + (clientCode || '') + (projectCode || '') + (metricCode || '');
         var metricRaw = sanitizeNomenclaturePart(metricName);
         var metricPrincipal = metricRaw;
@@ -816,6 +850,13 @@ $(document).ready(function () {
             sanitizeNomenclaturePart(clientName),
             metricDisplay
         ];
+
+        var projectionClean = sanitizeNomenclaturePart(String(projection || ''));
+        if (projectionClean) { parts.push(projectionClean); }
+
+        var campaignNameClean = sanitizeNomenclaturePart(campaignName);
+        if (campaignNameClean.length > 100) { campaignNameClean = campaignNameClean.substring(0, 100); }
+        if (campaignNameClean) { parts.push(campaignNameClean); }
 
         return parts.filter(Boolean).join(' | ');
     }
@@ -894,6 +935,7 @@ $(document).ready(function () {
         var metricCode = $(this).data('metric-code') || '';
         var clientName = $(this).data('client-name') || '';
         var metricName = $(this).data('metric-name') || '';
+        var projection = $(this).data('projection') || '';
         var campaignName = $(this).data('campaign-name') || '';
 
         var nomenclature = buildExtendedNomenclature(
@@ -903,6 +945,7 @@ $(document).ready(function () {
             metricCode,
             clientName,
             metricName,
+            projection,
             campaignName
         );
 
