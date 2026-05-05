@@ -828,7 +828,23 @@ $(document).ready(function () {
         return clean.length > 80 ? clean.substring(0, 80) : clean;
     }
 
-    function buildExtendedNomenclature(platformCode, clientCode, projectCode, metricCode, clientName, metricName, projection, campaignName) {
+    var _monthMap = {
+        'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
+        'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
+        'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'
+    };
+
+    function periodToYYYYMM(periodName) {
+        // Expects "Mayo 2026" → "2026-05"
+        var parts = String(periodName || '').trim().split(/\s+/);
+        if (parts.length < 2) { return sanitizeNomenclaturePart(periodName); }
+        var month = _monthMap[parts[0].toLowerCase()];
+        var year = parts[1];
+        if (month && year) { return year + '-' + month; }
+        return sanitizeNomenclaturePart(periodName);
+    }
+
+    function buildExtendedNomenclature(platformCode, clientCode, projectCode, metricCode, clientName, metricName, projectName, campaignName, periodName, investment) {
         var code = (platformCode || '') + (clientCode || '') + (projectCode || '') + (metricCode || '');
         var metricRaw = sanitizeNomenclaturePart(metricName);
         var metricPrincipal = metricRaw;
@@ -845,18 +861,25 @@ $(document).ready(function () {
             metricDisplay = metricDisplay + ': ' + truncateTo80(eventDetail);
         }
 
+        // Nombre descriptivo: campaign_name si existe, sino project_name
+        var descriptiveName = sanitizeNomenclaturePart(campaignName);
+        if (!descriptiveName) {
+            descriptiveName = sanitizeNomenclaturePart(projectName);
+        }
+        if (descriptiveName.length > 100) { descriptiveName = descriptiveName.substring(0, 100); }
+
+        var fecha = periodToYYYYMM(periodName);
+
+        var investmentClean = sanitizeNomenclaturePart(String(investment || ''));
+
         var parts = [
             sanitizeNomenclaturePart(code),
             sanitizeNomenclaturePart(clientName),
-            metricDisplay
+            descriptiveName,
+            metricDisplay,
+            fecha,
+            investmentClean
         ];
-
-        var projectionClean = sanitizeNomenclaturePart(String(projection || ''));
-        if (projectionClean) { parts.push(projectionClean); }
-
-        var campaignNameClean = sanitizeNomenclaturePart(campaignName);
-        if (campaignNameClean.length > 100) { campaignNameClean = campaignNameClean.substring(0, 100); }
-        if (campaignNameClean) { parts.push(campaignNameClean); }
 
         return parts.filter(Boolean).join(' | ');
     }
@@ -935,8 +958,10 @@ $(document).ready(function () {
         var metricCode = $(this).data('metric-code') || '';
         var clientName = $(this).data('client-name') || '';
         var metricName = $(this).data('metric-name') || '';
-        var projection = $(this).data('projection') || '';
+        var projectName = $(this).data('project-name') || '';
         var campaignName = $(this).data('campaign-name') || '';
+        var investment = $(this).data('investment') || '';
+        var periodName = window.periodName || '';
 
         var nomenclature = buildExtendedNomenclature(
             platformCode,
@@ -945,8 +970,10 @@ $(document).ready(function () {
             metricCode,
             clientName,
             metricName,
-            projection,
-            campaignName
+            projectName,
+            campaignName,
+            periodName,
+            investment
         );
 
         copyTextWithFeedback(nomenclature, 'Nomenclatura copiada');

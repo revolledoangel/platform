@@ -508,8 +508,9 @@ if (isset($_POST['configMediaMixId']) &&
                                         data-metric-code="<?php echo $hasMetric ? htmlspecialchars($d['metric_code']) : ''; ?>"
                                         data-client-name="<?php echo htmlspecialchars($mmre['client_name']); ?>"
                                         data-metric-name="<?php echo htmlspecialchars($d['result_type'] ?? ''); ?>"
-                                        data-projection="<?php echo htmlspecialchars($d['projection'] ?? ''); ?>"
-                                        data-campaign-name="<?php echo htmlspecialchars($d['campaign_name'] ?? ''); ?>">
+                                        data-project-name="<?php echo htmlspecialchars($d['project_name'] ?? ''); ?>"
+                                        data-campaign-name="<?php echo htmlspecialchars($d['campaign_name'] ?? ''); ?>"
+                                        data-investment="<?php echo htmlspecialchars($d['investment'] ?? ''); ?>">
                                     <i class="fa fa-list-alt"></i>
                                 </button>
                                 <button class="btn btn-xs btn-danger" title="Eliminar"><i class="fa fa-trash"></i></button>
