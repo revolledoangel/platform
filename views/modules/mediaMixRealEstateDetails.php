@@ -675,7 +675,7 @@ if (isset($_POST['configMediaMixId']) &&
                                 }
                                 ?>
                                 <tr class="warning">
-                                    <td class="text-right"><strong>Comisión Agencia (Regla):</strong></td>
+                                    <td class="text-right"><strong>Comisión Agencia:</strong></td>
                                     <td class="text-right" style="font-size: 16px;">
                                         <strong id="comisionAgencia">
                                             <?php
