@@ -28,12 +28,6 @@ $moduleDependencies = [
         ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
         ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php']
     ],
-    'objectives' => [
-        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php']
-    ],
-    'campaignTypes' => [
-        ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
-    ],
     'channels' => [
         ['controller' => 'channels.controller.php', 'model' => 'channels.model.php']
     ],
@@ -47,7 +41,6 @@ $moduleDependencies = [
         ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
         ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php'],
         ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
-        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php'],
         ['controller' => 'periods.controller.php', 'model' => null]
     ],
     'periods' => [
@@ -74,11 +67,9 @@ $moduleDependencies = [
     'mediaMixRealEstateDetails' => [
         ['controller' => 'mediaMixRealEstateDetails.controller.php', 'model' => null],
         ['controller' => 'projects.controller.php', 'model' => 'projects.model.php'],
-        ['controller' => 'objectives.controller.php', 'model' => 'objetives.model.php'],
         ['controller' => 'platforms.controller.php', 'model' => 'platforms.model.php'],
         ['controller' => 'channels.controller.php', 'model' => 'channels.model.php'],
-        ['controller' => 'formats.controller.php', 'model' => 'formats.model.php'],
-        ['controller' => 'campaignTypes.controller.php', 'model' => 'campaignTypes.model.php']
+        ['controller' => 'formats.controller.php', 'model' => 'formats.model.php']
     ],
     'monthlyFeedback' => [
         ['controller' => 'monthlyFeedback.controller.php', 'model' => 'monthlyFeedback.model.php'],

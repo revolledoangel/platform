@@ -37,21 +37,12 @@ class AjaxMediaMixRealEstate
                 </button>
             </div>';
 
-            // Formatear fee según su tipo
-            $feeDisplay = '';
-            if (isset($record["fee_type"]) && $record["fee_type"] === 'fixed') {
-                $feeDisplay = htmlspecialchars($record["currency"]) . ' ' . number_format(floatval($record["fee"]), 2);
-            } else {
-                $feeDisplay = htmlspecialchars($record["fee"]) . '%';
-            }
-
             $data[] = [
                 ($key + 1),
                 htmlspecialchars($record["name"]),
                 htmlspecialchars($record["client_id"]),
                 htmlspecialchars($record["period_id"]),
                 htmlspecialchars($record["currency"]),
-                $feeDisplay,
                 htmlspecialchars($record["igv"]),
                 $acciones
             ];
@@ -258,6 +249,33 @@ class AjaxMediaMixRealEstate
             }
             
             $conn->begin_transaction();
+
+            $conn->query("CREATE TABLE IF NOT EXISTS mmre_fee_rules (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                mediamixrealestate_id INT NOT NULL,
+                min_investment DECIMAL(12,2) NOT NULL DEFAULT 0,
+                max_investment DECIMAL(12,2) NULL,
+                fee_mode ENUM('percentage','fixed','percentage_plus_fixed') NOT NULL DEFAULT 'percentage',
+                percentage_value DECIMAL(10,4) NOT NULL DEFAULT 0,
+                fixed_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+                priority INT NOT NULL DEFAULT 0,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_mmre_fee_rules_mmre (mediamixrealestate_id, is_active, priority)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+            $conn->query("CREATE TABLE IF NOT EXISTS mmre_fee_charges (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                mediamixrealestate_id INT NOT NULL,
+                concept_id INT NULL,
+                concept_name VARCHAR(150) NOT NULL,
+                amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_mmre_fee_charges_mmre (mediamixrealestate_id, is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
             
             // Obtener datos del POST
             $source_mix_id = intval($_POST['mix_id']);
@@ -308,6 +326,21 @@ class AjaxMediaMixRealEstate
             }
             
             $new_mix_id = $conn->insert_id;
+
+            // 3.1 Copiar snapshot de reglas y cargos de fee del mix original
+            $sqlCloneRules = "INSERT INTO mmre_fee_rules
+                (mediamixrealestate_id, min_investment, max_investment, fee_mode, percentage_value, fixed_value, priority, is_active, created_at, updated_at)
+                SELECT $new_mix_id, min_investment, max_investment, fee_mode, percentage_value, fixed_value, priority, is_active, NOW(), NOW()
+                FROM mmre_fee_rules
+                WHERE mediamixrealestate_id = $source_mix_id AND is_active = 1";
+            $conn->query($sqlCloneRules);
+
+            $sqlCloneCharges = "INSERT INTO mmre_fee_charges
+                (mediamixrealestate_id, concept_id, concept_name, amount, is_active, created_at, updated_at)
+                SELECT $new_mix_id, concept_id, concept_name, amount, is_active, NOW(), NOW()
+                FROM mmre_fee_charges
+                WHERE mediamixrealestate_id = $source_mix_id AND is_active = 1";
+            $conn->query($sqlCloneCharges);
             
             // 4. Copiar detalles (con o sin filtro AON)
             $aonCondition = $only_aon ? "AND aon = 1" : "";
@@ -327,10 +360,10 @@ class AjaxMediaMixRealEstate
                     
                     // Insertar detalle
                     $sqlInsertDetail = "INSERT INTO mediamixrealestate_details 
-                                       (mediamixrealestate_id, project_id, channel_id, campaign_type_id, 
+                                       (mediamixrealestate_id, project_id, channel_id,
                                         segmentation, result_type, projection, investment, aon, comments, state, created_at, updated_at) 
                                        VALUES 
-                                       ($new_mix_id, {$detail['project_id']}, {$detail['channel_id']}, {$detail['campaign_type_id']}, 
+                                       ($new_mix_id, {$detail['project_id']}, {$detail['channel_id']},
                                         '{$conn->real_escape_string($detail['segmentation'])}', '{$conn->real_escape_string($detail['result_type'])}', 
                                         {$detail['projection']}, {$detail['investment']}, {$detail['aon']}, 
                                         " . ($detail['comments'] ? "'{$conn->real_escape_string($detail['comments'])}'" : "NULL") . ", 
@@ -355,17 +388,6 @@ class AjaxMediaMixRealEstate
                         }
                     }
                     
-                    // 6. Copiar relaciones de objetivos
-                    $sqlObjectives = "SELECT objective_id FROM mmre_details_objectives WHERE mmre_detail_id = $old_detail_id";
-                    $resultObjectives = $conn->query($sqlObjectives);
-                    
-                    if ($resultObjectives && $resultObjectives->num_rows > 0) {
-                        while ($objective = $resultObjectives->fetch_assoc()) {
-                            $sqlInsertObjective = "INSERT INTO mmre_details_objectives (mmre_detail_id, objective_id) 
-                                                  VALUES ($new_detail_id, {$objective['objective_id']})";
-                            $conn->query($sqlInsertObjective);
-                        }
-                    }
                 }
             }
             

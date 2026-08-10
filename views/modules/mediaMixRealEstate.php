@@ -13,12 +13,12 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
 <div class="content-wrapper">
     <section class="content-header">
         <h1>
-            Mix de Medios Inmobiliario
+            Mix de Medios
             <small>Administrar</small>
         </h1>
         <ol class="breadcrumb">
             <li><a href="home"><i class="fa fa-home"></i> Home</a></li>
-            <li class="active">Mix de Medios Inmobiliario</li>
+            <li class="active">Mix de Medios</li>
         </ol>
     </section>
 
@@ -94,7 +94,6 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                                 <th>Cliente</th>
                                 <th>Periodo</th>
                                 <th>Moneda</th>
-                                <th>Fee (%)</th>
                                 <th>IGV (%)</th>
                                 <th style="width:150px">Acciones</th> <!-- Aumentado de 120px a 150px -->
                             </tr>
@@ -115,7 +114,7 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                 <div class="modal-header" style="background:#00013b;color:#fff">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span></button>
-                    <h4 class="modal-title">Agregar Mix de Medios Inmobiliario</h4>
+                    <h4 class="modal-title">Agregar Mix de Medios</h4>
                 </div>
                 <div class="modal-body">
                     <div class="box-body">
@@ -184,21 +183,8 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Fee:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-addon" id="newFeeSymbol"><i class="fa fa-percent"></i></span>
-                                        <input type="number" step="any" class="form-control" name="newFee"
-                                            id="newFeeInput" placeholder="Ej: 10" required>
-                                    </div>
-                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
-                                        <label class="radio-inline">
-                                            <input type="radio" name="newFeeType" value="percentage" checked> Porcentaje (%)
-                                        </label>
-                                        <label class="radio-inline">
-                                            <input type="radio" name="newFeeType" value="fixed"> Valor Fijo
-                                        </label>
-                                    </div>
+                                <div class="alert alert-info" style="margin-top: 25px; margin-bottom:0;">
+                                    <i class="fa fa-info-circle"></i> El fee se configura desde el cliente.
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -292,21 +278,8 @@ $deleteMediaMix->ctrDeleteMediaMixRealEstate();
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Fee:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-addon" id="editFeeSymbol"><i class="fa fa-percent"></i></span>
-                                        <input type="number" step="any" class="form-control" name="editFee" 
-                                            id="editFeeInput" required>
-                                    </div>
-                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
-                                        <label class="radio-inline">
-                                            <input type="radio" name="editFeeType" value="percentage"> Porcentaje (%)
-                                        </label>
-                                        <label class="radio-inline">
-                                            <input type="radio" name="editFeeType" value="fixed"> Valor Fijo
-                                        </label>
-                                    </div>
+                                <div class="alert alert-info" style="margin-top: 25px; margin-bottom:0;">
+                                    <i class="fa fa-info-circle"></i> El fee se configura desde el cliente.
                                 </div>
                             </div>
                             <div class="col-md-4">

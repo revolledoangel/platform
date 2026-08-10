@@ -1,7 +1,23 @@
 <?php
 // Archivo limpio para comenzar desde cero
+require_once __DIR__ . '/fees.controller.php';
 
 class MediaMixRealEstateDetails_Controller {
+    private static function hasColumn($conn, $table, $column) {
+        $tableEsc = $conn->real_escape_string($table);
+        $columnEsc = $conn->real_escape_string($column);
+        $sql = "SELECT COUNT(*) AS cnt
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = '$tableEsc'
+                  AND COLUMN_NAME = '$columnEsc'";
+        $res = $conn->query($sql);
+        if ($res && ($row = $res->fetch_assoc())) {
+            return intval($row['cnt']) > 0;
+        }
+        return false;
+    }
+
     static public function ctrGetMediaMixById($mmreId) {
         $host = 'srv1013.hstgr.io';
         $port = 3306;
@@ -13,7 +29,13 @@ class MediaMixRealEstateDetails_Controller {
         $mmreId = intval($mmreId);
         // Mix general con código del cliente
         $mmre = null;
-        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code, m.currency, m.fee, m.fee_type, m.igv, m.nationalization_fee
+        $hasSnapshotColumn = self::hasColumn($conn, 'mediamixrealestates', 'currency_usd_per_unit_snapshot');
+        $snapshotSelect = $hasSnapshotColumn
+            ? 'm.currency_usd_per_unit_snapshot'
+            : 'NULL AS currency_usd_per_unit_snapshot';
+
+        $sql = "SELECT m.id, m.name, m.period_id, p.name AS period_name, m.client_id, c.name AS client_name, c.code AS client_code,
+                   m.currency, $snapshotSelect, m.fee, m.fee_type, m.igv, m.nationalization_fee
                 FROM mediamixrealestates m
                 LEFT JOIN periods p ON m.period_id = p.id
                 LEFT JOIN clients c ON m.client_id = c.id
@@ -29,7 +51,7 @@ class MediaMixRealEstateDetails_Controller {
         // Detalles con códigos de proyecto
         $details = [];
         $sql = "SELECT d.*, p.name AS project_name, p.code AS project_code, p.group AS project_group, p.active AS project_active,
-                       ch.name AS channel_name, ct.name AS campaign_type_name,
+                   ch.name AS channel_name,
                        mt.code AS metric_code,
                        (SELECT COUNT(*) FROM metrics m3
                             WHERE m3.name = d.result_type
@@ -38,7 +60,6 @@ class MediaMixRealEstateDetails_Controller {
                 FROM mediamixrealestate_details d
                 LEFT JOIN projects p ON d.project_id = p.id
                 LEFT JOIN channels ch ON d.channel_id = ch.id
-                LEFT JOIN campaign_types ct ON d.campaign_type_id = ct.id
                 LEFT JOIN metrics mt ON mt.id = (
                     SELECT m2.id FROM metrics m2
                     WHERE m2.name = d.result_type
@@ -96,20 +117,6 @@ class MediaMixRealEstateDetails_Controller {
                 $detail['formats_names'] = $formats_names;
                 $detail['formats_codes'] = $formats_codes;
                 $detail['formats_actives'] = $formats_actives;
-                // Objectives
-                $sqlO = "SELECT o.id, o.name, o.code FROM mmre_details_objectives mo LEFT JOIN objectives o ON mo.objective_id = o.id WHERE mo.mmre_detail_id = {$detail['id']}";
-                $resO = $conn->query($sqlO);
-                $objectives_ids = [];
-                $objectives_names = [];
-                $objectives_codes = [];
-                while ($resO && $o = $resO->fetch_assoc()) {
-                    $objectives_ids[] = intval($o['id']);
-                    $objectives_names[] = $o['name'];
-                    $objectives_codes[] = $o['code'];
-                }
-                $detail['objectives_ids'] = $objectives_ids;
-                $detail['objectives_names'] = $objectives_names;
-                $detail['objectives_codes'] = $objectives_codes;
                 // Name mix
                 $detail['name_mix'] = $mmre ? $mmre['name'] : null;
                 // Currency
@@ -138,12 +145,16 @@ class MediaMixRealEstateDetails_Controller {
         if ($efRes) { while ($row = $efRes->fetch_assoc()) $extraFees[] = $row; }
         // Migrar investment a DECIMAL si aún es INT
         $conn->query("ALTER TABLE mediamixrealestate_details MODIFY investment DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+        $mixFeeConfig = Fees_Controller::ctrGetMixFeeConfig($mmreId);
         $conn->close();
         return [
             'success' => true,
             'mmre' => $mmre,
             'details' => $details,
-            'extra_fees' => $extraFees
+            'extra_fees' => $extraFees,
+            'mix_fee_rules' => $mixFeeConfig['rules'],
+            'mix_fee_charges' => $mixFeeConfig['charges'],
+            'mix_meta' => $mixFeeConfig['mix_meta']
         ];
     }
 
@@ -303,8 +314,6 @@ class MediaMixRealEstateDetails_Controller {
                 // Preparar los valores a actualizar
                 $name = $conn->real_escape_string($_POST["configName"]);
                 $currency = $conn->real_escape_string($_POST["configCurrency"]);
-                $fee = floatval($_POST["configFee"]);
-                $feeType = $conn->real_escape_string($_POST["configFeeType"]);
                 $igv = floatval($_POST["configIgv"]);
                 $nationalizationFee = floatval($_POST["configNationalizationFee"]);
                 
@@ -312,14 +321,18 @@ class MediaMixRealEstateDetails_Controller {
                 $sql = "UPDATE mediamixrealestates 
                         SET name = '$name',
                             currency = '$currency',
-                            fee = $fee,
-                            fee_type = '$feeType',
                             igv = $igv,
                             nationalization_fee = $nationalizationFee,
                             updated_at = NOW()
                         WHERE id = $mediaMixId";
                 
                 if ($conn->query($sql)) {
+                    if (Fees_Controller::ctrIsAdminSession() && isset($_POST['configRulesJson']) && isset($_POST['configChargesJson'])) {
+                        $rules = json_decode($_POST['configRulesJson'], true);
+                        $charges = json_decode($_POST['configChargesJson'], true);
+                        Fees_Controller::ctrSaveMixFeeConfig($mediaMixId, $rules, $charges);
+                    }
+
                     echo '<script>
                         swal({
                             type: "success",
@@ -403,7 +416,6 @@ class MediaMixRealEstateDetails_Controller {
         if ($conn->connect_error) return ['success' => false, 'message' => 'DB connection failed'];
         $mmreId        = intval($data['mediamixrealestate_id'] ?? 0);
         $projectId     = intval($data['project_id'] ?? 0);
-        $campaignTypeId = intval($data['campaign_type_id'] ?? 1);
         $channelId     = intval($data['channel_id'] ?? 0);
         $aon           = intval($data['aon'] ?? 0);
         $segmentation  = $conn->real_escape_string(mb_substr(trim($data['segmentation'] ?? ''), 0, 255));
@@ -414,12 +426,11 @@ class MediaMixRealEstateDetails_Controller {
         $state         = $conn->real_escape_string(mb_substr(trim($data['state'] ?? 'Activa'), 0, 255));
         $campaignName  = $conn->real_escape_string(mb_substr(trim($data['campaign_name'] ?? ''), 0, 100));
         $formatsIds    = array_map('intval', (array)($data['formats_ids'] ?? []));
-        $objectivesIds = array_map('intval', (array)($data['objectives_ids'] ?? []));
         $now = date('Y-m-d H:i:s');
         $sql = "INSERT INTO mediamixrealestate_details
-                    (mediamixrealestate_id, project_id, campaign_type_id, channel_id, aon, segmentation, investment, projection, comments, result_type, state, campaign_name, created_at, updated_at)
+                    (mediamixrealestate_id, project_id, channel_id, aon, segmentation, investment, projection, comments, result_type, state, campaign_name, created_at, updated_at)
                 VALUES
-                    ($mmreId, $projectId, $campaignTypeId, $channelId, $aon, '$segmentation', $investment, $projection, '$comments', '$resultType', '$state', '$campaignName', '$now', '$now')";
+                    ($mmreId, $projectId, $channelId, $aon, '$segmentation', $investment, $projection, '$comments', '$resultType', '$state', '$campaignName', '$now', '$now')";
         if (!$conn->query($sql)) {
             $err = $conn->error; $conn->close();
             return ['success' => false, 'message' => $err];
@@ -427,9 +438,6 @@ class MediaMixRealEstateDetails_Controller {
         $newId = $conn->insert_id;
         foreach ($formatsIds as $fid) {
             if ($fid > 0) $conn->query("INSERT IGNORE INTO mmre_details_formats (mmre_detail_id, format_id, created_at, updated_at) VALUES ($newId, $fid, '$now', '$now')");
-        }
-        foreach ($objectivesIds as $oid) {
-            if ($oid > 0) $conn->query("INSERT IGNORE INTO mmre_details_objectives (mmre_detail_id, objective_id, created_at, updated_at) VALUES ($newId, $oid, '$now', '$now')");
         }
         $conn->close();
         return ['success' => true, 'id' => $newId];
@@ -440,7 +448,6 @@ class MediaMixRealEstateDetails_Controller {
         if ($conn->connect_error) return ['success' => false, 'message' => 'DB connection failed'];
         $detailId      = intval($detailId);
         $projectId     = intval($data['project_id'] ?? 0);
-        $campaignTypeId = intval($data['campaign_type_id'] ?? 1);
         $channelId     = intval($data['channel_id'] ?? 0);
         $aon           = intval($data['aon'] ?? 0);
         $segmentation  = $conn->real_escape_string(mb_substr(trim($data['segmentation'] ?? ''), 0, 255));
@@ -451,10 +458,9 @@ class MediaMixRealEstateDetails_Controller {
         $state         = $conn->real_escape_string(mb_substr(trim($data['state'] ?? 'Activa'), 0, 255));
         $campaignName  = $conn->real_escape_string(mb_substr(trim($data['campaign_name'] ?? ''), 0, 100));
         $formatsIds    = array_map('intval', (array)($data['formats_ids'] ?? []));
-        $objectivesIds = array_map('intval', (array)($data['objectives_ids'] ?? []));
         $now = date('Y-m-d H:i:s');
         $sql = "UPDATE mediamixrealestate_details SET
-                    project_id = $projectId, campaign_type_id = $campaignTypeId, channel_id = $channelId,
+                    project_id = $projectId, channel_id = $channelId,
                     aon = $aon, segmentation = '$segmentation', investment = $investment,
                     projection = $projection, comments = '$comments', result_type = '$resultType',
                     state = '$state', campaign_name = '$campaignName', updated_at = '$now'
@@ -466,10 +472,6 @@ class MediaMixRealEstateDetails_Controller {
         $conn->query("DELETE FROM mmre_details_formats WHERE mmre_detail_id = $detailId");
         foreach ($formatsIds as $fid) {
             if ($fid > 0) $conn->query("INSERT IGNORE INTO mmre_details_formats (mmre_detail_id, format_id, created_at, updated_at) VALUES ($detailId, $fid, '$now', '$now')");
-        }
-        $conn->query("DELETE FROM mmre_details_objectives WHERE mmre_detail_id = $detailId");
-        foreach ($objectivesIds as $oid) {
-            if ($oid > 0) $conn->query("INSERT IGNORE INTO mmre_details_objectives (mmre_detail_id, objective_id, created_at, updated_at) VALUES ($detailId, $oid, '$now', '$now')");
         }
         $conn->close();
         return ['success' => true, 'id' => $detailId];

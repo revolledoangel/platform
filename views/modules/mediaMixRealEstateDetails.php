@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../controllers/fees.controller.php';
 
 // 1. VALIDACIÓN INICIAL
 if (!isset($_GET['mediaMixId']) || !is_numeric($_GET['mediaMixId'])) {
@@ -8,7 +9,7 @@ if (!isset($_GET['mediaMixId']) || !is_numeric($_GET['mediaMixId'])) {
 
 // 2. OBTENER SOLO EL MIX DE MEDIOS (NO DETALLES NI PROYECTOS)
 $mmreData = MediaMixRealEstateDetails_Controller::ctrGetMediaMixById($_GET['mediaMixId']);
-if (!$mmreData) {
+if (!$mmreData || !is_array($mmreData) || empty($mmreData['success']) || empty($mmreData['mmre'])) {
     echo '<script>
         swal({
             type: "error",
@@ -23,13 +24,16 @@ if (!$mmreData) {
 $mmre = $mmreData['mmre'];
 $details = $mmreData['details'];
 $extraFees = $mmreData['extra_fees'] ?? [];
+$mixFeeRules = $mmreData['mix_fee_rules'] ?? [];
+$mixFeeCharges = $mmreData['mix_fee_charges'] ?? [];
+$mixFeeMeta = $mmreData['mix_meta'] ?? ['currency_code' => ($mmre['currency'] ?? 'USD'), 'currency_usd_per_unit_snapshot' => 1];
+$perfil = $_SESSION['perfil'] ?? '';
+$isAdmin = in_array($perfil, ['Super', 'Administrador'], true);
 
 // 3. PROCESAR ACTUALIZACIÓN DE CONFIGURACIÓN SOLO SI SE ENVIÓ EL FORMULARIO ESPECÍFICO
 if (isset($_POST['configMediaMixId']) && 
     isset($_POST['configName']) && 
     isset($_POST['configCurrency']) && 
-    isset($_POST['configFee']) && 
-    isset($_POST['configFeeType']) && 
     isset($_POST['configIgv']) &&
     $_POST['configMediaMixId'] == $_GET['mediaMixId']) { // Validación adicional
     
@@ -49,7 +53,7 @@ if (isset($_POST['configMediaMixId']) &&
         </h1>
         <ol class="breadcrumb">
             <li><a href="home"><i class="fa fa-home"></i> Home</a></li>
-            <li><a href="mediaMixRealEstate">Mix de Medios Inmobiliario</a></li>
+            <li><a href="mediaMixRealEstate">Mix de Medios</a></li>
             <li class="active">Detalles</li>
         </ol>
     </section>
@@ -323,40 +327,15 @@ if (isset($_POST['configMediaMixId']) &&
                                                placeholder="Ej: Campaña Enero">
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label>Fee de Agencia:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-addon" id="configFeeSymbol">
-                                            <?php if (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed'): ?>
-                                                <i class="fa fa-money"></i>
-                                            <?php else: ?>
-                                                <i class="fa fa-percent"></i>
-                                            <?php endif; ?>
-                                        </span>
-                                        <input type="number" step="any" class="form-control" name="configFee" 
-                                               id="configFeeInput" value="<?php echo htmlspecialchars($mmre['fee']); ?>" required>
-                                    </div>
-
-                                    <div class="radio-group" style="display: flex; gap: 15px; margin-top: 8px;">
-                                        <label class="radio-inline">
-                                            <input type="radio" name="configFeeType" value="percentage" 
-                                                   <?php echo (!isset($mmre['fee_type']) || $mmre['fee_type'] === 'percentage') ? 'checked' : ''; ?>> 
-                                            Porcentaje (%)
-                                        </label>
-                                        <label class="radio-inline">
-                                            <input type="radio" name="configFeeType" value="fixed" 
-                                                   <?php echo (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') ? 'checked' : ''; ?>> 
-                                            Valor Fijo
-                                        </label>
-                                    </div>
-                                </div>
+                                <input type="hidden" name="configRulesJson" id="configRulesJson">
+                                <input type="hidden" name="configChargesJson" id="configChargesJson">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Moneda:</label>
                                             <div class="input-group">
                                                 <span class="input-group-addon"><i class="fa fa-money"></i></span>
-                                                <select class="form-control" name="configCurrency" required>
+                                                <select class="form-control" name="configCurrency" id="configCurrencySelect" required>
                                                     <option value="USD" <?php echo $mmre['currency'] === 'USD' ? 'selected' : ''; ?>>USD</option>
                                                     <option value="PEN" <?php echo $mmre['currency'] === 'PEN' ? 'selected' : ''; ?>>PEN</option>
                                                     <option value="CLP" <?php echo $mmre['currency'] === 'CLP' ? 'selected' : ''; ?>>CLP</option>
@@ -389,42 +368,76 @@ if (isset($_POST['configMediaMixId']) &&
                                     </div>
                                 </div>
                                 <hr>
+                                <?php if ($isAdmin): ?>
                                 <div class="row">
                                     <div class="col-md-12">
-                                        <h4 style="margin-top:0;"><i class="fa fa-plus-circle text-success"></i> Fees Adicionales</h4>
-                                        <small class="text-muted">Agrega fees extra por concepto (ej: Zapier, Herramientas, etc.)</small>
+                                        <div class="alert alert-warning" style="margin-bottom:10px;">
+                                            <i class="fa fa-shield"></i> Solo administradores pueden editar o actualizar esta configuración.
+                                        </div>
+                                        <button type="button" class="btn btn-default btn-sm" id="btnSyncFeesFromClient" style="margin-bottom:12px;">
+                                            <i class="fa fa-refresh"></i> Actualizar desde configuración del cliente
+                                        </button>
+
+                                        <h4 style="margin-top:0;"><i class="fa fa-sliders"></i> Reglas por tramo (snapshot del mix)</h4>
+                                        <table class="table table-condensed table-bordered" style="margin-top:10px;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Desde (USD)</th>
+                                                    <th>Hasta (USD)</th>
+                                                    <th>Tipo</th>
+                                                    <th>Etiqueta (opcional)</th>
+                                                    <th>%</th>
+                                                    <th>Fijo</th>
+                                                    <th>Moneda fijo</th>
+                                                    <th style="width:50px;"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="mixFeeRulesBody">
+                                                <tr><td colspan="8" class="text-center text-muted">Sin reglas configuradas</td></tr>
+                                            </tbody>
+                                        </table>
+                                        <button type="button" class="btn btn-default btn-sm" id="btnAddMixFeeRule">
+                                            <i class="fa fa-plus"></i> Agregar regla
+                                        </button>
+
+                                        <hr>
+                                        <h4 style="margin-top:0;"><i class="fa fa-list"></i> Cargos adicionales por concepto</h4>
                                         <table class="table table-condensed table-bordered" style="margin-top:10px;">
                                             <thead>
                                                 <tr>
                                                     <th>Concepto</th>
-                                                    <th>Valor</th>
-                                                    <th>Tipo</th>
+                                                    <th>Monto</th>
+                                                    <th>Moneda</th>
                                                     <th style="width:50px;"></th>
                                                 </tr>
                                             </thead>
-                                            <tbody id="extraFeesList">
-                                                <tr id="extraFeesEmpty"><td colspan="4" class="text-center text-muted">Sin fees adicionales</td></tr>
+                                            <tbody id="mixFeeChargesBody">
+                                                <tr><td colspan="4" class="text-center text-muted">Sin cargos configurados</td></tr>
                                             </tbody>
                                         </table>
-                                        <div class="row" style="margin-top:5px;">
-                                            <div class="col-md-5">
-                                                <input type="text" class="form-control input-sm" id="newExtraFeeConcept" placeholder="Concepto (ej: Zapier mensual)" maxlength="150">
-                                            </div>
-                                            <div class="col-md-3">
-                                                <input type="number" step="any" min="0" class="form-control input-sm" id="newExtraFeeValue" placeholder="0.00">
-                                            </div>
-                                            <div class="col-md-3">
-                                                <select class="form-control input-sm" id="newExtraFeeType">
-                                                    <option value="fixed" selected>Fijo</option>
-                                                    <option value="percentage">Porcentaje (%)</option>
+                                        <div class="row" style="margin-top:8px;">
+                                            <div class="col-md-6">
+                                                <select class="form-control input-sm" id="mixFeeConceptSelect">
+                                                    <option value="">-- Selecciona un concepto --</option>
                                                 </select>
                                             </div>
-                                            <div class="col-md-1">
-                                                <button type="button" class="btn btn-success btn-sm" id="btnAddExtraFee" title="Agregar fee"><i class="fa fa-plus"></i></button>
+                                            <div class="col-md-3">
+                                                <input type="number" step="0.01" class="form-control input-sm" id="mixFeeChargeAmount" placeholder="Monto">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <select class="form-control input-sm" id="mixFeeChargeCurrency"></select>
+                                            </div>
+                                            <div class="col-md-1" style="padding-left:0;">
+                                                <button type="button" class="btn btn-success btn-sm btn-block" id="btnAddMixFeeCharge"><i class="fa fa-plus"></i></button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                                <?php else: ?>
+                                <div class="alert alert-info">
+                                    <i class="fa fa-lock"></i> Esta configuración solo puede editarla un administrador.
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -445,9 +458,11 @@ if (isset($_POST['configMediaMixId']) &&
                 <button class="btn btn-success pull-right" id="exportExcelBtn" style="margin-left:10px;">
                     <i class="fa fa-file-excel-o"></i> Exportar a Excel
                 </button>
+                <?php if ($isAdmin): ?>
                 <button class="btn btn-info pull-right" data-toggle="modal" data-target="#configMixModal" style="margin-left:10px;">
                     <i class="fa fa-cog"></i> Configurar Mix
                 </button>
+                <?php endif; ?>
                 <button class="btn btn-primary pull-right" data-toggle="modal" data-target="#addDetailModal"
                     style="margin-left:10px;">Agregar Detalle</button>
             </div>
@@ -627,58 +642,78 @@ if (isset($_POST['configMediaMixId']) &&
                                     </td>
                                 </tr>
                                 <?php endif; ?>
+                                <?php
+                                $feeCalc = Fees_Controller::ctrCalculateAgencyFee(
+                                    $totalInversion,
+                                    $mixFeeRules,
+                                    $mixFeeCharges,
+                                    floatval($mmre['fee'] ?? 0),
+                                    $mmre['fee_type'] ?? 'percentage',
+                                    $mmre['currency'] ?? 'USD',
+                                    floatval($mixFeeMeta['currency_usd_per_unit_snapshot'] ?? 1)
+                                );
+                                $comision = floatval($feeCalc['base_fee']);
+                                $extraFeesTotal = floatval($feeCalc['charges_total']);
+
+                                $feeBreakdownLines = [];
+                                $ruleComponents = $feeCalc['rule_components'] ?? [];
+                                if (!empty($ruleComponents) && is_array($ruleComponents)) {
+                                    usort($ruleComponents, function($a, $b) {
+                                        $aFixed = (($a['fee_mode'] ?? 'percentage') === 'fixed') ? 0 : 1;
+                                        $bFixed = (($b['fee_mode'] ?? 'percentage') === 'fixed') ? 0 : 1;
+                                        return $aFixed <=> $bFixed;
+                                    });
+
+                                    foreach ($ruleComponents as $idx => $component) {
+                                        $mode = $component['fee_mode'] ?? 'percentage';
+                                        $amount = floatval($component['converted_amount'] ?? 0);
+                                        $amountLabel = number_format($amount, 2) . ' ' . strtolower((string)($mmre['currency'] ?? 'USD'));
+                                        $customLabel = trim((string)($component['fee_label'] ?? ''));
+                                        $title = $customLabel !== '' ? $customLabel : ('Fee ' . ($idx + 1));
+                                        $feeBreakdownLines[] = $title . ': ' . $amountLabel;
+                                    }
+                                }
+                                ?>
                                 <tr class="warning">
-                                    <td class="text-right"><strong>Comisión Agencia:</strong></td>
+                                    <td class="text-right"><strong>Comisión Agencia (Regla):</strong></td>
                                     <td class="text-right" style="font-size: 16px;">
                                         <strong id="comisionAgencia">
                                             <?php
-                                            // Calcular comisión según tipo de fee
-                                            $comision = 0;
-                                            $feeDisplay = '';
-                                            
-                                            if (isset($mmre['fee_type']) && $mmre['fee_type'] === 'fixed') {
-                                                $comision = floatval($mmre['fee']);
-                                                $feeDisplay = '(fijo)';
-                                            } else {
-                                                $comision = $totalInversion * (floatval($mmre['fee']) / 100);
-                                                $feeDisplay = '(' . $mmre['fee'] . '%)';
-                                            }
-                                            
                                             echo htmlspecialchars($mmre['currency']) . ' ' . number_format($comision, 2);
                                             ?>
-                                            <small class="text-muted"><?php echo $feeDisplay; ?></small>
                                         </strong>
+                                        <div id="comisionDesglose" class="text-muted" style="font-size:13px; margin-top:4px;">
+                                            <?php if (!empty($feeBreakdownLines)): ?>
+                                                <?php foreach ($feeBreakdownLines as $line): ?>
+                                                    <div><?php echo $line; ?></div>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
-                                <?php foreach ($extraFees as $ef): ?>
+                                <tbody id="mixFeeExtraChargesRows">
+                                <?php foreach ($feeCalc['charges'] as $ef): ?>
                                 <tr class="warning">
-                                    <td class="text-right"><strong><?php echo htmlspecialchars($ef['concept']); ?>:</strong></td>
+                                    <td class="text-right"><strong><?php echo htmlspecialchars($ef['concept_name']); ?>:</strong></td>
                                     <td class="text-right" style="font-size:16px;">
                                         <strong>
                                             <?php
-                                            $efVal = floatval($ef['fee_value']);
-                                            if ($ef['fee_type'] === 'percentage') {
-                                                echo htmlspecialchars($mmre['currency']) . ' ' . number_format($totalInversion * ($efVal / 100), 2);
-                                                echo ' <small class="text-muted">(' . $efVal . '%)</small>';
-                                            } else {
-                                                echo htmlspecialchars($mmre['currency']) . ' ' . number_format($efVal, 2);
-                                                echo ' <small class="text-muted">(fijo)</small>';
-                                            }
+                                            $efVal = floatval($ef['converted_amount'] ?? $ef['amount']);
+                                            echo htmlspecialchars($mmre['currency']) . ' ' . number_format($efVal, 2);
+                                            $origCode = htmlspecialchars($ef['currency_code'] ?? ($mmre['currency'] ?? 'USD'));
+                                            $origAmount = number_format(floatval($ef['amount'] ?? 0), 2);
+                                            echo ' <small class="text-muted">(' . $origCode . ' ' . $origAmount . ')</small>';
                                             ?>
                                         </strong>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
+                                </tbody>
                                 <tr class="active">
-                                    <td class="text-right"><strong>Subtotal (Pauta + <?php echo $nacionalizacion > 0 ? 'Nacionalización + ' : ''; ?>Comisión<?php echo count($extraFees) > 0 ? ' + Fees adicionales' : ''; ?>):</strong></td>
+                                    <td class="text-right"><strong>Subtotal (Pauta + <?php echo $nacionalizacion > 0 ? 'Nacionalización + ' : ''; ?>Comisión<?php echo count($feeCalc['charges']) > 0 ? ' + Cargos adicionales' : ''; ?>):</strong></td>
                                     <td class="text-right" style="font-size: 18px;">
                                         <strong id="pautaComision">
                                             <?php
-                                            $extraFeesTotal = 0.0;
-                                            foreach ($extraFees as $ef) {
-                                                $efVal = floatval($ef['fee_value']);
-                                                $extraFeesTotal += ($ef['fee_type'] === 'percentage') ? $totalInversion * ($efVal / 100) : $efVal;
-                                            }
                                             $pautaComision = $totalInversion + $nacionalizacion + $comision + $extraFeesTotal;
                                             echo htmlspecialchars($mmre['currency']) . ' ' . number_format($pautaComision, 2);
                                             ?>
@@ -748,12 +783,17 @@ if (isset($_POST['configMediaMixId']) &&
 <script>
     // Solo variables globales - NO FUNCIONES
     window.mmreId = <?php echo (int) $mmre['id']; ?>;
+    window.clientId = <?php echo (int) $mmre['client_id']; ?>;
     window.clientName = <?php echo json_encode($mmre['client_name']); ?>;
     window.currency = <?php echo json_encode($mmre['currency']); ?>;
     window.periodName = <?php echo json_encode($mmre['period_name']); ?>;
+    window.isAdmin = <?php echo $isAdmin ? 'true' : 'false'; ?>;
     window.mmreFee = <?php echo floatval($mmre['fee']); ?>;
     window.mmreFeeType = <?php echo json_encode($mmre['fee_type'] ?? 'percentage'); ?>;
     window.mmreIgv = <?php echo floatval($mmre['igv']); ?>;
     window.mmreNationalizationFee = <?php echo floatval($mmre['nationalization_fee'] ?? 30); ?>;
-    window.extraFees = <?php echo json_encode($extraFees); ?>;
+    window.mixFeeRules = <?php echo json_encode($mixFeeRules); ?>;
+    window.mixFeeCharges = <?php echo json_encode($mixFeeCharges); ?>;
+    window.mixFeeMeta = <?php echo json_encode($mixFeeMeta); ?>;
+    window.mmreCurrencyUsdPerUnitSnapshot = <?php echo floatval($mixFeeMeta['currency_usd_per_unit_snapshot'] ?? ($mmre['currency_usd_per_unit_snapshot'] ?? 1)); ?>;
 </script>

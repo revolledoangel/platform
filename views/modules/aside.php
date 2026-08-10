@@ -47,7 +47,7 @@ $perfil = $_SESSION["perfil"] ?? "";
             <!-- Configuración: Para Super y Administrador -->
             <?php if (in_array($perfil, ["Super", "Administrador"])): ?>
                 <li
-                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'objectives', 'campaignTypes', 'channels', 'metrics']) ? 'active' : '' ?>">
+                    class="treeview <?= in_array($currentRoute, ['verticals', 'clients', 'projects', 'platforms', 'formats', 'channels', 'metrics', 'currencies']) ? 'active' : '' ?>">
                     <a href="#">
                         <i class="fa fa-cogs"></i> <span>Configuración</span> <span class="pull-right-container">
                             <i class="fa fa-angle-left pull-right"></i>
@@ -64,52 +64,21 @@ $perfil = $_SESSION["perfil"] ?? "";
                                     class="fa fa-chrome"></i> Plataformas</a></li>
                         <li class="<?= ($currentRoute == 'formats') ? 'active' : '' ?>"><a href="formats"><i
                                     class="fa fa-bookmark"></i> Formatos</a></li>
-                        <li class="<?= ($currentRoute == 'objectives') ? 'active' : '' ?>"><a href="objectives"><i
-                                    class="fa fa-graduation-cap"></i> Objetivos</a></li>
-
-                        <li class="<?= ($currentRoute == 'campaignTypes') ? 'active' : '' ?>"><a href="campaignTypes"><i
-                                    class="fa fa-tags"></i> Tipo de Campaña</a></li>
                         <li class="<?= ($currentRoute == 'channels') ? 'active' : '' ?>"><a href="channels"><i
                                     class="fa fa-sitemap"></i> Canales</a></li>
                         <li class="<?= ($currentRoute == 'metrics') ? 'active' : '' ?>"><a href="metrics"><i
                                     class="fa fa-line-chart"></i> Métricas</a></li>
+                        <li class="<?= ($currentRoute == 'currencies') ? 'active' : '' ?>"><a href="currencies"><i
+                                    class="fa fa-money"></i> Monedas</a></li>
                     </ul>
                 </li>
             <?php endif; ?>
 
             <!-- Media Mix: Visible for all -->
-            <li
-                class="treeview <?= in_array($currentRoute, ['mediaMixRealEstate', 'mediaMixEcommerce', 'mediaMixOthers']) ? 'active' : '' ?>">
-                <a href="#">
+            <li class="<?= in_array($currentRoute, ['mediaMixRealEstate', 'mediaMixEcommerce', 'mediaMixOthers']) ? 'active' : '' ?>">
+                <a href="mediaMixRealEstate">
                     <i class="fa fa-random"></i> <span>Mix de Medios</span>
-                    <span class="pull-right-container">
-                        <i class="fa fa-angle-left pull-right"></i>
-                    </span>
                 </a>
-                <ul class="treeview-menu">
-                    <li class="<?= ($currentRoute == 'mediaMixRealEstate') ? 'active' : '' ?>">
-                        <a href="mediaMixRealEstate"><i class="fa fa-circle-o"></i> Mix Inmobiliario</a>
-                    </li>
-                    
-                </ul>
-            </li>
-
-
-
-            <!-- Campañas: Visible para todos -->
-            <li class="treeview <?= in_array($currentRoute, ['campaigns', 'urls']) ? 'active' : '' ?>">
-                <a href="#">
-                    <i class="glyphicon glyphicon-bullhorn"></i> <span>Campañas</span>
-                    <span class="pull-right-container">
-                        <i class="fa fa-angle-left pull-right"></i>
-                    </span>
-                </a>
-                <ul class="treeview-menu">
-                    <li class="<?= ($currentRoute == 'campaigns') ? 'active' : '' ?>"><a href="campaigns"><i
-                                class="fa fa-circle-o"></i> Campañas</a></li>
-                    <li class="<?= ($currentRoute == 'urls') ? 'active' : '' ?>"><a href="urls"><i
-                                class="fa fa-circle-o"></i> Generador de UTM's</a></li>
-                </ul>
             </li>
 
 

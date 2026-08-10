@@ -62,6 +62,11 @@
     <!-- /.content -->
 </div>
 
+<?php
+$perfil = $_SESSION['perfil'] ?? '';
+$isAdmin = in_array($perfil, ['Super', 'Administrador'], true);
+?>
+
 <!-- Modal agregar cliente -->
 <div class="modal fade in" id="addClientModal">
     <div class="modal-dialog">
@@ -244,6 +249,86 @@
                                     placeholder="URL de Looker Studio (opcional)" autocomplete="off">
                             </div>
                         </div>
+
+                        <?php if ($isAdmin): ?>
+                        <hr>
+                        <div class="box box-default" style="padding:12px; border:1px solid #e5e5e5;">
+                            <h4 style="margin-top:0;"><i class="fa fa-calculator"></i> Configuración de Fees del Cliente</h4>
+                            <p class="text-muted" style="margin-bottom:10px;">
+                                Esta configuración se usa para nuevos cálculos del mix y puede sincronizarse después con un clic.
+                            </p>
+
+                            <h5><strong>Reglas por tramo de inversión (USD)</strong></h5>
+                            <table class="table table-condensed table-bordered" style="margin-bottom:8px;">
+                                <thead>
+                                    <tr>
+                                        <th>Desde</th>
+                                        <th>Hasta</th>
+                                        <th>Tipo</th>
+                                        <th>Etiqueta (opcional)</th>
+                                        <th>%</th>
+                                        <th>Fijo USD</th>
+                                        <th>Moneda fijo</th>
+                                        <th style="width:50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientFeeRulesBody">
+                                    <tr><td colspan="8" class="text-center text-muted">Sin reglas configuradas</td></tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-default btn-sm" id="btnAddClientFeeRule">
+                                <i class="fa fa-plus"></i> Agregar regla
+                            </button>
+
+                            <hr>
+                            <h5><strong>Cargos fijos adicionales por concepto (USD)</strong></h5>
+                            <table class="table table-condensed table-bordered" style="margin-bottom:8px;">
+                                <thead>
+                                    <tr>
+                                        <th>Concepto</th>
+                                        <th>Monto USD</th>
+                                                    <th>Moneda</th>
+                                        <th style="width:50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientFeeChargesBody">
+                                                <tr><td colspan="4" class="text-center text-muted">Sin cargos configurados</td></tr>
+                                </tbody>
+                            </table>
+
+                            <div class="row">
+                                <div class="col-md-7">
+                                    <select class="form-control input-sm" id="clientFeeConceptSelect">
+                                        <option value="">-- Selecciona un concepto --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" id="clientFeeNewConcept" placeholder="Nuevo concepto (ej: Zapier)">
+                                        <span class="input-group-btn">
+                                            <button type="button" class="btn btn-info" id="btnCreateClientFeeConcept">Crear</button>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row" style="margin-top:8px;">
+                                <div class="col-md-7">
+                                    <input type="text" class="form-control input-sm" id="clientFeeConceptName" placeholder="Concepto seleccionado" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" class="form-control input-sm" id="clientFeeConceptAmount" step="0.01" placeholder="Monto USD">
+                                </div>
+                                <div class="col-md-2" style="padding-right:0;">
+                                    <select class="form-control input-sm" id="clientFeeChargeCurrency"></select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-success btn-sm btn-block" id="btnAddClientFeeCharge">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="modal-footer">

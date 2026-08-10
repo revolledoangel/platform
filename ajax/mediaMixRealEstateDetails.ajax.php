@@ -28,13 +28,6 @@ if (isset($_POST['client_id'])) {
     exit;
 }
 
-if (isset($_POST['get_objectives'])) {
-    $objectives = MediaMixRealEstateDetails_Controller::ctrGetObjectives();
-    header('Content-Type: application/json');
-    echo json_encode($objectives);
-    exit;
-}
-
 if (isset($_POST['get_platforms'])) {
     $platforms = MediaMixRealEstateDetails_Controller::ctrGetPlatforms();
     header('Content-Type: application/json');
@@ -51,6 +44,7 @@ if (isset($_POST['get_channels'])) {
 
 if (isset($_POST['get_channels_by_platform'])) {
     $platform_id = intval($_POST['get_channels_by_platform']);
+    $selected_channel_id = intval($_POST['selected_channel_id'] ?? 0);
     $host = 'srv1013.hstgr.io';
     $port = 3306;
     $db   = 'u961992735_plataforma';
@@ -63,7 +57,12 @@ if (isset($_POST['get_channels_by_platform'])) {
     $checkRes = $conn->query($checkSql);
     $checkRow = $checkRes ? $checkRes->fetch_assoc() : ['cnt' => 0];
     if (intval($checkRow['cnt']) > 0) {
-        $sql = "SELECT ch.id, ch.name FROM channels ch INNER JOIN channel_platform cp ON cp.channel_id = ch.id WHERE cp.platform_id = $platform_id ORDER BY ch.name ASC";
+        $mappedSql = "SELECT ch.id, ch.name FROM channels ch INNER JOIN channel_platform cp ON cp.channel_id = ch.id WHERE cp.platform_id = $platform_id";
+        if ($selected_channel_id > 0) {
+            $sql = "SELECT id, name FROM (({$mappedSql}) UNION (SELECT id, name FROM channels WHERE id = $selected_channel_id)) t ORDER BY name ASC";
+        } else {
+            $sql = "SELECT id, name FROM ({$mappedSql}) t ORDER BY name ASC";
+        }
     } else {
         // No specific mapping — return all channels
         $sql = "SELECT id, name FROM channels ORDER BY name ASC";
@@ -102,13 +101,6 @@ if (isset($_POST['platform_id'])) {
     }
     $conn->close();
     echo json_encode($formats);
-    exit;
-}
-
-if (isset($_POST['get_campaign_types'])) {
-    $types = MediaMixRealEstateDetails_Controller::ctrGetCampaignTypes();
-    header('Content-Type: application/json');
-    echo json_encode($types);
     exit;
 }
 
@@ -159,12 +151,43 @@ if (isset($_POST['get_detail_id'])) {
         exit;
     }
     $sql = "SELECT d.*, mmr.client_id, p.name AS project_name, p.code AS project_code, p.group AS project_group, p.active AS project_active,
-                   ch.name AS channel_name, ct.name AS campaign_type_name
+                   ch.name AS channel_name,
+                   (
+                        SELECT m2.id FROM metrics m2
+                        WHERE m2.name = d.result_type
+                           OR d.result_type LIKE CONCAT(m2.name, ' (%')
+                           OR m2.name LIKE CONCAT(d.result_type, ' (%')
+                           OR m2.name LIKE CONCAT(d.result_type, ' %')
+                        ORDER BY
+                            CASE
+                                WHEN m2.name = d.result_type THEN 0
+                                WHEN d.result_type LIKE CONCAT(m2.name, ' (%') THEN 1
+                                WHEN m2.name LIKE CONCAT(d.result_type, ' (%') THEN 2
+                                ELSE 3
+                            END,
+                            LENGTH(m2.name) ASC
+                        LIMIT 1
+                    ) AS resolved_metric_id,
+                    (
+                        SELECT m2.code FROM metrics m2
+                        WHERE m2.name = d.result_type
+                           OR d.result_type LIKE CONCAT(m2.name, ' (%')
+                           OR m2.name LIKE CONCAT(d.result_type, ' (%')
+                           OR m2.name LIKE CONCAT(d.result_type, ' %')
+                        ORDER BY
+                            CASE
+                                WHEN m2.name = d.result_type THEN 0
+                                WHEN d.result_type LIKE CONCAT(m2.name, ' (%') THEN 1
+                                WHEN m2.name LIKE CONCAT(d.result_type, ' (%') THEN 2
+                                ELSE 3
+                            END,
+                            LENGTH(m2.name) ASC
+                        LIMIT 1
+                    ) AS resolved_metric_code
             FROM mediamixrealestate_details d
             LEFT JOIN mediamixrealestates mmr ON d.mediamixrealestate_id = mmr.id
             LEFT JOIN projects p ON d.project_id = p.id
             LEFT JOIN channels ch ON d.channel_id = ch.id
-            LEFT JOIN campaign_types ct ON d.campaign_type_id = ct.id
             WHERE d.id = $id";
     $res = $conn->query($sql);
     $detail = ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
@@ -195,14 +218,6 @@ if (isset($_POST['get_detail_id'])) {
             $formats_ids[] = intval($f['id']);
         }
         $detail['formats_ids'] = $formats_ids;
-        // Objectives
-        $sqlO = "SELECT o.id FROM mmre_details_objectives mo LEFT JOIN objectives o ON mo.objective_id = o.id WHERE mo.mmre_detail_id = {$detail['id']}";
-        $resO = $conn->query($sqlO);
-        $objectives_ids = [];
-        while ($resO && $o = $resO->fetch_assoc()) {
-            $objectives_ids[] = intval($o['id']);
-        }
-        $detail['objectives_ids'] = $objectives_ids;
     }
     $conn->close();
     echo json_encode($detail);

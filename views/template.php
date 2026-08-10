@@ -76,7 +76,6 @@ if (isset($_GET["route"]) && $_GET["route"] === "feedbackResponsePdf") {
 
             $allowedRoutes = [
                 "home",
-                "campaigns",
                 "urls",
                 "comments",
                 "close",
@@ -97,25 +96,23 @@ if (isset($_GET["route"]) && $_GET["route"] === "feedbackResponsePdf") {
             if ($perfil === "Super") {
                 $allowedRoutes = array_merge($allowedRoutes, [
                     "users",
+                    "currencies",
                     "verticals",
                     "clients",
                     "projects",
                     "platforms",
                     "formats",
-                    "objectives",
-                    "campaignTypes",
                     "channels",
                     "metrics"
                 ]);
             } elseif ($perfil === "Administrador") {
                 $allowedRoutes = array_merge($allowedRoutes, [
+                    "currencies",
                     "verticals",
                     "clients",
                     "projects",
                     "platforms",
                     "formats",
-                    "objectives",
-                    "campaignTypes",
                     "channels",
                     "metrics"
                 ]);
@@ -197,13 +194,11 @@ if (isset($_GET["route"]) && $_GET["route"] === "feedbackResponsePdf") {
 
 <script src="views/js/formats.js"></script>
 
-<script src="views/js/objectives.js"></script>
-
-<script src="views/js/campaignTypes.js"></script>
-
 <script src="views/js/channels.js"></script>
 
 <script src="views/js/metrics.js"></script>
+
+<script src="views/js/currencies.js"></script>
 
 <script src="views/js/mediaMixRealEstate.js"></script>
 

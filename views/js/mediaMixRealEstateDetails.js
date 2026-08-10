@@ -3,7 +3,6 @@ var cachedProjects = null;
 var lastSelectedProject = null;
 var cachedMetricsByPlatform = {};
 var lastSelectedMetric = null;
-var defaultObjectiveId = null;
 var cachedPlatforms = null;
 var lastSelectedPlatform = null;
 var cachedChannels = null;
@@ -11,8 +10,7 @@ var lastSelectedChannel = null;
 var cachedFormatsByPlatform = {};
 var lastSelectedFormats = [];
 var lastPlatformForFormats = null;
-var cachedCampaignTypes = null;
-var lastSelectedCampaignType = null;
+var feeCurrenciesCatalog = [];
 
 // Opciones de segmentación centralizadas
 var segmentaciones = [
@@ -60,18 +58,163 @@ $(document).ready(function () {
         $sel.select2({ width: '100%', dropdownParent: $modal, minimumResultsForSearch: 0 });
     }
 
-    // Cargar un objetivo por defecto (requerido por la API aunque no se muestre al usuario)
-    $.ajax({
-        url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-        method: 'POST',
-        data: { get_objectives: 1 },
-        dataType: 'json',
-        success: function(data) {
-            if (Array.isArray(data) && data.length > 0) {
-                defaultObjectiveId = data[0].id;
+    function normalizeMetricText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function baseMetricText(value) {
+        return String(value || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    }
+
+    function resolveMetricId(metrics, detailData) {
+        if (!Array.isArray(metrics) || !detailData) return null;
+
+        var byResolvedId = parseInt(detailData.resolved_metric_id, 10);
+        if (!isNaN(byResolvedId) && metrics.some(function(m) { return parseInt(m.id, 10) === byResolvedId; })) {
+            return byResolvedId;
+        }
+
+        var targetCode = normalizeMetricText(detailData.resolved_metric_code || detailData.metric_code || '');
+        if (targetCode) {
+            var foundByCode = metrics.find(function(m) {
+                return normalizeMetricText(m.code || '') === targetCode;
+            });
+            if (foundByCode) return parseInt(foundByCode.id, 10);
+        }
+
+        var targetRaw = normalizeMetricText(detailData.result_type || '');
+        var targetBase = normalizeMetricText(baseMetricText(detailData.result_type || ''));
+
+        var found = metrics.find(function(m) {
+            var metricName = normalizeMetricText(m.name || '');
+            return metricName === targetRaw || metricName === targetBase;
+        });
+        if (found) return parseInt(found.id, 10);
+
+        found = metrics.find(function(m) {
+            var metricName = normalizeMetricText(m.name || '');
+            return targetRaw.indexOf(metricName + ' (') === 0 || targetBase.indexOf(metricName + ' (') === 0;
+        });
+        return found ? parseInt(found.id, 10) : null;
+    }
+
+    function normalizeMixFeeRules() {
+        return Array.isArray(window.mixFeeRules) ? window.mixFeeRules : [];
+    }
+
+    function normalizeMixFeeCharges() {
+        return Array.isArray(window.mixFeeCharges) ? window.mixFeeCharges : [];
+    }
+
+    function calculateAgencyFeeDetails(investmentTotal) {
+        var total = parseFloat(investmentTotal) || 0;
+        var rules = normalizeMixFeeRules();
+        var charges = normalizeMixFeeCharges();
+        var targetUsdPerUnit = parseFloat(window.mmreCurrencyUsdPerUnitSnapshot) || 1;
+        var matchingRules = [];
+
+        rules.forEach(function(rule) {
+            var min = parseFloat(rule.min_investment) || 0;
+            var max = (rule.max_investment === null || rule.max_investment === '' || typeof rule.max_investment === 'undefined')
+                ? null
+                : parseFloat(rule.max_investment);
+            var maxOk = max === null || total <= max;
+            if (total >= min && maxOk) {
+                matchingRules.push(rule);
+            }
+        });
+
+        var baseFee = 0;
+        var fixedComponentConverted = 0;
+        var fixedComponentOriginal = null;
+        var ruleComponents = [];
+        var label = 'Sin regla';
+
+        if (matchingRules.length === 0 && rules.length > 0) {
+            matchingRules.push(rules[rules.length - 1]);
+        }
+
+        if (matchingRules.length) {
+            label = matchingRules.length > 1 ? 'Reglas combinadas' : 'Regla aplicada';
+            matchingRules.forEach(function(rule, idx) {
+                var mode = rule.fee_mode || 'percentage';
+                var percent = parseFloat(rule.percentage_value) || 0;
+                var fixed = parseFloat(rule.fixed_value) || 0;
+                var converted = 0;
+
+                if (mode === 'fixed') {
+                    var fixedRateSnapshot = parseFloat(rule.fixed_usd_per_unit_snapshot || rule.fixed_rate_snapshot || 0) || 0;
+                    if (fixedRateSnapshot <= 0) {
+                        fixedRateSnapshot = targetUsdPerUnit;
+                    }
+                    converted = (fixed * fixedRateSnapshot) / targetUsdPerUnit;
+                    fixedComponentConverted += converted;
+                    if (!fixedComponentOriginal) {
+                        fixedComponentOriginal = {
+                            amount: fixed,
+                            currency_code: rule.fixed_currency_code || window.currency || 'USD'
+                        };
+                    }
+                } else {
+                    converted = total * (percent / 100);
+                }
+
+                baseFee += converted;
+                ruleComponents.push({
+                    index: idx + 1,
+                    fee_mode: mode,
+                    fee_label: (rule.fee_label || '').trim(),
+                    percentage_value: percent,
+                    fixed_value: fixed,
+                    fixed_currency_code: rule.fixed_currency_code || window.currency || 'USD',
+                    converted_amount: converted
+                });
+            });
+        } else {
+            var legacyFee = parseFloat(window.mmreFee) || 0;
+            var legacyType = window.mmreFeeType || 'percentage';
+            if (legacyType === 'fixed') {
+                baseFee = legacyFee;
+                label = 'Fee histórico fijo';
+                ruleComponents.push({ index: 1, fee_mode: 'fixed', fee_label: '', converted_amount: legacyFee, percentage_value: 0, fixed_value: legacyFee, fixed_currency_code: window.currency || 'USD' });
+            } else {
+                baseFee = total * (legacyFee / 100);
+                label = 'Fee histórico porcentual';
+                ruleComponents.push({ index: 1, fee_mode: 'percentage', fee_label: '', converted_amount: baseFee, percentage_value: legacyFee, fixed_value: 0, fixed_currency_code: window.currency || 'USD' });
             }
         }
-    });
+
+        var chargesTotal = 0;
+        var convertedCharges = [];
+        charges.forEach(function(charge) {
+            var amount = parseFloat(charge.amount) || 0;
+            var usdSnapshot = parseFloat(charge.usd_per_unit_snapshot || charge.usd_rate_snapshot || 0) || 0;
+            if (usdSnapshot <= 0) {
+                usdSnapshot = targetUsdPerUnit;
+            }
+            var converted = (amount * usdSnapshot) / targetUsdPerUnit;
+            chargesTotal += converted;
+            convertedCharges.push($.extend({}, charge, { converted_amount: converted }));
+        });
+
+        return {
+            baseFee: baseFee,
+            fixedComponentConverted: fixedComponentConverted,
+            fixedComponentOriginal: fixedComponentOriginal,
+            chargesTotal: chargesTotal,
+            totalFee: baseFee + chargesTotal,
+            label: label,
+            selectedRule: matchingRules.length ? matchingRules[0] : null,
+            appliedRules: matchingRules,
+            ruleComponents: ruleComponents,
+            charges: convertedCharges
+        };
+    }
 
     // Inicializar DataTable para la tabla de detalles
     // $('#detailsTable').DataTable({
@@ -88,7 +231,6 @@ $(document).ready(function () {
         var $platformSelect = $('#newDetailPlatform');
         var $channelSelect = $('#newDetailChannel');
         var $formatSelect = $('#newDetailFormat');
-        var $campaignTypeSelect = $('#newDetailCampaignType');
         // Proyectos (persistencia)
         if (cachedProjects && Array.isArray(cachedProjects) && cachedProjects.length > 0) {
             var options = '<option value="">-- Selecciona un proyecto --</option>';
@@ -397,9 +539,7 @@ $(document).ready(function () {
             mediamixrealestate_id: mediamixrealestate_id,
             project_id: project_id,
             channel_id: channel_id,
-            campaign_type_id: 1,
             segmentation: segmentation,
-            objectives_ids: defaultObjectiveId ? [defaultObjectiveId] : [1],
             metric_id: parseInt(selectedMetricId),
             result_type: event_name ? result_type + ' (' + event_name + ')' : result_type,
             projection: projection,
@@ -431,7 +571,6 @@ $(document).ready(function () {
     });
     // Evento para abrir el modal de edición y prellenar los campos con AJAX
     $(document).on('click', '.btn-editDetail', function (e) {
-        var detailId = $(this).data('detail-id');
         e.preventDefault();
         var detailId = $(this).data('detail-id');
         $.ajax({
@@ -484,7 +623,7 @@ $(document).ready(function () {
                 $.ajax({
                     url: 'ajax/mediaMixRealEstateDetails.ajax.php',
                     method: 'POST',
-                    data: { get_channels_by_platform: data.platform_id },
+                    data: { get_channels_by_platform: data.platform_id, selected_channel_id: data.channel_id },
                     dataType: 'json',
                     success: function(channels) {
                         var options = '<option value="">-- Selecciona un canal --</option>';
@@ -492,7 +631,7 @@ $(document).ready(function () {
                             var selected = (data.channel_id == chan.id) ? ' selected' : '';
                             options += '<option value="' + chan.id + '"' + selected + '>' + chan.name + '</option>';
                         });
-                        $('#editDetailChannel').html(options).prop('disabled', false);
+                        $('#editDetailChannel').html(options).prop('disabled', false).attr('data-selected-id', data.channel_id || '');
                         showModalIfReady();
                     }
                 });
@@ -504,12 +643,9 @@ $(document).ready(function () {
                     dataType: 'json',
                     success: function(metrics) {
                         cachedMetricsByPlatform[data.platform_id] = metrics;
-                        var matchedMetricId = null;
+                        var matchedMetricId = resolveMetricId(metrics, data);
                         var mOpts = '<option value="">-- Selecciona una métrica --</option>';
                         metrics.forEach(function(m) {
-                            var exactMatch = data.result_type && m.name === data.result_type;
-                            var prefixMatch = data.result_type && data.result_type.indexOf(m.name + ' (') === 0;
-                            if (exactMatch || prefixMatch) { matchedMetricId = m.id; }
                             mOpts += '<option value="' + m.id + '" data-requires-event="' + (m.requires_event || 0) + '">' + m.name + (m.code ? ' (' + m.code + ')' : '') + '</option>';
                         });
                         $('#editDetailMetric').html(mOpts).prop('disabled', false);
@@ -589,6 +725,7 @@ $(document).ready(function () {
     $('#editDetailPlatform').on('change', function () {
         var platformId = $(this).val();
         var $metricSelect = $('#editDetailMetric');
+        var selectedChannelId = $('#editDetailChannel').attr('data-selected-id') || $('#editDetailChannel').val() || '';
         if (!platformId) {
             $metricSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
             $('#editDetailChannel').html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
@@ -631,15 +768,21 @@ $(document).ready(function () {
         $.ajax({
             url: 'ajax/mediaMixRealEstateDetails.ajax.php',
             method: 'POST',
-            data: { get_channels_by_platform: platformId },
+            data: { get_channels_by_platform: platformId, selected_channel_id: selectedChannelId },
             dataType: 'json',
             success: function(channels) {
                 if (Array.isArray(channels) && channels.length > 0) {
                     var cOpts = '<option value="">-- Selecciona un canal --</option>';
+                    var foundSelected = false;
                     channels.forEach(function(chan) {
-                        cOpts += '<option value="' + chan.id + '">' + chan.name + '</option>';
+                        var selected = String(selectedChannelId) !== '' && String(chan.id) === String(selectedChannelId);
+                        if (selected) foundSelected = true;
+                        cOpts += '<option value="' + chan.id + '"' + (selected ? ' selected' : '') + '>' + chan.name + '</option>';
                     });
                     $('#editDetailChannel').html(cOpts).prop('disabled', false);
+                    if (foundSelected) {
+                        $('#editDetailChannel').val(String(selectedChannelId)).trigger('change');
+                    }
                 } else {
                     $('#editDetailChannel').html('<option value="">No hay canales para esta plataforma</option>').prop('disabled', true);
                 }
@@ -700,9 +843,7 @@ $(document).ready(function () {
             mediamixrealestate_id: mediamixrealestate_id,
             project_id: project_id,
             channel_id: channel_id,
-            campaign_type_id: 1,
             segmentation: segmentation,
-            objectives_ids: defaultObjectiveId ? [defaultObjectiveId] : [1],
             metric_id: parseInt(selectedEditMetricId),
             result_type: event_name ? result_type + ' (' + event_name + ')' : result_type,
             projection: projection,
@@ -981,8 +1122,8 @@ $(document).ready(function () {
             
             // Establecer anchos de columna PRIMERO
             // Columnas: A,B,C,D,E,F,G,H,I,J,K,L
-            // Proyecto, Plataforma, AON, Canal, Segmentación, Formatos, Inversión, Distribución, Estado, Proyección, Métrica, CPR
-            var columnWidths = [15, 15, 6, 18, 22, 18, 16, 12, 14, 10, 22, 12];
+            // Proyecto, Plataforma, Campaña, AON, Canal, Segmentación, Formatos, Inversión, Distribución, Estado, Proyección, CPR
+            var columnWidths = [15, 15, 15, 18, 22, 18, 16, 16, 14, 10, 22, 12];
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });
@@ -1077,9 +1218,9 @@ $(document).ready(function () {
             
             // Headers de la tabla
             var headers = [
-                'Proyecto', 'Plataforma', 'AON', 'Canal',
-                'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
-                'Distribución (%)', 'Estado', 'Proyección', 'Métrica', 'CPR'
+                'Proyecto', 'Plataforma', 'Campaña', 'AON',
+                'Canal', 'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
+                'Distribución (%)', 'Estado', 'Proyección', 'CPR'
             ];
             var headerRow = worksheet.addRow(headers);
             
@@ -1273,20 +1414,13 @@ $(document).ready(function () {
 
                         // CPR en columna 12 (L)
                         if (colNumber === 12) {
-                            var investment = parseFloat(String(rowData[6]).replace(/[^0-9.-]/g, ''));
-                            var projection = parseFloat(String(rowData[9]).replace(/[^0-9.-]/g, ''));
-                            var metricName = rowData[10];
+                            var investment = parseFloat(String(rowData[7]).replace(/[^0-9.-]/g, ''));
+                            var projection = parseFloat(String(rowData[10]).replace(/[^0-9.-]/g, ''));
                             
                             if (!isNaN(investment) && !isNaN(projection) && projection > 0) {
                                 var cpr = investment / projection;
-                                if (metricName && metricName.toLowerCase().indexOf('alcance') !== -1) {
-                                    cpr *= 1000;
-                                    cell.value = parseFloat(cpr.toFixed(2));
-                                    cell.numFmt = '#,##0.00" CPM"';
-                                } else {
-                                    cell.value = parseFloat(cpr.toFixed(4));
-                                    cell.numFmt = '#,##0.0###" CPR"';
-                                }
+                                cell.value = parseFloat(cpr.toFixed(4));
+                                cell.numFmt = '#,##0.0###" CPR"';
                             } else {
                                 cell.value = 'N/A';
                             }
@@ -1355,13 +1489,12 @@ $(document).ready(function () {
             }
             
             // Variables globales de configuración
-            var fee = parseFloat(window.mmreFee) || 0;
-            var feeType = window.mmreFeeType || 'percentage';
             var igvPercent = parseFloat(window.mmreIgv) || 18;
             var nationalizationFeePercent = parseFloat(window.mmreNationalizationFee) || 30;
             
-            // Calcular comision según tipo
-            var calculatedComision = (feeType === 'fixed') ? parseFloat(fee) : (inversionNumber * fee / 100);
+            // Calcular comisión desde reglas/cargos snapshot del mix
+            var feeCalc = calculateAgencyFeeDetails(inversionNumber);
+            var calculatedComision = feeCalc.totalFee;
             // Calcular pauta, igv y total final (incluir nacionalización si existe)
             var calculatedPauta = inversionNumber + (hasNacionalizacion ? parseFloat(nacionalizacionLinkedin) : 0) + calculatedComision;
             var calculatedIgv = calculatedPauta * (igvPercent / 100);
@@ -1374,7 +1507,21 @@ $(document).ready(function () {
             igvValue = calculatedIgv.toString();
             totalFinal = calculatedFinal.toString();
             
-            var comisionType = (feeType === 'fixed') ? '(Valor Fijo)' : '(' + fee + '%)';
+            var feeDetailRows = [];
+            var exportComponents = Array.isArray(feeCalc.ruleComponents) ? feeCalc.ruleComponents.slice() : [];
+            exportComponents.sort(function(a, b) {
+                var aFixed = (a.fee_mode || 'percentage') === 'fixed' ? 0 : 1;
+                var bFixed = (b.fee_mode || 'percentage') === 'fixed' ? 0 : 1;
+                return aFixed - bFixed;
+            });
+            exportComponents.forEach(function(comp, idx) {
+                var customLabel = String(comp.fee_label || '').trim();
+                var title = customLabel !== '' ? customLabel : ('Fee ' + (idx + 1));
+                feeDetailRows.push({
+                    label: title + ':',
+                    amount: parseFloat(comp.converted_amount || 0)
+                });
+            });
             
             // Debug mínimo (opcional)
             console.log('Totales Excel (con nacionalización):', {
@@ -1390,33 +1537,39 @@ $(document).ready(function () {
             
             // Estructura de totales generales (incluir nacionalización si aplica)
             var totalsData = [
-                ['', '', '', 'Inversión Neta Total:', '', '', inversionNeta, '', '', '', '', '']
+                ['', '', '', 'Inversión Neta Total:', '', '', '', inversionNeta, '', '', '', '']
             ];
             
             // Agregar fila de nacionalización solo si existe
             if (hasNacionalizacion) {
-                totalsData.push(['', '', '', 'Nacionalización LinkedIn (' + nationalizationFeePercent + '%):', '', '', nacionalizacionLinkedin, '', '', '', '', '']);
+                totalsData.push(['', '', '', 'Nacionalización LinkedIn (' + nationalizationFeePercent + '%):', '', '', '', nacionalizacionLinkedin, '', '', '', '']);
             }
             
             // Continuar con resto de totales
-            totalsData.push(['', '', '', 'Comisión de Agencia ' + comisionType + ':', '', '', comisionValue, '', '', '', '', '']);
+            totalsData.push(['', '', '', 'Comisión de Agencia:', '', '', '', comisionValue, '', '', '', '']);
+            var feeDetailStartIndex = totalsData.length;
+            feeDetailRows.forEach(function(item) {
+                totalsData.push(['', '', '', item.label, '', '', '', String(item.amount), '', '', '', '']);
+            });
+            var feeDetailEndIndex = totalsData.length;
             
             var subtotalLabel = hasNacionalizacion ? 'Subtotal (Pauta + Nacionalización + Comisión):' : 'Subtotal (Pauta + Comisión):';
-            totalsData.push(['', '', '', subtotalLabel, '', '', pautaComision, '', '', '', '', '']);
+            totalsData.push(['', '', '', subtotalLabel, '', '', '', pautaComision, '', '', '', '']);
             
-            totalsData.push(['', '', '', 'IGV (' + igvPercent + '%):', '', '', igvValue, '', '', '', '', '']);
+            totalsData.push(['', '', '', 'IGV (' + igvPercent + '%):', '', '', '', igvValue, '', '', '', '']);
             totalsData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Fila vacía
-            totalsData.push(['', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', totalFinal, '', '', '', '', '']);
+            totalsData.push(['', '', '', 'TOTAL INVERSIÓN + IGV:', '', '', '', totalFinal, '', '', '', '']);
             
             totalsData.forEach(function(rowData, index) {
                 var row = worksheet.addRow(rowData);
                 var isFinalTotal = rowData[3] && rowData[3].includes('TOTAL INVERSIÓN + IGV');
-                var isGeneralTotal = rowData[3] && (rowData[3].includes('Inversión Neta') || rowData[3].includes('Nacionalización') || rowData[3].includes('Comisión') || rowData[3].includes('Subtotal (Pauta') || rowData[3].includes('IGV'));
+                var isGeneralTotal = rowData[3] && (rowData[3].includes('Inversión Neta') || rowData[3].includes('Nacionalización') || rowData[3].includes('Comisión') || rowData[3].includes('Subtotal (Pauta') || rowData[3].includes('IGV') || (index >= feeDetailStartIndex && index < feeDetailEndIndex));
                 var isNacionalizacion = rowData[3] && rowData[3].includes('Nacionalización LinkedIn');
+                var isFeeDetail = index >= feeDetailStartIndex && index < feeDetailEndIndex;
                 
                 if (isFinalTotal) { // Total final
-                    // Merge etiqueta (columnas D-F)
-                    worksheet.mergeCells(row.number, 4, row.number, 6);
+                    // Merge etiqueta (columnas D-G)
+                    worksheet.mergeCells(row.number, 4, row.number, 7);
                     var labelCell = row.getCell(4);
                     labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
                     labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
@@ -1428,14 +1581,14 @@ $(document).ready(function () {
                         right: { style: 'medium', color: { argb: 'FF28A745' } }
                     };
                     
-                    // Valor en columna G (inversión)
+                    // Valor en columna H (inversión)
                     var numericTotal = parseFloat(totalFinal) || 0;
-                    row.getCell(7).value = numericTotal;
-                    row.getCell(7).numFmt = '"' + currency + '" #,##0.00';
-                    row.getCell(7).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
-                    row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
-                    row.getCell(7).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(7).border = {
+                    row.getCell(8).value = numericTotal;
+                    row.getCell(8).numFmt = '"' + currency + '" #,##0.00';
+                    row.getCell(8).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+                    row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF28A745' } };
+                    row.getCell(8).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(8).border = {
                         top: { style: 'medium', color: { argb: 'FF28A745' } },
                         left: { style: 'medium', color: { argb: 'FF28A745' } },
                         bottom: { style: 'medium', color: { argb: 'FF28A745' } },
@@ -1447,12 +1600,15 @@ $(document).ready(function () {
                 } else if (isGeneralTotal) { // Totales generales
                     var isSubtotal = rowData[3].includes('Subtotal (Pauta');
                     
-                    // Merge etiqueta (columnas D-F)
-                    worksheet.mergeCells(row.number, 4, row.number, 6);
+                    // Merge etiqueta (columnas D-G)
+                    worksheet.mergeCells(row.number, 4, row.number, 7);
                     var labelCell = row.getCell(4);
                     
                     // Estilo para nacionalización (mismo estilo que otros totales, sin color destacado)
                     if (isNacionalizacion) {
+                        labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                    } else if (isFeeDetail) {
                         labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
                         labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     } else if (isSubtotal) {
@@ -1462,7 +1618,7 @@ $(document).ready(function () {
                         labelCell.font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
                         labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     }
-                    labelCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true, indent: 1 };
+                    labelCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true, indent: isFeeDetail ? 2 : 1 };
                     labelCell.border = {
                         top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
@@ -1470,30 +1626,33 @@ $(document).ready(function () {
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
                     
-                    // Valor en columna G (inversión)
-                    var numericVal = parseFloat(rowData[6]) || 0;
-                    row.getCell(7).value = numericVal;
-                    row.getCell(7).numFmt = '"' + currency + '" #,##0.00';
+                    // Valor en columna H (inversión)
+                    var numericVal = parseFloat(rowData[7]) || 0;
+                    row.getCell(8).value = numericVal;
+                    row.getCell(8).numFmt = '"' + currency + '" #,##0.00';
                     
                     if (isNacionalizacion) {
-                        row.getCell(7).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        row.getCell(8).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                    } else if (isFeeDetail) {
+                        row.getCell(8).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     } else if (isSubtotal) {
-                        row.getCell(7).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
+                        row.getCell(8).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECF0F1' } };
                     } else {
-                        row.getCell(7).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
-                        row.getCell(7).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
+                        row.getCell(8).font = { name: 'Arial', size: 9, color: { argb: 'FF2F5F8F' } };
+                        row.getCell(8).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
                     }
-                    row.getCell(7).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
-                    row.getCell(7).border = {
+                    row.getCell(8).alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
+                    row.getCell(8).border = {
                         top: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         left: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         bottom: { style: 'thin', color: { argb: 'FFB4C7E7' } },
                         right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                     };
                     
-                    row.height = 28;
+                    row.height = isFeeDetail ? 24 : 28;
                     
                 } else {
                     // Fila vacía o separadora
@@ -1583,186 +1742,394 @@ $(document).ready(function () {
         }
     });
 
-    // Manejar cambio de tipo de fee en modal configuración
-    $('input[name="configFeeType"]').on('change', function() {
-        var feeType = $(this).val();
-        console.log('Changing fee type to:', feeType); // Debug
-        
-        var $symbol = $('#configFeeSymbol');
-        var $input = $('#configFeeInput');
-        
-        if (feeType === 'percentage') {
-            $symbol.html('<i class="fa fa-percent"></i>');
-            $input.attr('placeholder', 'Ej: 10');
-        } else {
-            $symbol.html('<i class="fa fa-money"></i>');
-            $input.attr('placeholder', 'Ej: 1500');
-        }
-    });
+    // ── Configuración de fee por reglas/cargos (snapshot del mix) ──────────
+    var mixFeeRulesState = Array.isArray(window.mixFeeRules) ? window.mixFeeRules.slice() : [];
+    var mixFeeChargesState = Array.isArray(window.mixFeeCharges) ? window.mixFeeCharges.slice() : [];
+    var feeConceptsCatalog = [];
+    var isLoadingMixFeeConfig = false;
+    var mixFeeLoadSeq = 0;
 
-    // Actualizar el form submit para usar POST normal
-    $('#configMixForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        // Debug para verificar los valores antes del envío
-        console.log('Form data:', {
-            feeType: $('input[name="configFeeType"]:checked').val(),
-            fee: $('#configFeeInput').val(),
-            name: $('input[name="configName"]').val(),
-            currency: $('select[name="configCurrency"]').val(),
-            igv: $('input[name="configIgv"]').val()
+    function formatMoney(value) {
+        return (window.currency || 'USD') + ' ' + Number(value || 0).toFixed(2);
+    }
+
+    function buildFeeBreakdownLines(feeCalc, inversionNeta) {
+        var lines = [];
+        var components = (feeCalc && Array.isArray(feeCalc.ruleComponents)) ? feeCalc.ruleComponents : [];
+        if (!components.length) return lines;
+
+        var orderedComponents = components.slice().sort(function(a, b) {
+            var aFixed = (a.fee_mode || 'percentage') === 'fixed' ? 0 : 1;
+            var bFixed = (b.fee_mode || 'percentage') === 'fixed' ? 0 : 1;
+            return aFixed - bFixed;
         });
-        
-        // Enviar el formulario normalmente
-        this.submit();
-    });
 
-    // Nueva función para recalcular totales
-    function recalcularTotales() {
-        var currency = window.currency || 'USD';
-        var fee = parseFloat(window.mmreFee) || 0;
-        var feeType = window.mmreFeeType || 'percentage';
-        var igvPorcentaje = parseFloat(window.mmreIgv) || 18;
-        
-        // Calcular inversión neta total
-        var totalInversion = 0;
-        $('#detailsTable tbody tr').each(function() {
-            var inversionText = $(this).find('td:nth-child(9)').text();
-            if (inversionText && !$(this).css('background-color').includes('245, 245, 245')) {
-                var inversionValue = parseFloat(inversionText.replace(/[^0-9.-]/g, ''));
-                if (!isNaN(inversionValue)) {
-                    totalInversion += inversionValue;
+        orderedComponents.forEach(function (comp, idx) {
+            var amountText = Number(comp.converted_amount || 0).toFixed(2) + ' ' + String(window.currency || 'USD').toLowerCase();
+            var customLabel = String(comp.fee_label || '').trim();
+            var title = customLabel !== '' ? customLabel : ('Fee ' + (idx + 1));
+            lines.push(title + ': ' + amountText);
+        });
+
+        if (!lines.length && inversionNeta > 0 && feeCalc && feeCalc.baseFee) {
+            lines.push('Fee 1: ' + Number(feeCalc.baseFee || 0).toFixed(2) + ' ' + String(window.currency || 'USD').toLowerCase());
+        }
+
+        return lines;
+    }
+
+    function refreshSummaryFromFeeState() {
+        var inversionText = $('#inversionNetaTotal').text() || '';
+        var inversionNeta = parseFloat(String(inversionText).replace(/[^0-9\.\-,]/g, '').replace(/,/g, '')) || 0;
+
+        var nacionalizacion = 0;
+        if ($('#nacionalizacionLinkedin').length > 0) {
+            var nacionalizacionText = $('#nacionalizacionLinkedin').text() || '';
+            nacionalizacion = parseFloat(String(nacionalizacionText).replace(/[^0-9\.\-,]/g, '').replace(/,/g, '')) || 0;
+        }
+
+        var feeCalc = calculateAgencyFeeDetails(inversionNeta);
+        var comision = parseFloat(feeCalc.baseFee || 0);
+        var extra = parseFloat(feeCalc.chargesTotal || 0);
+        var subtotal = inversionNeta + nacionalizacion + comision + extra;
+        var igvPct = parseFloat(window.mmreIgv) || 0;
+        var igv = subtotal * (igvPct / 100);
+        var total = subtotal + igv;
+
+        $('#comisionAgencia').text(formatMoney(comision));
+
+        var lines = buildFeeBreakdownLines(feeCalc, inversionNeta);
+        var breakdownHtml = lines.map(function (line) { return '<div>' + line + '</div>'; }).join('');
+        $('#comisionDesglose').html(breakdownHtml);
+
+        var $chargesBody = $('#mixFeeExtraChargesRows');
+        if ($chargesBody.length) {
+            $chargesBody.empty();
+            (feeCalc.charges || []).forEach(function (ch) {
+                var converted = parseFloat(ch.converted_amount || ch.amount || 0);
+                var origCode = ch.currency_code || (window.currency || 'USD');
+                var origAmount = parseFloat(ch.amount || 0);
+                $chargesBody.append(
+                    '<tr class="warning">' +
+                        '<td class="text-right"><strong>' + $('<span>').text(ch.concept_name || '').html() + ':</strong></td>' +
+                        '<td class="text-right" style="font-size:16px;"><strong>' +
+                            formatMoney(converted) +
+                            ' <small class="text-muted">(' + origCode + ' ' + origAmount.toFixed(2) + ')</small>' +
+                        '</strong></td>' +
+                    '</tr>'
+                );
+            });
+        }
+
+        $('#pautaComision').text(formatMoney(subtotal));
+        $('#igvCalculado').text(formatMoney(igv));
+        $('#inversionTotalIgv').text(formatMoney(total));
+    }
+
+    function loadMixFeeConfigFromServer() {
+        var seq = ++mixFeeLoadSeq;
+        isLoadingMixFeeConfig = true;
+        renderMixFeeRules();
+        renderMixFeeCharges();
+
+        var url = 'ajax/fees.ajax.php?action=get_mix_config&mix_id=' + encodeURIComponent(window.mmreId) + '&_ts=' + Date.now();
+        return fetch(url, { cache: 'no-store' })
+            .then(function(res) { return res.json(); })
+            .then(function(cfg) {
+                if (seq !== mixFeeLoadSeq) return;
+                var data = (cfg && cfg.success && cfg.data) ? cfg.data : { rules: [], charges: [] };
+                mixFeeRulesState = Array.isArray(data.rules) ? data.rules : [];
+                mixFeeChargesState = Array.isArray(data.charges) ? data.charges : [];
+                window.mixFeeRules = mixFeeRulesState.slice();
+                window.mixFeeCharges = mixFeeChargesState.slice();
+                if (data.mix_meta && data.mix_meta.currency_usd_per_unit_snapshot) {
+                    window.mmreCurrencyUsdPerUnitSnapshot = parseFloat(data.mix_meta.currency_usd_per_unit_snapshot) || window.mmreCurrencyUsdPerUnitSnapshot;
                 }
-            }
-        });
-        
-        // Calcular comisión según tipo de fee
-        var comision = 0;
-        var feeDisplay = '';
-        
-        console.log('Calculando comisión:', {
-            feeType: feeType,
-            fee: fee,
-            totalInversion: totalInversion
-        });
-        
-        if (feeType === 'fixed') {
-            comision = fee; // Usar el valor directamente si es fijo
-            feeDisplay = '(fijo)';
-        } else {
-            comision = totalInversion * (fee / 100); // Calcular porcentaje
-            feeDisplay = '(' + fee + '%)';
-        }
-        
-        // Actualizar display de comisión
-        $('#comisionAgencia').html(
-            currency + ' ' + comision.toFixed(2) + 
-            ' <small class="text-muted">' + feeDisplay + '</small>'
-        );
-        
-        // Resto de cálculos...
-        // Calcular pauta (inversión + comisión)
-        var pauta = totalInversion + comision;
-        
-        // Calcular IGV y total final
-        var igv = pauta * (igvPorcentaje / 100);
-        var total = pauta + igv;
-        
-        // Actualizar campos en el modal de configuración
-        $('#configInversionNeta').val(totalInversion.toFixed(2));
-        $('#configComision').val(comision.toFixed(2));
-        $('#configPauta').val(pauta.toFixed(2));
-        $('#configIgv').val(igv.toFixed(2));
-        $('#configTotal').val(total.toFixed(2));
-        
-        // Mostrar mensaje de éxito
-        swal({
-            icon: 'success',
-            title: 'Totales recalculados',
-            text: 'Los totales se recalcularon correctamente.'
-        });
-    }
-    
-    // Evento para botón de recalcular totales
-    $('#recalcularTotalesBtn').on('click', function() {
-        recalcularTotales();
-    });
-
-    // ── Fees Adicionales ──────────────────────────────────────────────────────
-    function loadExtraFees() {
-        $.ajax({
-            url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-            method: 'POST',
-            data: { get_extra_fees: window.mmreId },
-            dataType: 'json',
-            success: function(fees) { renderExtraFees(fees); }
-        });
+                isLoadingMixFeeConfig = false;
+                renderMixFeeRules();
+                renderMixFeeCharges();
+                refreshSummaryFromFeeState();
+            })
+            .catch(function() {
+                if (seq !== mixFeeLoadSeq) return;
+                isLoadingMixFeeConfig = false;
+                renderMixFeeRules();
+                renderMixFeeCharges();
+            });
     }
 
-    function renderExtraFees(fees) {
-        var $tbody = $('#extraFeesList');
+    function loadFeeCurrenciesCatalog(selectedCode) {
+        return fetch('ajax/currencies.ajax.php?action=list&only_active=1')
+            .then(function(res) { return res.json(); })
+            .then(function(resp) {
+                feeCurrenciesCatalog = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+                var options = '';
+                feeCurrenciesCatalog.forEach(function(c) {
+                    options += '<option value="' + c.code + '">' + c.code + '</option>';
+                });
+                $('#mixFeeChargeCurrency').html(options);
+
+                var currentCurrency = selectedCode || window.currency || 'USD';
+                if ($('#mixFeeChargeCurrency option[value="' + currentCurrency + '"]').length) {
+                    $('#mixFeeChargeCurrency').val(currentCurrency);
+                }
+
+                var configCurrencyOptions = '';
+                feeCurrenciesCatalog.forEach(function(c) {
+                    configCurrencyOptions += '<option value="' + c.code + '">' + c.code + ' - ' + $('<span>').text(c.name).html() + '</option>';
+                });
+                if ($('#configCurrencySelect').length && configCurrencyOptions) {
+                    var selected = $('#configCurrencySelect').val() || window.currency || 'USD';
+                    $('#configCurrencySelect').html(configCurrencyOptions);
+                    $('#configCurrencySelect').val(selected);
+                }
+            });
+    }
+
+    function renderMixFeeRules() {
+        var $tbody = $('#mixFeeRulesBody');
+        if (!$tbody.length) return;
         $tbody.empty();
-        if (!fees || fees.length === 0) {
-            $tbody.html('<tr id="extraFeesEmpty"><td colspan="4" class="text-center text-muted">Sin fees adicionales</td></tr>');
+        if (isLoadingMixFeeConfig) {
+            $tbody.html('<tr><td colspan="8" class="text-center text-muted">Cargando configuración...</td></tr>');
             return;
         }
-        fees.forEach(function(fee) {
-            var typeLabel = fee.fee_type === 'percentage'
-                ? parseFloat(fee.fee_value).toFixed(2) + '%'
-                : (window.currency || '') + ' ' + parseFloat(fee.fee_value).toFixed(2);
+        if (!mixFeeRulesState.length) {
+            $tbody.html('<tr><td colspan="8" class="text-center text-muted">Sin reglas configuradas</td></tr>');
+            return;
+        }
+
+        var currencyOptions = '';
+        feeCurrenciesCatalog.forEach(function(c) {
+            currencyOptions += '<option value="' + c.code + '">' + c.code + '</option>';
+        });
+
+        mixFeeRulesState.forEach(function(rule, idx) {
+            var maxVal = (rule.max_investment === null || rule.max_investment === '' || typeof rule.max_investment === 'undefined')
+                ? '' : rule.max_investment;
+            var selectedCurrency = rule.fixed_currency_code || window.currency || 'USD';
+            var mode = rule.fee_mode || 'percentage';
+            var feeLabel = String(rule.fee_label || '').replace(/"/g, '&quot;');
             $tbody.append(
-                '<tr data-fee-id="' + fee.id + '">' +
-                '<td>' + $('<span>').text(fee.concept).html() + '</td>' +
-                '<td>' + typeLabel + '</td>' +
-                '<td>' + (fee.fee_type === 'percentage' ? 'Porcentaje' : 'Fijo') + '</td>' +
-                '<td><button type="button" class="btn btn-xs btn-danger btn-deleteExtraFee" data-id="' + fee.id + '"><i class="fa fa-trash"></i></button></td>' +
+                '<tr data-index="' + idx + '">' +
+                    '<td><input type="number" class="form-control input-sm mix-rule-min" step="0.01" value="' + (typeof rule.min_investment !== 'undefined' ? rule.min_investment : 0) + '"></td>' +
+                    '<td><input type="number" class="form-control input-sm mix-rule-max" step="0.01" value="' + maxVal + '" placeholder="Sin tope"></td>' +
+                    '<td>' +
+                        '<select class="form-control input-sm mix-rule-mode">' +
+                            '<option value="percentage" ' + (mode === 'percentage' ? 'selected' : '') + '>Porcentaje</option>' +
+                            '<option value="fixed" ' + (mode === 'fixed' ? 'selected' : '') + '>Fijo</option>' +
+                        '</select>' +
+                    '</td>' +
+                    '<td><input type="text" class="form-control input-sm mix-rule-label" maxlength="120" value="' + feeLabel + '" placeholder="Ej: Fee Google"></td>' +
+                    '<td class="mix-rule-percentage-cell"><input type="number" class="form-control input-sm mix-rule-percentage" step="0.0001" value="' + (typeof rule.percentage_value !== 'undefined' ? rule.percentage_value : 0) + '"></td>' +
+                    '<td class="mix-rule-fixed-cell"><input type="number" class="form-control input-sm mix-rule-fixed" step="0.01" value="' + (typeof rule.fixed_value !== 'undefined' ? rule.fixed_value : 0) + '"><span class="text-muted mix-rule-fixed-na" style="display:none;">No aplica</span></td>' +
+                    '<td class="mix-rule-currency-cell"><select class="form-control input-sm mix-rule-fixed-currency">' + currencyOptions + '</select><span class="text-muted mix-rule-currency-na" style="display:none;">-</span></td>' +
+                    '<td><button type="button" class="btn btn-danger btn-sm btn-remove-mix-rule"><i class="fa fa-trash"></i></button></td>' +
+                '</tr>'
+            );
+            var $row = $tbody.find('tr[data-index="' + idx + '"]');
+            $row.find('.mix-rule-fixed-currency').val(selectedCurrency);
+            applyMixRuleModeUI($row);
+        });
+    }
+
+    function applyMixRuleModeUI($row) {
+        if (!$row || !$row.length) return;
+        var mode = $row.find('.mix-rule-mode').val() || 'percentage';
+        var isPercentage = mode === 'percentage';
+
+        $row.find('.mix-rule-percentage').prop('disabled', !isPercentage).toggle(isPercentage);
+        $row.find('.mix-rule-fixed').prop('disabled', isPercentage).toggle(!isPercentage);
+        $row.find('.mix-rule-fixed-currency').prop('disabled', isPercentage).toggle(!isPercentage);
+        $row.find('.mix-rule-fixed-na').toggle(isPercentage);
+        $row.find('.mix-rule-currency-na').toggle(isPercentage);
+    }
+
+    function renderMixFeeCharges() {
+        var $tbody = $('#mixFeeChargesBody');
+        if (!$tbody.length) return;
+        $tbody.empty();
+        if (isLoadingMixFeeConfig) {
+            $tbody.html('<tr><td colspan="4" class="text-center text-muted">Cargando configuración...</td></tr>');
+            return;
+        }
+        if (!mixFeeChargesState.length) {
+            $tbody.html('<tr><td colspan="4" class="text-center text-muted">Sin cargos configurados</td></tr>');
+            return;
+        }
+
+        mixFeeChargesState.forEach(function(charge, idx) {
+            $tbody.append(
+                '<tr data-index="' + idx + '">' +
+                    '<td>' + $('<span>').text(charge.concept_name || '').html() + '</td>' +
+                    '<td>' + (parseFloat(charge.amount) || 0).toFixed(2) + '</td>' +
+                    '<td>' + (charge.currency_code || window.currency || 'USD') + '</td>' +
+                    '<td><button type="button" class="btn btn-danger btn-sm btn-remove-mix-charge"><i class="fa fa-trash"></i></button></td>' +
                 '</tr>'
             );
         });
     }
 
-    $('#configMixModal').on('show.bs.modal', function() {
-        loadExtraFees();
-    });
+    function collectMixRulesFromTable() {
+        var list = [];
+        $('#mixFeeRulesBody tr[data-index]').each(function() {
+            var $row = $(this);
+            var min = parseFloat($row.find('.mix-rule-min').val());
+            var maxRaw = $row.find('.mix-rule-max').val();
+            var mode = $row.find('.mix-rule-mode').val();
+            var feeLabel = ($row.find('.mix-rule-label').val() || '').trim();
+            var pct = parseFloat($row.find('.mix-rule-percentage').val());
+            var fixed = parseFloat($row.find('.mix-rule-fixed').val());
+            var fixedCurrency = $row.find('.mix-rule-fixed-currency').val() || window.currency || 'USD';
 
-    $('#btnAddExtraFee').on('click', function() {
-        var concept = $('#newExtraFeeConcept').val().trim();
-        var value = parseFloat($('#newExtraFeeValue').val());
-        var feeType = $('#newExtraFeeType').val();
-        if (!concept) {
-            swal({ type: 'warning', title: 'Falta el concepto', text: 'Ingresa un nombre para el fee.' });
-            return;
-        }
-        if (isNaN(value) || value < 0) {
-            swal({ type: 'warning', title: 'Valor inválido', text: 'Ingresa un valor numérico mayor o igual a 0.' });
-            return;
-        }
-        $.ajax({
-            url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-            method: 'POST',
-            data: { save_extra_fee: 1, mmre_id: window.mmreId, concept: concept, fee_type: feeType, fee_value: value },
-            dataType: 'json',
-            success: function(resp) {
-                if (resp && resp.success) {
-                    $('#newExtraFeeConcept').val('');
-                    $('#newExtraFeeValue').val('');
-                    loadExtraFees();
+            var normalizedMode = mode || 'percentage';
+            var normalizedPct = isNaN(pct) ? 0 : pct;
+            var normalizedFixed = isNaN(fixed) ? 0 : fixed;
+
+            if (normalizedMode === 'percentage') {
+                normalizedFixed = 0;
+            } else if (normalizedMode === 'fixed') {
+                normalizedPct = 0;
+            }
+
+            list.push({
+                min_investment: isNaN(min) ? 0 : min,
+                max_investment: maxRaw === '' ? null : (isNaN(parseFloat(maxRaw)) ? null : parseFloat(maxRaw)),
+                fee_mode: normalizedMode,
+                fee_label: feeLabel,
+                percentage_value: normalizedPct,
+                fixed_value: normalizedFixed,
+                fixed_currency_code: fixedCurrency
+            });
+        });
+        return list;
+    }
+
+    function loadFeeConceptCatalog(selectedId) {
+        if (!$('#mixFeeConceptSelect').length) return Promise.resolve();
+        return fetch('ajax/fees.ajax.php?action=list_concepts')
+            .then(function(res) { return res.json(); })
+            .then(function(resp) {
+                feeConceptsCatalog = (resp && resp.success && Array.isArray(resp.data)) ? resp.data : [];
+                var html = '<option value="">-- Selecciona un concepto --</option>';
+                feeConceptsCatalog.forEach(function(c) {
+                    html += '<option value="' + c.id + '">' + $('<span>').text(c.name).html() + '</option>';
+                });
+                $('#mixFeeConceptSelect').html(html);
+                if (selectedId) {
+                    $('#mixFeeConceptSelect').val(String(selectedId));
                 }
-            }
-        });
+            });
+    }
+
+    $('#configMixModal').on('show.bs.modal', function() {
+        isLoadingMixFeeConfig = true;
+        renderMixFeeRules();
+        renderMixFeeCharges();
+        Promise.all([loadFeeCurrenciesCatalog(window.currency || 'USD'), loadFeeConceptCatalog(), loadMixFeeConfigFromServer()]);
     });
 
-    $(document).on('click', '.btn-deleteExtraFee', function() {
-        var feeId = $(this).data('id');
-        $.ajax({
-            url: 'ajax/mediaMixRealEstateDetails.ajax.php',
-            method: 'POST',
-            data: { delete_extra_fee: feeId },
-            dataType: 'json',
-            success: function(resp) {
-                if (resp && resp.success) { loadExtraFees(); }
-            }
+    $('#btnAddMixFeeRule').on('click', function() {
+        mixFeeRulesState.push({
+            min_investment: 0,
+            max_investment: null,
+            fee_mode: 'percentage',
+            fee_label: '',
+            percentage_value: 0,
+            fixed_value: 0,
+            fixed_currency_code: window.currency || 'USD'
         });
+        renderMixFeeRules();
+    });
+
+    $(document).on('click', '.btn-remove-mix-rule', function() {
+        var idx = parseInt($(this).closest('tr').attr('data-index'), 10);
+        if (!isNaN(idx)) {
+            mixFeeRulesState.splice(idx, 1);
+            renderMixFeeRules();
+        }
+    });
+
+    $(document).on('change', '.mix-rule-mode', function() {
+        var $row = $(this).closest('tr');
+        applyMixRuleModeUI($row);
+    });
+
+    $('#btnAddMixFeeCharge').on('click', function() {
+        var conceptId = $('#mixFeeConceptSelect').val();
+        var concept = feeConceptsCatalog.find(function(c) { return String(c.id) === String(conceptId); });
+        var amount = parseFloat($('#mixFeeChargeAmount').val());
+        var chargeCurrency = $('#mixFeeChargeCurrency').val() || window.currency || 'USD';
+        if (!concept) {
+            swal({ icon: 'warning', title: 'Concepto requerido', text: 'Selecciona un concepto.' });
+            return;
+        }
+        if (isNaN(amount)) {
+            swal({ icon: 'warning', title: 'Monto inválido', text: 'Ingresa un monto válido.' });
+            return;
+        }
+
+        mixFeeChargesState.push({
+            concept_id: concept.id,
+            concept_name: concept.name,
+            amount: amount,
+            currency_code: chargeCurrency
+        });
+        $('#mixFeeChargeAmount').val('');
+        renderMixFeeCharges();
+    });
+
+    $(document).on('click', '.btn-remove-mix-charge', function() {
+        var idx = parseInt($(this).closest('tr').attr('data-index'), 10);
+        if (!isNaN(idx)) {
+            mixFeeChargesState.splice(idx, 1);
+            renderMixFeeCharges();
+        }
+    });
+
+    $('#btnSyncFeesFromClient').on('click', function() {
+        var $btn = $(this);
+        var originalText = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Cargando fee...');
+        isLoadingMixFeeConfig = true;
+        renderMixFeeRules();
+        renderMixFeeCharges();
+
+        var fd = new FormData();
+        fd.append('action', 'sync_mix_from_client');
+        fd.append('mix_id', window.mmreId);
+        fd.append('client_id', window.clientId);
+
+        fetch('ajax/fees.ajax.php', { method: 'POST', body: fd })
+            .then(function(res) { return res.json(); })
+            .then(function(resp) {
+                if (!resp || !resp.success) {
+                    isLoadingMixFeeConfig = false;
+                    renderMixFeeRules();
+                    renderMixFeeCharges();
+                    swal({ icon: 'error', title: 'No se pudo actualizar', text: (resp && resp.message) ? resp.message : 'Error desconocido' });
+                    return;
+                }
+                return loadMixFeeConfigFromServer().then(function() {
+                    swal({ icon: 'success', title: 'Configuración actualizada', text: 'Se aplicó la configuración actual del cliente.' });
+                });
+            })
+            .finally(function() {
+                $btn.prop('disabled', false).html(originalText);
+            });
+    });
+
+    $('#configMixForm').on('submit', function() {
+        if (!window.isAdmin) {
+            return true;
+        }
+
+        mixFeeRulesState = collectMixRulesFromTable();
+        $('#configRulesJson').val(JSON.stringify(mixFeeRulesState));
+        $('#configChargesJson').val(JSON.stringify(mixFeeChargesState));
+        window.mixFeeRules = mixFeeRulesState.slice();
+        window.mixFeeCharges = mixFeeChargesState.slice();
+        return true;
     });
     // ─────────────────────────────────────────────────────────────────────────
 });

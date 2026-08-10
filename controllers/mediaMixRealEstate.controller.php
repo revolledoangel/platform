@@ -23,8 +23,8 @@ class MediaMixRealEstate_Controller
                     "period_id" => $_POST["newPeriodId"],
                     "client_id" => $_POST["newClientId"],
                     "currency" => $_POST["newCurrency"],
-                    "fee" => $_POST["newFee"],
-                    "fee_type" => $_POST["newFeeType"],
+                    "fee" => 0,
+                    "fee_type" => "fixed",
                     "igv" => $_POST["newIgv"],
                 ];
                 $jsonData = json_encode($body);
@@ -87,8 +87,8 @@ class MediaMixRealEstate_Controller
                     "period_id" => $_POST["editPeriodId"],
                     "client_id" => $_POST["editClientId"],
                     "currency" => $_POST["editCurrency"],
-                    "fee" => $_POST["editFee"],
-                    "fee_type" => $_POST["editFeeType"],
+                    "fee" => 0,
+                    "fee_type" => "fixed",
                     "igv" => $_POST["editIgv"],
                 ];
                 $jsonData = json_encode($body);

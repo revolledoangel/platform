@@ -2,6 +2,22 @@ $(document).ready(function () {
     // Inicializar Select2
     $('.select2').select2();
 
+    // Compatibilidad: si por caché llega una versión antigua con columna Fee,
+    // la quitamos del encabezado antes de iniciar DataTables.
+    var $table = $('#mediaMixRealEstateTable');
+    var feeHeaderIndex = -1;
+    $table.find('thead th').each(function (idx) {
+        var txt = ($(this).text() || '').trim().toLowerCase();
+        if (txt.indexOf('fee') !== -1) {
+            feeHeaderIndex = idx;
+        }
+    });
+    if (feeHeaderIndex >= 0) {
+        $table.find('tr').each(function () {
+            $(this).children().eq(feeHeaderIndex).remove();
+        });
+    }
+
     // Restaurar filtros activos desde sessionStorage
     var savedClient = sessionStorage.getItem('mmre_filterClient');
     var savedPeriod = sessionStorage.getItem('mmre_filterPeriod');
@@ -9,7 +25,22 @@ $(document).ready(function () {
     if (savedPeriod) { $('#filterPeriod').val(savedPeriod).trigger('change.select2'); }
 
     var mediaMixTable = $('#mediaMixRealEstateTable').DataTable({
-        ajax: "ajax/mediaMixRealEstate.ajax.php?action=list",
+        ajax: {
+            url: "ajax/mediaMixRealEstate.ajax.php?action=list",
+            dataSrc: function (json) {
+                // Compatibilidad: si por caché llega estructura antigua con Fee,
+                // eliminamos ese dato para mantener columnas estables.
+                if (json && Array.isArray(json.data)) {
+                    json.data = json.data.map(function (row) {
+                        if (Array.isArray(row) && row.length === 8) {
+                            row.splice(5, 1);
+                        }
+                        return row;
+                    });
+                }
+                return (json && json.data) ? json.data : [];
+            }
+        },
         deferRender: true,
         retrieve: true,
         processing: true,
@@ -49,36 +80,6 @@ $(document).ready(function () {
     $('#filterClient').trigger('change');
     $('#filterPeriod').trigger('change');
 
-    // Manejar cambio de tipo de fee en modal agregar
-    $('input[name="newFeeType"]').on('change', function() {
-        var feeType = $(this).val();
-        var $symbol = $('#newFeeSymbol');
-        var $input = $('#newFeeInput');
-        
-        if (feeType === 'percentage') {
-            $symbol.html('<i class="fa fa-percent"></i>');
-            $input.attr('placeholder', 'Ej: 10');
-        } else {
-            $symbol.html('<i class="fa fa-money"></i>');
-            $input.attr('placeholder', 'Ej: 1500');
-        }
-    });
-
-    // Manejar cambio de tipo de fee en modal editar
-    $('input[name="editFeeType"]').on('change', function() {
-        var feeType = $(this).val();
-        var $symbol = $('#editFeeSymbol');
-        var $input = $('#editFeeInput');
-        
-        if (feeType === 'percentage') {
-            $symbol.html('<i class="fa fa-percent"></i>');
-            $input.attr('placeholder', 'Ej: 10');
-        } else {
-            $symbol.html('<i class="fa fa-money"></i>');
-            $input.attr('placeholder', 'Ej: 1500');
-        }
-    });
-
     /* Editar Media Mix */
     $('#mediaMixRealEstateTable tbody').on("click", ".btn-editMediaMix", function () {
         var mediaMixId = $(this).attr("mediaMixId");
@@ -95,12 +96,7 @@ $(document).ready(function () {
                     $("select[name='editClientId']").val(data.client_id).trigger('change');
 
                     $("select[name='editCurrency']").val(data.currency);
-                    $("input[name='editFee']").val(data.fee);
                     $("input[name='editIgv']").val(data.igv);
-                    
-                    // Configurar tipo de fee
-                    var feeType = data.fee_type || 'percentage'; // default percentage si no existe
-                    $("input[name='editFeeType'][value='" + feeType + "']").prop('checked', true).trigger('change');
                 } else {
                     alert("No se pudo obtener la información del registro.");
                 }
