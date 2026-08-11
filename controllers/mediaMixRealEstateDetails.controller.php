@@ -100,6 +100,25 @@ class MediaMixRealEstateDetails_Controller {
                     $detail['platform_code'] = null;
                     $detail['platform_active'] = null;
                 }
+
+                // Si existe mapeo canal->plataforma, esa plataforma es la fuente de verdad para UI.
+                if (!empty($detail['channel_id'])) {
+                    $channelId = intval($detail['channel_id']);
+                    $sqlChannelPlatform = "SELECT cp.platform_id, pl.name AS platform_name, pl.code AS platform_code, pl.active AS platform_active
+                                           FROM channel_platform cp
+                                           LEFT JOIN platforms pl ON cp.platform_id = pl.id
+                                           WHERE cp.channel_id = $channelId
+                                           ORDER BY cp.platform_id ASC
+                                           LIMIT 1";
+                    $resChannelPlatform = $conn->query($sqlChannelPlatform);
+                    if ($resChannelPlatform && $cpRow = $resChannelPlatform->fetch_assoc()) {
+                        $detail['platform_id'] = $cpRow['platform_id'];
+                        $detail['platform_name'] = $cpRow['platform_name'];
+                        $detail['platform_code'] = $cpRow['platform_code'];
+                        $detail['platform_active'] = $cpRow['platform_active'];
+                    }
+                }
+
                 // Formats
                 $sqlF = "SELECT f.id, f.name, f.code, f.active FROM mmre_details_formats mf LEFT JOIN formats f ON mf.format_id = f.id WHERE mf.mmre_detail_id = {$detail['id']}";
                 $resF = $conn->query($sqlF);
