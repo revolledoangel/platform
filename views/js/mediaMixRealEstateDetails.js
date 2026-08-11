@@ -579,6 +579,11 @@ $(document).ready(function () {
             data: { get_detail_id: detailId },
             dataType: 'json',
             success: function(data) {
+                var effectivePlatformId = data.platform_id;
+                if (data.channel_platform_id && String(data.channel_platform_id) !== String(data.platform_id || '')) {
+                    effectivePlatformId = data.channel_platform_id;
+                }
+
                 var ajaxCount = 0;
                 var totalAjax = 5;
                 function showModalIfReady() {
@@ -612,10 +617,13 @@ $(document).ready(function () {
                     success: function(platforms) {
                         var options = '<option value="">-- Selecciona una plataforma --</option>';
                         platforms.forEach(function(plat) {
-                            var selected = (data.platform_id == plat.id) ? ' selected' : '';
+                            var selected = (String(effectivePlatformId) === String(plat.id)) ? ' selected' : '';
                             options += '<option value="' + plat.id + '"' + selected + '>' + plat.name + '</option>';
                         });
                         $('#editDetailPlatform').html(options).prop('disabled', false);
+                        if (effectivePlatformId) {
+                            $('#editDetailPlatform').val(String(effectivePlatformId));
+                        }
                         showModalIfReady();
                     }
                 });
@@ -623,7 +631,7 @@ $(document).ready(function () {
                 $.ajax({
                     url: 'ajax/mediaMixRealEstateDetails.ajax.php',
                     method: 'POST',
-                    data: { get_channels_by_platform: data.platform_id, selected_channel_id: data.channel_id },
+                    data: { get_channels_by_platform: effectivePlatformId, selected_channel_id: data.channel_id },
                     dataType: 'json',
                     success: function(channels) {
                         var options = '<option value="">-- Selecciona un canal --</option>';
@@ -639,10 +647,10 @@ $(document).ready(function () {
                 $.ajax({
                     url: 'ajax/mediaMixRealEstateDetails.ajax.php',
                     method: 'POST',
-                    data: { get_metrics_by_platform: data.platform_id },
+                    data: { get_metrics_by_platform: effectivePlatformId },
                     dataType: 'json',
                     success: function(metrics) {
-                        cachedMetricsByPlatform[data.platform_id] = metrics;
+                        cachedMetricsByPlatform[effectivePlatformId] = metrics;
                         var matchedMetricId = resolveMetricId(metrics, data);
                         var mOpts = '<option value="">-- Selecciona una métrica --</option>';
                         metrics.forEach(function(m) {
@@ -673,12 +681,13 @@ $(document).ready(function () {
                 $.ajax({
                     url: 'ajax/mediaMixRealEstateDetails.ajax.php',
                     method: 'POST',
-                    data: { platform_id: data.platform_id },
+                    data: { platform_id: effectivePlatformId },
                     dataType: 'json',
                     success: function(formats) {
+                        cachedFormatsByPlatform[effectivePlatformId] = formats;
                         var options = '';
                         formats.forEach(function(fmt) {
-                            var selected = (data.formats_ids && data.formats_ids.includes(fmt.id)) ? ' selected' : '';
+                            var selected = (data.formats_ids && data.formats_ids.map(String).includes(String(fmt.id))) ? ' selected' : '';
                             options += '<option value="' + fmt.id + '"' + selected + '>' + fmt.name + (fmt.code ? ' ('+fmt.code+')' : '') + '</option>';
                         });
                         $('#editDetailFormat').html(options).prop('disabled', false);
@@ -725,12 +734,50 @@ $(document).ready(function () {
     $('#editDetailPlatform').on('change', function () {
         var platformId = $(this).val();
         var $metricSelect = $('#editDetailMetric');
+        var $formatSelect = $('#editDetailFormat');
         var selectedChannelId = $('#editDetailChannel').attr('data-selected-id') || $('#editDetailChannel').val() || '';
         if (!platformId) {
             $metricSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
             $('#editDetailChannel').html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
+            $formatSelect.html('<option value="">Selecciona una plataforma primero</option>').prop('disabled', true);
             return;
         }
+
+        // Al cambiar de plataforma, se limpia la métrica para evitar mantener una que no pertenezca.
+        $metricSelect.val('');
+
+        // Recargar formatos por plataforma para evitar conservar formatos de otra plataforma.
+        $formatSelect.html('<option value="">Cargando formatos...</option>').prop('disabled', true);
+        if (cachedFormatsByPlatform[platformId]) {
+            var fOptsCached = '';
+            cachedFormatsByPlatform[platformId].forEach(function(fmt) {
+                fOptsCached += '<option value="' + fmt.id + '">' + fmt.name + (fmt.code ? ' (' + fmt.code + ')' : '') + '</option>';
+            });
+            $formatSelect.html(fOptsCached).prop('disabled', false).val([]).trigger('change');
+        } else {
+            $.ajax({
+                url: 'ajax/mediaMixRealEstateDetails.ajax.php',
+                method: 'POST',
+                data: { platform_id: platformId },
+                dataType: 'json',
+                success: function(formats) {
+                    cachedFormatsByPlatform[platformId] = formats;
+                    if (Array.isArray(formats) && formats.length > 0) {
+                        var fOpts = '';
+                        formats.forEach(function(fmt) {
+                            fOpts += '<option value="' + fmt.id + '">' + fmt.name + (fmt.code ? ' (' + fmt.code + ')' : '') + '</option>';
+                        });
+                        $formatSelect.html(fOpts).prop('disabled', false).val([]).trigger('change');
+                    } else {
+                        $formatSelect.html('<option value="">No hay formatos para esta plataforma</option>').prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    $formatSelect.html('<option value="">Error al cargar formatos</option>').prop('disabled', true);
+                }
+            });
+        }
+
         $metricSelect.html('<option value="">Cargando métricas...</option>').prop('disabled', true);
         if (cachedMetricsByPlatform[platformId]) {
             var mOpts = '<option value="">-- Selecciona una métrica --</option>';

@@ -210,6 +210,26 @@ if (isset($_POST['get_detail_id'])) {
             $detail['platform_code'] = null;
             $detail['platform_active'] = null;
         }
+
+        // Plataforma sugerida por mapeo del canal (si existe) para corregir casos inconsistentes.
+        $detail['channel_platform_id'] = null;
+        $detail['channel_platform_name'] = null;
+        $detail['channel_platform_code'] = null;
+        if (!empty($detail['channel_id'])) {
+            $channelId = intval($detail['channel_id']);
+            $sqlChanPlat = "SELECT cp.platform_id, pl.name AS platform_name, pl.code AS platform_code
+                            FROM channel_platform cp
+                            LEFT JOIN platforms pl ON cp.platform_id = pl.id
+                            WHERE cp.channel_id = $channelId
+                            ORDER BY cp.platform_id ASC
+                            LIMIT 1";
+            $resChanPlat = $conn->query($sqlChanPlat);
+            if ($resChanPlat && $cpRow = $resChanPlat->fetch_assoc()) {
+                $detail['channel_platform_id'] = intval($cpRow['platform_id']);
+                $detail['channel_platform_name'] = $cpRow['platform_name'];
+                $detail['channel_platform_code'] = $cpRow['platform_code'];
+            }
+        }
         // Formats
         $sqlF = "SELECT f.id, f.name, f.code, f.active FROM mmre_details_formats mf LEFT JOIN formats f ON mf.format_id = f.id WHERE mf.mmre_detail_id = {$detail['id']}";
         $resF = $conn->query($sqlF);
