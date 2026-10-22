@@ -1168,16 +1168,16 @@ $(document).ready(function () {
             workbook.modified = new Date();
             
             // Establecer anchos de columna PRIMERO
-            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L
-            // Proyecto, Plataforma, Campaña, AON, Canal, Segmentación, Formatos, Inversión, Distribución, Estado, Proyección, CPR
-            var columnWidths = [15, 15, 15, 18, 22, 18, 16, 16, 14, 10, 22, 12];
+            // Columnas: A,B,C,D,E,F,G,H,I,J,K,L,M
+            // Proyecto, Plataforma, Campaña, Objetivo, AON, Canal, Segmentación, Formatos, Inversión, Distribución, Estado, Proyección, CPR
+            var columnWidths = [15, 15, 15, 15, 18, 22, 18, 16, 16, 14, 10, 22, 12];
             columnWidths.forEach(function(width, index) {
                 worksheet.getColumn(index + 1).width = width;
             });
             
             // SECCIÓN 1: TÍTULO PRINCIPAL
             worksheet.addRow(['INFORMACIÓN DEL MIX DE MEDIOS']);
-            worksheet.mergeCells('A1:L1');
+            worksheet.mergeCells('A1:M1');
             var titleRow = worksheet.getRow(1);
             titleRow.getCell(1).font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
             titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF366092' } };
@@ -1188,11 +1188,11 @@ $(document).ready(function () {
             
             // SECCIÓN 2: INFORMACIÓN DETALLADA OCUPANDO TODO EL ANCHO
             var infoRows = [
-                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', ''],
-                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', ''], 
-                ['Período:', '', periodName, '', '', '', '', '', '', '', '', ''],
-                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', ''],
-                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '']
+                ['Mix de Medios:', '', mixName, '', '', '', '', '', '', '', '', '', ''],
+                ['Cliente:', '', clientName, '', '', '', '', '', '', '', '', '', ''], 
+                ['Período:', '', periodName, '', '', '', '', '', '', '', '', '', ''],
+                ['Moneda:', '', currency, '', '', '', '', '', '', '', '', '', ''],
+                ['Fecha de Exportación:', '', new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' }), '', '', '', '', '', '', '', '', '', '']
             ];
             
             infoRows.forEach(function(rowData, index) {
@@ -1212,8 +1212,8 @@ $(document).ready(function () {
                     right: { style: 'thin', color: { argb: 'FFB4C7E7' } }
                 };
                 
-                // Merge del valor (columnas C-L)
-                worksheet.mergeCells(rowNumber, 3, rowNumber, 12);
+                // Merge del valor (columnas C-M)
+                worksheet.mergeCells(rowNumber, 3, rowNumber, 13);
                 var valueCell = row.getCell(3);
                 valueCell.font = { name: 'Arial', size: 11, color: { argb: 'FF2F5F8F' } };
                 valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FBFF' } };
@@ -1265,7 +1265,7 @@ $(document).ready(function () {
             
             // Headers de la tabla
             var headers = [
-                'Proyecto', 'Plataforma', 'Campaña', 'AON',
+                'Proyecto', 'Plataforma', 'Campaña', 'Objetivo', 'AON',
                 'Canal', 'Segmentación', 'Formatos', 'Inversión (' + currency + ')',
                 'Distribución (%)', 'Estado', 'Proyección', 'CPR'
             ];
@@ -1297,7 +1297,7 @@ $(document).ready(function () {
                 var $row = $(this);
                 
                 // Crear fila para cada detalle
-                var excelRowData = new Array(12).fill('');
+                var excelRowData = new Array(13).fill('');
                 var colIndex = 0;
                 
                 $row.find('td').each(function() {
@@ -1314,7 +1314,7 @@ $(document).ready(function () {
                     }
                     
                     // Si ya llegamos al límite de columnas, salir
-                    if (colIndex >= 12) {
+                    if (colIndex >= 13) {
                         return;
                     }
                     
@@ -1328,7 +1328,7 @@ $(document).ready(function () {
                     // Marcar todas las celdas ocupadas por este elemento
                     for (var r = 0; r < rowspan; r++) {
                         for (var c = 0; c < colspan; c++) {
-                            if (colIndex + c < 12) {
+                            if (colIndex + c < 13) {
                                 occupiedCells[(rowIndex + r) + '_' + (colIndex + c)] = true;
                             }
                         }
@@ -1360,30 +1360,30 @@ $(document).ready(function () {
                 var isSubtotalRow = false;
                 
                 // Verificar si es fila de subtotal:
-                // - Las primeras 7 columnas vacías (debido a colspan="7")
-                // - Columna 8 (index 7) con formato de moneda
-                // - Columna 9 (index 8) con "100%"
+                // - Las primeras 8 columnas vacías (debido a colspan="8")
+                // - Columna 9 (index 8) con formato de moneda
+                // - Columna 10 (index 9) con "100%"
                 var emptyColumns = 0;
-                for (var i = 0; i < 7; i++) {
+                for (var i = 0; i < 8; i++) {
                     if (!rowData[i] || rowData[i] === '' || rowData[i] === null) {
                         emptyColumns++;
                     }
                 }
                 
-                if (emptyColumns === 7 && 
-                    rowData[7] && 
-                    rowData[7].match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
-                    rowData[8] === '100%') {
+                if (emptyColumns === 8 && 
+                    rowData[8] && 
+                    rowData[8].match(/^[A-Z]{3}\s[\d,]+\.?\d*$/) && 
+                    rowData[9] === '100%') {
                     
                     isSubtotalRow = true;
-                    console.log('✅ SUBTOTAL detectado en fila ' + index + ': ' + rowData[7]);
+                    console.log('✅ SUBTOTAL detectado en fila ' + index + ': ' + rowData[8]);
                 }
                 
                 if (isSubtotalRow) {
                     // Estilo especial para filas de subtotal
                     excelRow.eachCell(function(cell, colNumber) {
-                        if (colNumber <= 12) {
-                            if (colNumber === 8) { // Columna H - Inversión subtotal
+                        if (colNumber <= 13) {
+                            if (colNumber === 9) { // Columna I - Inversión subtotal
                                 cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
                                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                                 cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
@@ -1395,12 +1395,12 @@ $(document).ready(function () {
                                 };
                                 
                                 // Formato numérico para subtotal
-                                var subtotalValue = parseFloat(rowData[7].replace(/,/g, ''));
+                                var subtotalValue = parseFloat(rowData[8].replace(/,/g, ''));
                                 if (!isNaN(subtotalValue)) {
                                     cell.value = subtotalValue;
                                     cell.numFmt = '"' + currency + '" #,##0.00';
                                 }
-                            } else if (colNumber === 9) { // Columna I - Distribución 100%
+                            } else if (colNumber === 10) { // Columna J - Distribución 100%
                                 cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF2C3E50' } };
                                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF2F3' } };
                                 cell.alignment = { vertical: 'middle', horizontal: 'right', wrapText: true };
@@ -1440,7 +1440,7 @@ $(document).ready(function () {
                         };
                         
                         // Alineación especial para columnas numéricas
-                        if (colNumber === 7 || colNumber === 8 || colNumber === 12) {
+                        if (colNumber === 8 || colNumber === 9 || colNumber === 13) {
                             cell.alignment.horizontal = 'right';
                         } else {
                             cell.alignment.horizontal = 'center';
@@ -1459,10 +1459,10 @@ $(document).ready(function () {
                             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
                         }
 
-                        // CPR en columna 12 (L)
-                        if (colNumber === 12) {
-                            var investment = parseFloat(String(rowData[7]).replace(/[^0-9.-]/g, ''));
-                            var projection = parseFloat(String(rowData[10]).replace(/[^0-9.-]/g, ''));
+                        // CPR en columna 13 (M)
+                        if (colNumber === 13) {
+                            var investment = parseFloat(String(rowData[8]).replace(/[^0-9.-]/g, ''));
+                            var projection = parseFloat(String(rowData[11]).replace(/[^0-9.-]/g, ''));
                             
                             if (!isNaN(investment) && !isNaN(projection) && projection > 0) {
                                 var cpr = investment / projection;

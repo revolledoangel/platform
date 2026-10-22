@@ -473,6 +473,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <th>Proyecto</th>
                             <th>Plataforma</th>
                             <th>Campaña</th>
+                            <th>Objetivo</th>
                             <th>AON</th>
                             <th>Canal</th>
                             <th>Segmentación</th>
@@ -520,6 +521,7 @@ if (isset($_POST['configMediaMixId']) &&
                             <?php if ($firstPlatformRow): ?>
                             <td rowspan="<?php echo $platformRowspan; ?>" style="vertical-align: middle; text-align: center;"><?php echo htmlspecialchars($platform); ?></td>
                             <?php $firstPlatformRow = false; endif; ?>
+                            <td><?php echo htmlspecialchars($d['campaign_name'] ?? ''); ?></td>
                             <td><?php if ($hasMetric): ?>
                                 <?php echo htmlspecialchars($d['result_type'] ?? ''); ?>
                             <?php else: ?>
@@ -574,7 +576,7 @@ if (isset($_POST['configMediaMixId']) &&
                         
                         <!-- FILA DE SUBTOTAL POR PROYECTO - FUERA DEL ROWSPAN -->
                         <tr style="background:#f5f5f5;font-weight:bold;">
-                            <td colspan="7" style="text-align:right; padding-right: 10px;"></td>
+                            <td colspan="8" style="text-align:right; padding-right: 10px;"></td>
                             <td style="text-align:right;">
                                 <strong><?php echo htmlspecialchars($mmre['currency']) . ' ' . number_format($projectTotal, 2); ?></strong>
                             </td>
